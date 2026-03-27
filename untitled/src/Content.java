@@ -52,4 +52,37 @@ public class Content {
   public void setRating(double rating) {
     this.rating = rating;
   }
+
+  public void setTitle(String title) {
+    this.title = title;
+  }
+
+  public void setGenre(Genre genre) {
+    this.genre = genre;
+  }
+
+  public void setReleaseDate(LocalDate releaseDate) {
+    this.releaseDate = releaseDate;
+  }
+
+  public void setDuration(int duration) {
+    this.duration = duration;
+  }
+
+  public void setRegion(String region) {
+    this.region = region;
+  }
+
+  @Override
+  public String toString() {
+    return "Content{" +
+            "id='" + id + '\'' +
+            ", title='" + title + '\'' +
+            ", genre=" + genre +
+            ", releaseDate=" + releaseDate +
+            ", duration=" + duration +
+            ", region='" + region + '\'' +
+            ", rating=" + rating +
+            '}';
+  }
 }
