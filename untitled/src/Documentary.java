@@ -19,4 +19,20 @@ public class Documentary extends Content {
   public String getNarrator() {
     return narrator;
   }
-}}
+
+  public void setTopic(String topic) {
+    this.topic = topic;
+  }
+
+  public void setNarrator(String narrator) {
+    this.narrator = narrator;
+  }
+
+  @Override
+  public String toString() {
+    return "Documentary{" +
+            "topic='" + topic + '\'' +
+            ", narrator='" + narrator + '\'' +
+            '}';
+  }
+}

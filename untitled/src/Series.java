@@ -22,7 +22,21 @@ public class Series extends Content {
     return episodes;
   }
 
+  public void setSeasons(int seasons) {
+    this.seasons = seasons;
+  }
+  @Override
+  public String toString() {
+    return "Series{" +
+            "seasons=" + seasons +
+            ", episodes=" + episodes +
+            '}';
+  }
+
   public void addEpisode(String episode) {
     this.episodes.add(episode);
+  }
+  public void removeEpisode(String episode){
+    this.episodes.remove(episode);
   }
 }

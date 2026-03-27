@@ -8,14 +8,16 @@ public class Interation {
   private double rating;
   private double progress;
   private InterationType type;
+  private String id;
 
-  public Interation(User user, Content content, InterationType type) {
+  public Interation(User user, Content content, LocalDateTime watchDate, double rating, double progress, InterationType type, String id) {
     this.user = user;
     this.content = content;
+    this.watchDate = watchDate;
+    this.rating = rating;
+    this.progress = progress;
     this.type = type;
-    this.watchDate = LocalDateTime.now();
-    this.rating = 0.0;
-    this.progress = 0.0;
+    this.id = id;
   }
 
   public User getUser() {
@@ -26,27 +28,53 @@ public class Interation {
     return content;
   }
 
-  public double getRating() {
-    return rating;
+  public LocalDateTime getWatchDate() {
+    return watchDate;
   }
 
-  public void setRating(double rating) {
-    this.rating = rating;
+  public double getRating() {
+    return rating;
   }
 
   public double getProgress() {
     return progress;
   }
 
-  public void setProgress(double progress) {
-    this.progress = progress;
-  }
-
   public InterationType getType() {
     return type;
   }
 
-  public LocalDateTime getWatchDate() {
-    return watchDate;
+  public String getId() {
+    return id;
+  }
+
+  public void setWatchDate(LocalDateTime watchDate) {
+    this.watchDate = watchDate;
+  }
+
+  public void setRating(double rating) {
+    this.rating = rating;
+  }
+
+  public void setProgress(double progress) {
+    this.progress = progress;
+  }
+
+  public void setType(InterationType type) {
+    this.type = type;
+  }
+
+
+  @Override
+  public String toString() {
+    return "Interation{" +
+            "user=" + user +
+            ", content=" + content +
+            ", watchDate=" + watchDate +
+            ", rating=" + rating +
+            ", progress=" + progress +
+            ", type=" + type +
+            ", id='" + id + '\'' +
+            '}';
   }
 }

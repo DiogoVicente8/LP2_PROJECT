@@ -17,4 +17,15 @@ public class Movie extends Content {
   public void play() {
     System.out.println("Playing movie: " + getTitle());
   }
+
+  public void setDirector(Artist director) {
+    this.director = director;
+  }
+
+  @Override
+  public String toString() {
+    return "Movie{" +
+            "director=" + director +
+            '}';
+  }
 }
