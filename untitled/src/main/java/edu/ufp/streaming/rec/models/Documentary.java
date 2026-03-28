@@ -1,3 +1,5 @@
+package edu.ufp.streaming.rec.models;
+
 import java.time.LocalDate;
 
 public class Documentary extends Content {
@@ -30,7 +32,7 @@ public class Documentary extends Content {
 
   @Override
   public String toString() {
-    return "Documentary{" +
+    return "edu.pt.lp2.edu.ufp.streaming.rec.models.Documentary{" +
             "topic='" + topic + '\'' +
             ", narrator='" + narrator + '\'' +
             '}';

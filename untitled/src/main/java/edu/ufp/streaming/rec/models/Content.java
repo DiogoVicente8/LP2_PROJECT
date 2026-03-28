@@ -1,3 +1,5 @@
+package edu.ufp.streaming.rec.models;
+
 import java.time.LocalDate;
 
 public class Content {
@@ -75,7 +77,7 @@ public class Content {
 
   @Override
   public String toString() {
-    return "Content{" +
+    return "edu.pt.lp2.edu.ufp.streaming.rec.models.Content{" +
             "id='" + id + '\'' +
             ", title='" + title + '\'' +
             ", genre=" + genre +

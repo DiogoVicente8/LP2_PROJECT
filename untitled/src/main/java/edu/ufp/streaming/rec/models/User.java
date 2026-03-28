@@ -1,3 +1,5 @@
+package edu.ufp.streaming.rec.models;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +34,38 @@ public class User {
     return name;
   }
 
+  public void setId(String id) {
+    this.id = id;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public void setEmail(String email) {
+    this.email = email;
+  }
+
+  public void setRegion(String region) {
+    this.region = region;
+  }
+
+  public void setRegisterDate(LocalDate registerDate) {
+    this.registerDate = registerDate;
+  }
+
+  public void setPreferences(List<Genre> preferences) {
+    this.preferences = preferences;
+  }
+
+  public void setWatchHistory(List<Content> watchHistory) {
+    this.watchHistory = watchHistory;
+  }
+
+  public void setInteractions(List<Interation> interactions) {
+    this.interactions = interactions;
+  }
+
   public String getEmail() {
     return email;
   }
@@ -48,6 +82,17 @@ public class User {
     return preferences;
   }
 
+
+  public void addPreference(Genre genre) {
+    // Previne nulos e evita adicionar o mesmo género duas vezes
+    if (this.preferences == null) {
+      this.preferences = new ArrayList<>();
+    }
+    if (genre != null && !this.preferences.contains(genre)) {
+      this.preferences.add(genre);
+    }
+  }
+
   public List<Content> getWatchHistory() {
     return watchHistory;
   }
@@ -61,7 +106,7 @@ public class User {
   }
 
   public void follow(User u) {
-    // lógica de seguir outro utilizador (via UserFollow)
+    // lógica de seguir outro utilizador (via edu.pt.lp2.edu.ufp.streaming.rec.models.UserFollow)
   }
 
   public List<User> getFollowers() {

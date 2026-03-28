@@ -1,8 +1,10 @@
+package edu.ufp.streaming.rec.managers;
+
 import edu.princeton.cs.algs4.ST;
+import edu.ufp.streaming.rec.models.Genre;
+
 import java.util.ArrayList;
 import java.util.List;
-
-
 
 public class GenreManager {
 

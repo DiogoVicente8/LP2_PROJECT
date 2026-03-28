@@ -1,3 +1,7 @@
+package edu.ufp.streaming.rec.models;
+
+import edu.ufp.streaming.rec.enums.ArtistRole;
+
 import java.time.LocalDate;
 
 public class ArtistContent {

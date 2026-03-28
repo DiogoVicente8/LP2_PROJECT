@@ -1,3 +1,5 @@
+package edu.ufp.streaming.rec.models;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +29,7 @@ public class Series extends Content {
   }
   @Override
   public String toString() {
-    return "Series{" +
+    return "edu.pt.lp2.edu.ufp.streaming.rec.models.Series{" +
             "seasons=" + seasons +
             ", episodes=" + episodes +
             '}';

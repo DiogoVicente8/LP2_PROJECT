@@ -1,3 +1,5 @@
+package edu.ufp.streaming.rec.models;
+
 public class Genre {
 
   private String id;
@@ -18,7 +20,7 @@ public class Genre {
   }
   @java.lang.Override
   public java.lang.String toString() {
-    return "Genre{" +
+    return "edu.pt.lp2.edu.ufp.streaming.rec.models.Genre{" +
             "id='" + id + '\'' +
             ", name='" + name + '\'' +
             '}';

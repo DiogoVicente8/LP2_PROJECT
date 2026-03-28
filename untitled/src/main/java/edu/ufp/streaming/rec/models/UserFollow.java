@@ -1,3 +1,5 @@
+package edu.ufp.streaming.rec.models;
+
 import java.time.LocalDateTime;
 
 public class UserFollow {

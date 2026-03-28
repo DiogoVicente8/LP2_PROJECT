@@ -1,3 +1,7 @@
+package edu.ufp.streaming.rec.models;
+
+import edu.ufp.streaming.rec.enums.InterationType;
+
 import java.time.LocalDateTime;
 
 public class Interation {
@@ -67,7 +71,7 @@ public class Interation {
 
   @Override
   public String toString() {
-    return "Interation{" +
+    return "edu.pt.lp2.edu.ufp.streaming.rec.models.Interation{" +
             "user=" + user +
             ", content=" + content +
             ", watchDate=" + watchDate +

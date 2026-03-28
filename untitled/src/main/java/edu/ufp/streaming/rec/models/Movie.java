@@ -1,3 +1,5 @@
+package edu.ufp.streaming.rec.models;
+
 import java.time.LocalDate;
 
 public class Movie extends Content {
@@ -24,7 +26,7 @@ public class Movie extends Content {
 
   @Override
   public String toString() {
-    return "Movie{" +
+    return "edu.pt.lp2.edu.ufp.streaming.rec.models.Movie{" +
             "director=" + director +
             '}';
   }

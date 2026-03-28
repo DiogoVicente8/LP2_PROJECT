@@ -1,4 +1,11 @@
+package edu.ufp.streaming.rec.managers;
+
 import edu.princeton.cs.algs4.ST;
+import edu.ufp.streaming.rec.models.Content;
+import edu.ufp.streaming.rec.models.Documentary;
+import edu.ufp.streaming.rec.models.Movie;
+import edu.ufp.streaming.rec.models.Series;
+
 import java.util.ArrayList;
 import java.util.List;
 
