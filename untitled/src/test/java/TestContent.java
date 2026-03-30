@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+
 public class TestContent {
 
     public static void main(String[] args) {
@@ -20,6 +21,7 @@ public class TestContent {
         testContentManagerSearch();
         testContentManagerEdit();
         testContentManagerRemove();
+        testContentManagerR4Consistency();
         testContentBSTOrdered();
         testContentBSTDateRange();
         testInteration();
@@ -28,10 +30,6 @@ public class TestContent {
         System.out.println(" All TestContent tests completed.");
         System.out.println("========================================");
     }
-
-    // -----------------------------------------------------------------------
-    // Fixture helpers
-    // -----------------------------------------------------------------------
 
     private static Genre genre(String id, String name) {
         return new Genre(id, name);
@@ -49,17 +47,16 @@ public class TestContent {
         return new Documentary(id, title, g, date, 90, "PT", "Natureza", "David Attenborough");
     }
 
-    // -----------------------------------------------------------------------
-    // Tests
-    // -----------------------------------------------------------------------
+    private static ContentManager newCm() {
+        return new ContentManager(new ContentBST());
+    }
 
     public static void testGenreManager() {
         System.out.println("--- testGenreManager ---");
         GenreManager gm = new GenreManager();
-
-        Genre g1 = genre("G01", "Ação");
+        Genre g1 = genre("G01", "Acao");
         Genre g2 = genre("G02", "Drama");
-        Genre g3 = genre("G03", "Documentário");
+        Genre g3 = genre("G03", "Documentario");
 
         assert gm.insert(g1) : "Should insert G01";
         assert gm.insert(g2) : "Should insert G02";
@@ -67,23 +64,21 @@ public class TestContent {
         assert !gm.insert(g1) : "Should reject duplicate G01";
         assert gm.size() == 3 : "Size should be 3";
 
-        assert gm.editName("G01", "Ação e Aventura") : "Should edit G01";
-        assert gm.get("G01").getName().equals("Ação e Aventura") : "Name should be updated";
+        assert gm.editName("G01", "Acao e Aventura") : "Should edit G01";
+        assert gm.get("G01").getName().equals("Acao e Aventura") : "Name should be updated";
 
         Genre removed = gm.remove("G03");
         assert removed != null : "Should remove G03";
         assert gm.size() == 2 : "Size should be 2";
-
-        List<Genre> all = gm.listAll();
-        assert all.size() == 2 : "listAll should return 2";
+        assert gm.listAll().size() == 2 : "listAll should return 2";
 
         System.out.println("PASS: GenreManager\n");
     }
 
     public static void testContentManagerInsertAndList() {
         System.out.println("--- testContentManagerInsertAndList ---");
-        ContentManager cm = new ContentManager();
-        Genre g1 = genre("G01", "Ação");
+        ContentManager cm = newCm();
+        Genre g1 = genre("G01", "Acao");
         Genre g2 = genre("G02", "Drama");
 
         Movie m1 = movie("C01", "Inception", g1, LocalDate.of(2010, 7, 16));
@@ -97,7 +92,6 @@ public class TestContent {
         assert cm.insert(d1) : "Should insert d1";
         assert !cm.insert(m1) : "Should reject duplicate";
         assert cm.size() == 4 : "Size should be 4";
-
         assert cm.listMovies().size() == 2 : "Should list 2 movies";
         assert cm.listSeries().size() == 1 : "Should list 1 series";
         assert cm.listDocumentaries().size() == 1 : "Should list 1 documentary";
@@ -107,43 +101,37 @@ public class TestContent {
 
     public static void testContentManagerSearch() {
         System.out.println("--- testContentManagerSearch ---");
-        ContentManager cm = new ContentManager();
-        Genre g1 = genre("G01", "Ação");
+        ContentManager cm = newCm();
+        Genre g1 = genre("G01", "Acao");
         Genre g2 = genre("G02", "Drama");
 
         Movie m1 = movie("C01", "Inception", g1, LocalDate.of(2010, 7, 16));
         Movie m2 = movie("C02", "Interstellar", g2, LocalDate.of(2014, 11, 7));
         Series s1 = series("C03", "Breaking Bad", g2, LocalDate.of(2008, 1, 20), 5);
+        cm.insert(m1);
+        cm.insert(m2);
+        cm.insert(s1);
 
-        cm.insert(m1); cm.insert(m2); cm.insert(s1);
-
-        List<Content> byTitle = cm.searchByTitleSubstring("inter");
-        assert byTitle.size() == 1 : "Should find 1 result for 'inter'";
-
-        List<Content> byGenre = cm.searchByGenre("G02");
-        assert byGenre.size() == 2 : "Should find 2 Drama contents";
-
-        List<Content> byRegion = cm.searchByRegion("PT");
-        assert byRegion.size() == 3 : "Should find 3 contents in PT";
+        assert cm.searchByTitleSubstring("inter").size() == 1 : "Should find 1 for 'inter'";
+        assert cm.searchByGenre("G02").size() == 2 : "Should find 2 Drama";
+        assert cm.searchByRegion("PT").size() == 3 : "Should find 3 in PT";
 
         m1.setRating(4.5);
         m2.setRating(3.0);
-        List<Content> byRating = cm.searchByMinRating(4.0);
-        assert byRating.size() == 1 : "Should find 1 content with rating >= 4.0";
+        assert cm.searchByMinRating(4.0).size() == 1 : "Should find 1 with rating >= 4.0";
 
         System.out.println("PASS: ContentManager search\n");
     }
 
     public static void testContentManagerEdit() {
         System.out.println("--- testContentManagerEdit ---");
-        ContentManager cm = new ContentManager();
-        Genre g1 = genre("G01", "Ação");
+        ContentManager cm = newCm();
+        Genre g1 = genre("G01", "Acao");
         Movie m1 = movie("C01", "Inception", g1, LocalDate.of(2010, 7, 16));
         cm.insert(m1);
 
         assert cm.editTitle("C01", "Inception 2") : "Should edit title";
         assert cm.get("C01").getTitle().equals("Inception 2") : "Title should be updated";
-
         assert !cm.editTitle("C99", "X") : "Should return false for unknown id";
 
         System.out.println("PASS: ContentManager edit\n");
@@ -151,8 +139,8 @@ public class TestContent {
 
     public static void testContentManagerRemove() {
         System.out.println("--- testContentManagerRemove ---");
-        ContentManager cm = new ContentManager();
-        Genre g1 = genre("G01", "Ação");
+        ContentManager cm = newCm();
+        Genre g1 = genre("G01", "Acao");
         Movie m1 = movie("C01", "Inception", g1, LocalDate.of(2010, 7, 16));
         cm.insert(m1);
 
@@ -164,18 +152,37 @@ public class TestContent {
         System.out.println("PASS: ContentManager remove\n");
     }
 
+    public static void testContentManagerR4Consistency() {
+        System.out.println("--- testContentManagerR4Consistency ---");
+        ContentBST bst = new ContentBST();
+        ContentManager cm = new ContentManager(bst);
+        Genre g1 = genre("G01", "Acao");
+
+        Movie m1 = movie("C01", "Inception", g1, LocalDate.of(2010, 7, 16));
+        cm.insert(m1);
+
+        assert bst.size() == 1 : "BST should have 1 after insert";
+
+        cm.remove("C01");
+        assert cm.size() == 0 : "ST should be empty after remove";
+        assert bst.size() == 0 : "BST should also be empty after remove (R4)";
+
+        System.out.println("PASS: R4 consistency\n");
+    }
+
     public static void testContentBSTOrdered() {
         System.out.println("--- testContentBSTOrdered ---");
         ContentBST bst = new ContentBST();
-        Genre g1 = genre("G01", "Ação");
+        Genre g1 = genre("G01", "Acao");
 
         Movie m1 = movie("C01", "Inception", g1, LocalDate.of(2010, 7, 16));
         Movie m2 = movie("C02", "Interstellar", g1, LocalDate.of(2014, 11, 7));
         Series s1 = series("C03", "Breaking Bad", g1, LocalDate.of(2008, 1, 20), 5);
+        bst.insert(m1);
+        bst.insert(m2);
+        bst.insert(s1);
 
-        bst.insert(m1); bst.insert(m2); bst.insert(s1);
         assert bst.size() == 3 : "Size should be 3";
-
         assert bst.getOldestDate().equals(LocalDate.of(2008, 1, 20)) : "Oldest should be 2008";
         assert bst.getNewestDate().equals(LocalDate.of(2014, 11, 7)) : "Newest should be 2014";
 
@@ -195,8 +202,9 @@ public class TestContent {
         bst.insert(movie("C02", "Film B", g1, LocalDate.of(2010, 6, 15)));
         bst.insert(movie("C03", "Film C", g1, LocalDate.of(2020, 3, 10)));
 
-        List<Content> range = bst.getByDateRange(LocalDate.of(2008, 1, 1), LocalDate.of(2015, 1, 1));
-        assert range.size() == 1 : "Should find 1 content in range (got " + range.size() + ")";
+        List<Content> range = bst.getByDateRange(
+                LocalDate.of(2008, 1, 1), LocalDate.of(2015, 1, 1));
+        assert range.size() == 1 : "Should find 1 in range (got " + range.size() + ")";
         assert range.get(0).getId().equals("C02") : "Should be Film B";
 
         System.out.println("PASS: ContentBST date range\n");
