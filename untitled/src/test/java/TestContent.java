@@ -13,8 +13,20 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Casos de teste para as estruturas de dados de Conteúdos e Géneros.
+ * Testa os requisitos R2, R3, R4 e R5 do enunciado.
+ *
+ * @author Pedro
+ * @version 1.0
+ */
 public class TestContent {
 
+    /**
+     * Ponto de entrada — executa todos os casos de teste.
+     *
+     * @param args argumentos da linha de comandos (não utilizados)
+     */
     public static void main(String[] args) {
         System.out.println("========================================");
         System.out.println(" TestContent — Phase 1 Test Suite");
@@ -35,26 +47,34 @@ public class TestContent {
         System.out.println("========================================");
     }
 
+    /** Cria um género de teste. */
     private static Genre genre(String id, String name) {
         return new Genre(id, name);
     }
 
+    /** Cria um filme de teste. */
     private static Movie movie(String id, String title, Genre g, LocalDate date) {
         return new Movie(id, title, g, date, 120, "PT", null);
     }
 
+    /** Cria uma série de teste. */
     private static Series series(String id, String title, Genre g, LocalDate date, int seasons) {
         return new Series(id, title, g, date, 45, "PT", seasons);
     }
 
+    /** Cria um documentário de teste. */
     private static Documentary documentary(String id, String title, Genre g, LocalDate date) {
         return new Documentary(id, title, g, date, 90, "PT", "Natureza", "David Attenborough");
     }
 
+    /** Cria um ContentManager com BST associada. */
     private static ContentManager newCm() {
         return new ContentManager(new ContentBST());
     }
 
+    /**
+     * Testa as operações básicas do GenreManager (R2).
+     */
     public static void testGenreManager() {
         System.out.println("--- testGenreManager ---");
         GenreManager gm = new GenreManager();
@@ -79,6 +99,9 @@ public class TestContent {
         System.out.println("PASS: GenreManager\n");
     }
 
+    /**
+     * Testa inserção e listagem no ContentManager (R2).
+     */
     public static void testContentManagerInsertAndList() {
         System.out.println("--- testContentManagerInsertAndList ---");
         ContentManager cm = newCm();
@@ -103,6 +126,9 @@ public class TestContent {
         System.out.println("PASS: ContentManager insert and list\n");
     }
 
+    /**
+     * Testa as pesquisas do ContentManager (R2, R3).
+     */
     public static void testContentManagerSearch() {
         System.out.println("--- testContentManagerSearch ---");
         ContentManager cm = newCm();
@@ -127,6 +153,9 @@ public class TestContent {
         System.out.println("PASS: ContentManager search\n");
     }
 
+    /**
+     * Testa a edição de conteúdos no ContentManager (R2).
+     */
     public static void testContentManagerEdit() {
         System.out.println("--- testContentManagerEdit ---");
         ContentManager cm = newCm();
@@ -141,6 +170,9 @@ public class TestContent {
         System.out.println("PASS: ContentManager edit\n");
     }
 
+    /**
+     * Testa a remoção de conteúdos no ContentManager (R2).
+     */
     public static void testContentManagerRemove() {
         System.out.println("--- testContentManagerRemove ---");
         ContentManager cm = newCm();
@@ -156,6 +188,9 @@ public class TestContent {
         System.out.println("PASS: ContentManager remove\n");
     }
 
+    /**
+     * Testa a consistência entre ST e BST ao remover conteúdos (R4).
+     */
     public static void testContentManagerR4Consistency() {
         System.out.println("--- testContentManagerR4Consistency ---");
         ContentBST bst = new ContentBST();
@@ -166,7 +201,6 @@ public class TestContent {
         cm.insert(m1);
 
         assert bst.size() == 1 : "BST should have 1 after insert";
-
         cm.remove("C01");
         assert cm.size() == 0 : "ST should be empty after remove";
         assert bst.size() == 0 : "BST should also be empty after remove (R4)";
@@ -174,6 +208,9 @@ public class TestContent {
         System.out.println("PASS: R4 consistency\n");
     }
 
+    /**
+     * Testa a ordenação cronológica da ContentBST (R3).
+     */
     public static void testContentBSTOrdered() {
         System.out.println("--- testContentBSTOrdered ---");
         ContentBST bst = new ContentBST();
@@ -197,6 +234,9 @@ public class TestContent {
         System.out.println("PASS: ContentBST ordered\n");
     }
 
+    /**
+     * Testa a pesquisa por intervalo de datas na ContentBST (R3).
+     */
     public static void testContentBSTDateRange() {
         System.out.println("--- testContentBSTDateRange ---");
         ContentBST bst = new ContentBST();
@@ -214,6 +254,9 @@ public class TestContent {
         System.out.println("PASS: ContentBST date range\n");
     }
 
+    /**
+     * Testa a criação e atributos da classe Interation.
+     */
     public static void testInteration() {
         System.out.println("--- testInteration ---");
         Genre g1 = genre("G01", "Acao");
