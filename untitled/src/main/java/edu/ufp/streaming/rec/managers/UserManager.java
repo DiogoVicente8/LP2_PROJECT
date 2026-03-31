@@ -159,6 +159,34 @@ public class UserManager {
         return result;
     }
 
+    /**
+     * Adds a genre to a user's preferences if not already present.
+     *
+     * @param userId  the ID of the user
+     * @param genre   the {@link Genre} to add
+     * @return {@code true} if added successfully; {@code false} if user not found or genre already present
+     */
+    public boolean addPreference(String userId, Genre genre) {
+        User u = userST.get(userId);
+        if (u == null || genre == null) return false;
+        if (u.getPreferences().contains(genre)) return false;
+        u.addPreference(genre);
+        return true;
+    }
+
+    /**
+     * Removes a genre from a user's preferences.
+     *
+     * @param userId  the ID of the user
+     * @param genre   the {@link Genre} to remove
+     * @return {@code true} if removed successfully; {@code false} if user not found or genre not present
+     */
+    public boolean removePreference(String userId, Genre genre) {
+        User u = userST.get(userId);
+        if (u == null || genre == null) return false;
+        return u.getPreferences().remove(genre);
+    }
+
     public List<User> searchByPreferredGenre(String genreId) {
         List<User> result = new ArrayList<>();
         for (String key : userST.keys()) {
@@ -175,7 +203,6 @@ public class UserManager {
 
 
     private void indexByDate(User user) {
-        // CORREÇÃO: user.getRegisterDate().toEpochDay() para guardar como Long
         Long date = user.getRegisterDate().toEpochDay();
         List<User> bucket = byDateBST.get(date);
         if (bucket == null) {
