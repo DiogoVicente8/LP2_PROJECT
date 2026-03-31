@@ -1,13 +1,17 @@
 import edu.ufp.streaming.rec.managers.ContentBST;
 import edu.ufp.streaming.rec.managers.ContentManager;
 import edu.ufp.streaming.rec.managers.GenreManager;
-import edu.ufp.streaming.rec.models.*;
+import edu.ufp.streaming.rec.models.Content;
+import edu.ufp.streaming.rec.models.Documentary;
+import edu.ufp.streaming.rec.models.Genre;
+import edu.ufp.streaming.rec.models.Movie;
+import edu.ufp.streaming.rec.models.Series;
+import edu.ufp.streaming.rec.models.Interation;
 import edu.ufp.streaming.rec.enums.InterationType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-
 
 public class TestContent {
 
