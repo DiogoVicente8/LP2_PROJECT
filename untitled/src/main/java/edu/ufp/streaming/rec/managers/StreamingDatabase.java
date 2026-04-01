@@ -6,31 +6,46 @@ import edu.ufp.streaming.rec.models.*;
 import java.time.LocalDate;
 
 /**
- * Coordenador central da camada de dados da plataforma de streaming (Fase 1).
+ * Coordenador central da camada de dados da plataforma de streaming (Fase 1+ Fase 2).
  *
  * <p>Mantém referências para todos os gestores e garante a consistência R4:
- * a remoção de uma entidade propaga-se automaticamente para todas as estruturas relacionadas.
+ * a remoção de uma entidade propaga-se automaticamente para todas as estruturas relacionadas, incluindo o grafo
  *
  * <ul>
- * <li>Remover um {@link User} → limpa o {@link FollowManager} (todas as arestas de seguimento)</li>
- * <li>Remover um {@link Artist} → limpa o {@link ArtistContentManager} (todas as participações)</li>
- * <li>Remover um {@link Content} → limpa o {@link ArtistContentManager} (todas as participações)</li>
+ * <li>Remover um {@link User} → limpa o {@link FollowManager} e {@link StreamingGraph}</li>
+ * <li>Remover um {@link Artist} → limpa o {@link ArtistContentManager}</li>
+ * <li>Remover um {@link Content} → limpa o {@link ArtistContentManager} e {@link StreamingGraph}</li>
  * </ul>
  * @author  Diogo Vicente
  * */
 
 public class StreamingDatabase {
-
+    /** Gere as entidades {@link User}. */
     private final UserManager userManager;
+
+    /** Gere as entidades {@link Artist}. */
     private final ArtistManager artistManager;
+
+    /** BST ordenada por data de lançamento para consultas de conteúdo. */
     private final ContentBST contentBST;
+
+    /** Gere todos os conteúdos (Movie, Series, Documentary). */
     private final ContentManager contentManager;
+
+    /** Gere o catálogo de géneros. */
     private final GenreManager genreManager;
+
+    /** Gere as relações de participação Artista↔Conteúdo. */
     private final ArtistContentManager artistContentManager;
+
+    /** Gere as relações de follow entre utilizadores. */
     private final FollowManager followManager;
 
+    /** Grafo pesado direcionado que representa as relações User↔User e User↔Content. */
+    private final StreamingGraph graph;
+
     /**
-     * Constrói uma nova StreamingDatabase vazia com todos os gestores inicializados.
+     * Constrói uma nova StreamingDatabase vazia com todos os gestores inicializados e o grafo com capacidade.
      */
     public StreamingDatabase() {
         this.userManager          = new UserManager();
@@ -40,6 +55,7 @@ public class StreamingDatabase {
         this.genreManager         = new GenreManager();
         this.artistContentManager = new ArtistContentManager();
         this.followManager        = new FollowManager();
+        this.graph                = new StreamingGraph(100);
     }
 
     // -------------------------------------------------------------------------
@@ -67,18 +83,22 @@ public class StreamingDatabase {
     /** @return the {@link FollowManager} */
     public FollowManager follows() { return followManager; }
 
+    /** @return o {@link StreamingGraph} */
+    public StreamingGraph getGraph() { return graph; }
     // -------------------------------------------------------------------------
     // Inserções Consistentes
     // -------------------------------------------------------------------------
 
     /**
-     * Insere um {@link User} no sistema.
+     * Insere um {@link User} no sistema e adiciona-o como vértice no grafo.
      *
      * @param user o utilizador a inserir
      * @return {@code true} se inserido com sucesso
      */
     public boolean addUser(User user) {
-        return userManager.insert(user);
+        if (!userManager.insert(user)) return false;
+        graph.addUser(user);
+        return true;
     }
 
     /**
@@ -92,14 +112,15 @@ public class StreamingDatabase {
     }
 
     /**
-     * Insere um item de {@link Content} no sistema.
-     * Adicionado automaticamente tanto à ST como à ContentBST.
+     * Insere um {@link Content} no sistema e adiciona-o como vértice no grafo.
      *
      * @param content o conteúdo a inserir
      * @return {@code true} se inserido com sucesso
      */
     public boolean addContent(Content content) {
-        return contentManager.insert(content);
+        if (!contentManager.insert(content)) return false;
+        graph.addContent(content);
+        return true;
     }
 
     /**
@@ -130,17 +151,33 @@ public class StreamingDatabase {
     }
 
     /**
-     * Regista uma relação de seguimento entre dois utilizadores.
+     * Regista uma relação de follow entre dois utilizadores e adiciona a aresta ao grafo.
      *
      * @param followerId ID do seguidor (deve já existir)
-     * @param followedId ID do utilizador seguido (deve já existir)
+     * @param followedId ID do utilizador a seguir (deve já existir)
      * @return o {@link UserFollow} criado, ou {@code null} em caso de falha
      */
     public UserFollow addFollow(String followerId, String followedId) {
         User follower = userManager.get(followerId);
         User followed = userManager.get(followedId);
         if (follower == null || followed == null) return null;
-        return followManager.follow(follower, followed);
+        UserFollow uf = followManager.follow(follower,followed);
+        if (uf != null) graph.addFollowEdge(uf);
+        return uf;
+    }
+
+    /**
+     * Regista uma interacção do utilizador com um conteúdo e adiciona a aresta ao grafo.
+     * Apenas interacções do tipo WATCH e RATE são adicionadas como arestas no grafo.
+     *
+     * @param interacao a {@link Interation} a registar
+     */
+    public void addInteraction(Interation interacao) {
+        if (interacao == null) return;
+        User user = userManager.get(interacao.getUser().getId());
+        if (user == null) return;
+        user.addInteration(interacao);
+        graph.addInteractionEdge(interacao);
     }
 
     // -------------------------------------------------------------------------
@@ -148,15 +185,16 @@ public class StreamingDatabase {
     // -------------------------------------------------------------------------
 
     /**
-     * Remove um {@link User} do sistema e propaga para todas as estruturas relacionadas.
-     * Cascata: remove todas as relações de seguimento (enviadas e recebidas).
+     * Remove um {@link User} do sistema e propaga a remoção a todas as estruturas relacionadas.
+     * Cascata: remove todas as relações de follow e as arestas no grafo.
      *
      * @param userId o ID do utilizador a remover
-     * @return o {@link User} removido, ou {@code null} se não for encontrado
+     * @return o {@link User} removido, ou {@code null} se não encontrado
      */
     public User removeUser(String userId) {
         if (!userManager.contains(userId)) return null;
         followManager.removeAllRelationships(userId);
+        graph.removeFollowEdges(userId);
         return userManager.remove(userId);
     }
 
@@ -174,12 +212,11 @@ public class StreamingDatabase {
     }
 
     /**
-     * Remove um item de {@link Content} do sistema e propaga para todas as estruturas relacionadas.
-     * Cascata: remove todos os registos de participação Artista↔Conteúdo para este conteúdo.
-     * Tanto a ST como a ContentBST são atualizadas via ContentManager.remove().
+     * Remove um {@link Content} do sistema e propaga a remoção a todas as estruturas relacionadas.
+     * Cascata: remove todos os registos de participação e as arestas no grafo.
      *
      * @param contentId o ID do conteúdo a remover
-     * @return o {@link Content} removido, ou {@code null} se não for encontrado
+     * @return o {@link Content} removido, ou {@code null} se não encontrado
      */
     public Content removeContent(String contentId) {
         if (contentManager.get(contentId) == null) return null;
