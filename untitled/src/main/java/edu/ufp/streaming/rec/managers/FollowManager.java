@@ -6,28 +6,30 @@ import edu.ufp.streaming.rec.models.User;
 import edu.ufp.streaming.rec.models.UserFollow;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset; // <-- Novo import necessário para a conversão
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+/**
+ * Gere as relações de seguimento (follow) entre entidades {@link User} na plataforma.
+ * @author  Diogo Vicente
+ */
 
 public class FollowManager {
 
-    /** Primary ST: "followerId:followedId" → edu.pt.lp2.edu.ufp.streaming.rec.models.UserFollow. */
+    /** ST Primária: "followerId:followedId" → UserFollow. */
     private final ST<String, UserFollow> followST;
 
-    /** Per-user index: userId → list of edu.pt.lp2.edu.ufp.streaming.rec.models.UserFollow where this user is the follower. */
+    /** Índice: userId → lista de UserFollow onde este utilizador é quem segue (outgoing). */
     private final ST<String, List<UserFollow>> followingIndex;
 
-    /** Per-user index: userId → list of edu.pt.lp2.edu.ufp.streaming.rec.models.UserFollow where this user is being followed. */
+    /** Índice: userId → lista de UserFollow onde este utilizador é seguido (incoming). */
     private final ST<String, List<UserFollow>> followerIndex;
 
-    /** BST ordered by follow date for temporal range queries.
-     * CORREÇÃO: Alterado de LocalDateTime para Long
-     */
+    /** BST Ordenada: data em segundos (Long) → lista de UserFollow. */
     private final RedBlackBST<Long, List<UserFollow>> byDateBST;
 
     /**
-     * Constructs an empty edu.pt.lp2.edu.ufp.streaming.rec.managers.FollowManager.
+     * Constrói um FollowManager vazio.
      */
     public FollowManager() {
         this.followST       = new ST<>();
@@ -36,10 +38,14 @@ public class FollowManager {
         this.byDateBST      = new RedBlackBST<>();
     }
 
-    // -------------------------------------------------------------------------
-    // Follow / Unfollow
-    // -------------------------------------------------------------------------
-
+    /**
+     * Regista que o {@code follower} agora segue o {@code followed}.
+     * Não faz nada se a relação já existir.
+     *
+     * @param follower o utilizador que inicia o seguimento
+     * @param followed o utilizador que passa a ser seguido
+     * @return o novo objeto {@link UserFollow}, ou {@code null} se já o seguia ou se for inválido
+     */
     public UserFollow follow(User follower, User followed) {
         if (follower == null || followed == null) return null;
         String key = compositeKey(follower.getId(), followed.getId());
@@ -53,7 +59,13 @@ public class FollowManager {
         return uf;
     }
 
-
+    /**
+     * Remove a relação de seguimento de {@code followerId} para {@code followedId}.
+     *
+     * @param followerId o ID do utilizador que segue
+     * @param followedId o ID do utilizador seguido
+     * @return o {@link UserFollow} removido, ou {@code null} se não for encontrado
+     */
     public UserFollow unfollow(String followerId, String followedId) {
         String key = compositeKey(followerId, followedId);
         if (!followST.contains(key)) return null;
@@ -66,15 +78,23 @@ public class FollowManager {
         return uf;
     }
 
+    /**
+     * Retorna {@code true} se o {@code followerId} segue atualmente o {@code followedId}.
+     *
+     * @param followerId ID do potencial seguidor
+     * @param followedId ID do utilizador potencialmente seguido
+     * @return {@code true} se a relação de seguimento existir
+     */
     public boolean isFollowing(String followerId, String followedId) {
         return followST.contains(compositeKey(followerId, followedId));
     }
 
-    // -------------------------------------------------------------------------
-    // Queries
-    // -------------------------------------------------------------------------
-
-
+    /**
+     * Retorna a lista de utilizadores que um determinado utilizador está a seguir.
+     *
+     * @param userId o ID do utilizador (seguidor)
+     * @return lista de objetos {@link User} seguidos; vazia se nenhum
+     */
     public List<User> getFollowing(String userId) {
         List<User> result = new ArrayList<>();
         List<UserFollow> list = followingIndex.get(userId);
@@ -84,6 +104,12 @@ public class FollowManager {
         return result;
     }
 
+    /**
+     * Retorna a lista de utilizadores que seguem um determinado utilizador.
+     *
+     * @param userId o ID do utilizador seguido
+     * @return lista de seguidores ({@link User}); vazia se nenhum
+     */
     public List<User> getFollowers(String userId) {
         List<User> result = new ArrayList<>();
         List<UserFollow> list = followerIndex.get(userId);
@@ -93,19 +119,37 @@ public class FollowManager {
         return result;
     }
 
+    /**
+     * Retorna o número de seguidores de um utilizador.
+     *
+     * @param userId o ID do utilizador seguido
+     * @return contagem de seguidores
+     */
     public int followerCount(String userId) {
         List<UserFollow> list = followerIndex.get(userId);
         return list != null ? list.size() : 0;
     }
 
+    /**
+     * Retorna o número de utilizadores que um determinado utilizador segue.
+     *
+     * @param userId o ID do utilizador (seguidor)
+     * @return contagem de quem ele segue
+     */
     public int followingCount(String userId) {
         List<UserFollow> list = followingIndex.get(userId);
         return list != null ? list.size() : 0;
     }
 
+    /**
+     * Retorna todas as relações de seguimento criadas num intervalo de data/hora [de, até].
+     *
+     * @param from início do intervalo (inclusive)
+     * @param to   fim do intervalo (inclusive)
+     * @return lista de objetos {@link UserFollow} no intervalo
+     */
     public List<UserFollow> searchByDateRange(LocalDateTime from, LocalDateTime to) {
         List<UserFollow> result = new ArrayList<>();
-        // CORREÇÃO: Transformar from e to em Long (segundos)
         Long fromEpoch = from.toEpochSecond(ZoneOffset.UTC);
         Long toEpoch = to.toEpochSecond(ZoneOffset.UTC);
 
@@ -116,6 +160,12 @@ public class FollowManager {
         return result;
     }
 
+    /**
+     * Remove todas as relações de seguimento que envolvam um determinado utilizador.
+     * Deve ser chamado quando um utilizador é apagado do sistema (consistência R4).
+     *
+     * @param userId o ID do utilizador removido
+     */
     public void removeAllRelationships(String userId) {
         // Remove all outgoing follows (userId → someone)
         List<UserFollow> following = followingIndex.get(userId);
@@ -129,7 +179,6 @@ public class FollowManager {
             followingIndex.delete(userId);
         }
 
-        // Remove all incoming follows (someone → userId)
         List<UserFollow> followers = followerIndex.get(userId);
         if (followers != null) {
             for (UserFollow uf : new ArrayList<>(followers)) {
@@ -142,13 +191,17 @@ public class FollowManager {
         }
     }
 
+    /**
+     * Retorna o número total de relações de seguimento armazenadas.
+     *
+     * @return contagem total de follows
+     */
+
     public int size() {
         return followST.size();
     }
 
-    // -------------------------------------------------------------------------
-    // Private helpers
-    // -------------------------------------------------------------------------
+    // --- Métodos Auxiliares Privados ---
 
     private String compositeKey(String followerId, String followedId) {
         return followerId + ":" + followedId;
@@ -169,7 +222,6 @@ public class FollowManager {
     }
 
     private void indexByDate(UserFollow uf) {
-        // CORREÇÃO: Transformar LocalDateTime em Long (segundos)
         Long dt = uf.getDate().toEpochSecond(ZoneOffset.UTC);
         List<UserFollow> bucket = byDateBST.get(dt);
         if (bucket == null) { bucket = new ArrayList<>(); byDateBST.put(dt, bucket); }
@@ -189,7 +241,6 @@ public class FollowManager {
     }
 
     private void removeFromDateIndex(UserFollow uf) {
-        // CORREÇÃO: Transformar LocalDateTime em Long (segundos)
         Long dt = uf.getDate().toEpochSecond(ZoneOffset.UTC);
         List<UserFollow> bucket = byDateBST.get(dt);
         if (bucket != null) { bucket.remove(uf); if (bucket.isEmpty()) byDateBST.delete(dt); }

@@ -7,45 +7,46 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents an artist (actor, director, producer, or writer) on the streaming platform.
+ * Representa um artista (ator, realizador, produtor ou argumentista) na plataforma de streaming.
  *
- * <p>Artists have a unique ID, personal details, a primary {@link ArtistRole},
- * and a filmography — a list of {@link ArtistContent} associations linking
- * this artist to the content they participated in.
+ * <p>Os artistas possuem um ID único, detalhes pessoais, uma função principal ({@link ArtistRole}),
+ * e uma filmografia — uma lista de associações {@link ArtistContent} que ligam
+ * este artista ao conteúdo em que participou.
  *
+ * @author  Diogo Vicente
  */
 public class Artist {
 
-  /** Unique identifier for this artist. */
+  /** Identificador único para este artista. */
   private String id;
 
-  /** Full name of the artist. */
+  /** Nome completo do artista. */
   private String name;
 
-  /** Country of origin/nationality. */
+  /** País de origem/nacionalidade. */
   private String nationality;
 
-  /** Gender string (e.g. "M", "F"). */
+  /** String de género (ex: "M", "F"). */
   private String gender;
 
-  /** Date of birth. */
+  /** Data de nascimento. */
   private LocalDate birthDate;
 
-  /** Primary role on the platform (e.g. ACTOR, DIRECTOR). */
+  /** Função principal na plataforma (ex: ACTOR, DIRECTOR). */
   private ArtistRole role;
 
-  /** List of content participations (filmography). */
+  /** Lista de participações em conteúdos (filmografia). */
   private List<ArtistContent> participates;
 
   /**
-   * Constructs a new Artist with the given details.
+   * Constrói um novo Artista com os detalhes fornecidos.
    *
-   * @param id          unique artist ID
-   * @param name        full name
-   * @param nationality country of origin
-   * @param gender      gender string
-   * @param birthDate   date of birth
-   * @param role        primary {@link ArtistRole}
+   * @param id          ID único do artista
+   * @param name        nome completo
+   * @param nationality país de origem
+   * @param gender      string de género
+   * @param birthDate   data de nascimento
+   * @param role        função principal ({@link ArtistRole})
    */
   public Artist(String id, String name, String nationality, String gender,
                 LocalDate birthDate, ArtistRole role) {
@@ -59,116 +60,116 @@ public class Artist {
   }
 
   /**
-   * Returns the artist's unique ID.
+   * Retorna o ID único do artista.
    *
-   * @return ID string
+   * @return string do ID
    */
   public String getId() { return id; }
 
   /**
-   * Returns the artist's full name.
+   * Retorna o nome completo do artista.
    *
-   * @return name string
+   * @return string do nome
    */
   public String getName() { return name; }
 
   /**
-   * Returns the artist's nationality.
+   * Retorna a nacionalidade do artista.
    *
-   * @return nationality string
+   * @return string da nacionalidade
    */
   public String getNationality() { return nationality; }
 
   /**
-   * Returns the artist's gender.
+   * Retorna o género do artista.
    *
-   * @return gender string
+   * @return string do género
    */
   public String getGender() { return gender; }
 
   /**
-   * Returns the artist's date of birth.
+   * Retorna a data de nascimento do artista.
    *
-   * @return birth date
+   * @return data de nascimento
    */
   public LocalDate getBirthDate() { return birthDate; }
 
   /**
-   * Returns the artist's primary role.
+   * Retorna a função principal do artista.
    *
    * @return {@link ArtistRole}
    */
   public ArtistRole getRole() { return role; }
 
   /**
-   * Returns the artist's filmography (list of content participations).
+   * Retorna a filmografia do artista (lista de participações em conteúdos).
    *
-   * @return mutable list of {@link ArtistContent}
+   * @return lista mutável de {@link ArtistContent}
    */
   public List<ArtistContent> getFilmography() { return participates; }
 
   /**
-   * Returns the artist's participation list (alias for {@link #getFilmography()}).
+   * Retorna a lista de participações do artista (alias para {@link #getFilmography()}).
    *
-   * @return mutable list of {@link ArtistContent}
+   * @return lista mutável de {@link ArtistContent}
    */
   public List<ArtistContent> getParticipates() { return participates; }
 
   /**
-   * Sets the artist's unique ID.
+   * Define o ID único do artista.
    *
-   * @param id new ID string
+   * @param id nova string de ID
    */
   public void setId(String id) { this.id = id; }
 
   /**
-   * Updates the artist's display name.
+   * Atualiza o nome de exibição do artista.
    *
-   * @param name new name
+   * @param name novo nome
    */
   public void setName(String name) { this.name = name; }
 
   /**
-   * Updates the artist's nationality.
+   * Atualiza a nacionalidade do artista.
    *
-   * @param nationality new nationality string
+   * @param nationality nova string de nacionalidade
    */
   public void setNationality(String nationality) { this.nationality = nationality; }
 
   /**
-   * Updates the artist's gender.
+   * Atualiza o género do artista.
    *
-   * @param gender new gender string
+   * @param gender nova string de género
    */
   public void setGender(String gender) { this.gender = gender; }
 
   /**
-   * Updates the artist's date of birth.
+   * Atualiza a data de nascimento do artista.
    *
-   * @param birthDate new birth date
+   * @param birthDate nova data de nascimento
    */
   public void setBirthDate(LocalDate birthDate) { this.birthDate = birthDate; }
 
   /**
-   * Updates the artist's primary role.
+   * Atualiza a função principal do artista.
    *
-   * @param role new {@link ArtistRole}
+   * @param role nova {@link ArtistRole}
    */
   public void setRole(ArtistRole role) { this.role = role; }
 
   /**
-   * Replaces the artist's participation list.
+   * Substitui a lista de participações do artista.
    *
-   * @param participates new list of {@link ArtistContent}
+   * @param participates nova lista de {@link ArtistContent}
    */
   public void setParticipates(List<ArtistContent> participates) { this.participates = participates; }
 
   /**
-   * Adds a content participation to this artist's filmography.
-   * Also called automatically by {@link edu.ufp.streaming.rec.managers.ArtistContentManager}
-   * when a new participation is recorded.
+   * Adiciona uma participação em conteúdo à filmografia deste artista.
+   * Também é chamado automaticamente pelo {@link edu.ufp.streaming.rec.managers.ArtistContentManager}
+   * quando uma nova participação é registada.
    *
-   * @param ac the {@link ArtistContent} association to add
+   * @param ac a associação {@link ArtistContent} a adicionar
    */
   public void addParticipation(ArtistContent ac) { this.participates.add(ac); }
 

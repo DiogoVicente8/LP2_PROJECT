@@ -14,19 +14,20 @@ import java.util.List;
 public class TestUserArtist {
 
     // -----------------------------------------------------------------------
-    // Entry point
+    // Ponto de entrada
     // -----------------------------------------------------------------------
 
     /**
-     * Runs all test cases in sequence.
+     * Executa todos os casos de teste em sequência.
      *
-     * @param args not used
+     * @param args não utilizado
      */
     public static void main(String[] args) {
         System.out.println("========================================");
-        System.out.println(" TestUserArtist — Phase 1 Test Suite");
+        System.out.println(" TestUserArtist — Testes Fase 1");
         System.out.println("========================================\n");
 
+        // Testes do UserManager
         testUserManagerInsertAndGet();
         testUserManagerRemove();
         testUserManagerEdit();
@@ -37,6 +38,8 @@ public class TestUserArtist {
         testUserManagerSearchByRegionAndDateRange();
         testUserManagerSearchByNameSubstringAndRegion();
         testUserManagerSearchByPreferredGenre();
+
+        // Testes do ArtistManager
         testArtistManagerInsertAndGet();
         testArtistManagerRemove();
         testArtistManagerEdit();
@@ -47,21 +50,24 @@ public class TestUserArtist {
         testArtistManagerSearchByNationalityAndBirthDateRange();
         testArtistManagerSearchByNameSubstringNationalityGender();
         testArtistManagerSearchByRole();
+
+        // Testes do FollowManager
         testFollowManagerFollowAndUnfollow();
         testFollowManagerGetFollowersAndFollowing();
         testFollowManagerConsistencyOnUserRemoval();
         testFollowManagerDateRange();
+        testUserManagerPreferences();
 
         System.out.println("\n========================================");
-        System.out.println(" All tests completed.");
+        System.out.println(" Todos os testes concluídos.");
         System.out.println("========================================");
     }
 
     // -----------------------------------------------------------------------
-    // Shared fixture helpers
+    // Auxiliares para criação de dados (fixtures)
     // -----------------------------------------------------------------------
 
-    /** Creates a populated {@link UserManager} with 5 sample users. */
+    /** Cria um {@link UserManager} populado com 5 utilizadores de exemplo. */
     private static UserManager buildUserManager() {
         UserManager um = new UserManager();
         Genre g1 = new Genre("g1", "Action");
@@ -81,7 +87,7 @@ public class TestUserArtist {
         return um;
     }
 
-    /** Creates a populated {@link ArtistManager} with 5 sample artists. */
+    /** Cria um {@link ArtistManager} populado com 5 artistas de exemplo. */
     private static ArtistManager buildArtistManager() {
         ArtistManager am = new ArtistManager();
 
@@ -94,74 +100,74 @@ public class TestUserArtist {
     }
 
     // -----------------------------------------------------------------------
-    // edu.ufp.streaming.rec.managers.UserManager tests
+    // Testes de edu.ufp.streaming.rec.managers.UserManager
     // -----------------------------------------------------------------------
 
     /**
-     * Tests insert and get operations on {@link UserManager}.
+     * Testa operações de inserção e obtenção no {@link UserManager}.
      */
     public static void testUserManagerInsertAndGet() {
         System.out.println("--- testUserManagerInsertAndGet ---");
         UserManager um = buildUserManager();
 
-        assert um.size() == 5 : "Expected 5 users";
-        assert um.get("u1").getName().equals("Alice Silva") : "u1 should be Alice Silva";
-        assert um.get("u99") == null : "Unknown ID should return null";
+        assert um.size() == 5 : "Esperados 5 utilizadores";
+        assert um.get("u1").getName().equals("Alice Silva") : "u1 deveria ser Alice Silva";
+        assert um.get("u99") == null : "ID desconhecido deveria retornar null";
 
-        // Duplicate insert should fail
-        User dup = new User("u1", "Duplicate", "dup@mail.com", "PT", LocalDate.now());
-        assert !um.insert(dup) : "Duplicate insert should return false";
+        // Inserção duplicada deve falhar
+        User dup = new User("u1", "Duplicado", "dup@mail.com", "PT", LocalDate.now());
+        assert !um.insert(dup) : "Inserção duplicada deveria retornar false";
 
-        System.out.println("PASS: insert/get/duplicate\n");
+        System.out.println("PASSOU: inserção/obtenção/duplicados\n");
     }
 
     /**
-     * Tests remove from {@link UserManager} and BST consistency.
+     * Testa a remoção do {@link UserManager} e a consistência da BST.
      */
     public static void testUserManagerRemove() {
         System.out.println("--- testUserManagerRemove ---");
         UserManager um = buildUserManager();
 
         User removed = um.remove("u3");
-        assert removed != null && removed.getId().equals("u3") : "Should return removed user";
-        assert um.size() == 4 : "Size should be 4 after removal";
-        assert um.get("u3") == null : "Removed user should not be retrievable";
+        assert removed != null && removed.getId().equals("u3") : "Deveria retornar o utilizador removido";
+        assert um.size() == 4 : "O tamanho deveria ser 4 após a remoção";
+        assert um.get("u3") == null : "O utilizador removido não deve ser recuperável";
 
-        // BST should no longer contain u3
+        // A BST não deve conter mais o u3
         List<User> byDate = um.searchByRegisterDate(LocalDate.of(2021, 6, 20));
         assert byDate.stream().noneMatch(u -> u.getId().equals("u3"))
-                : "Date index should not contain removed user";
+                : "O índice de data não deve conter o utilizador removido";
 
-        assert um.remove("u99") == null : "Removing non-existent user should return null";
-        System.out.println("PASS: remove + BST consistency\n");
+        assert um.remove("u99") == null : "Remover utilizador inexistente deve retornar null";
+        System.out.println("PASSOU: remoção + consistência da BST\n");
     }
 
     /**
-     * Tests edit operations on {@link UserManager}.
+     * Testa operações de edição no {@link UserManager}.
      */
     public static void testUserManagerEdit() {
         System.out.println("--- testUserManagerEdit ---");
         UserManager um = buildUserManager();
 
-        assert um.editName("u1", "Alice Ferreira") : "Edit name should succeed";
-        assert um.get("u1").getName().equals("Alice Ferreira") : "Name should be updated";
+        assert um.editName("u1", "Alice Ferreira") : "A edição do nome deve ter sucesso";
+        assert um.get("u1").getName().equals("Alice Ferreira") : "O nome deve estar atualizado";
 
-        // Name BST should reflect the change
+        // A BST de nomes deve refletir a mudança
         List<User> found = um.searchByNameSubstring("ferreira");
         assert found.stream().anyMatch(u -> u.getId().equals("u1"))
-                : "Name BST should reflect renamed user";
+                : "A BST de nomes deve refletir o utilizador renomeado";
 
-        // Old name should not appear
+        // O nome antigo não deve aparecer
         List<User> old = um.searchByNameSubstring("alice silva");
         assert old.stream().noneMatch(u -> u.getId().equals("u1"))
-                : "Old name should no longer be indexed";
+                : "O nome antigo não deve estar mais indexado";
 
-        assert !um.editName("u99", "Ghost") : "Edit on missing user should return false";
-        System.out.println("PASS: editName + BST re-index\n");
+        assert !um.editName("u99", "Fantasma") : "A edição em utilizador inexistente deve retornar false";
+        System.out.println("PASSOU: editName + re-indexação na BST\n");
     }
 
     /**
-     * Tests exact-date search on the registration date BST.
+     * Testa a pesquisa por data exata na BST de data de registo.
      */
     public static void testUserManagerSearchByDate() {
         System.out.println("--- testUserManagerSearchByDate ---");
@@ -169,36 +175,36 @@ public class TestUserArtist {
 
         List<User> result = um.searchByRegisterDate(LocalDate.of(2020, 1, 10));
         assert result.size() == 1 && result.get(0).getId().equals("u1")
-                : "Should find exactly u1 on 2020-01-10";
+                : "Deveria encontrar exatamente u1 em 2020-01-10";
 
         List<User> empty = um.searchByRegisterDate(LocalDate.of(1999, 1, 1));
-        assert empty.isEmpty() : "No users should be found on 1999-01-01";
+        assert empty.isEmpty() : "Nenhum utilizador deve ser encontrado em 1999-01-01";
 
-        System.out.println("PASS: searchByRegisterDate\n");
+        System.out.println("PASSOU: searchByRegisterDate\n");
     }
 
     /**
-     * Tests date-range search on the registration date BST.
+     * Testa a pesquisa por intervalo de datas na BST de data de registo.
      */
     public static void testUserManagerSearchByDateRange() {
         System.out.println("--- testUserManagerSearchByDateRange ---");
         UserManager um = buildUserManager();
 
-        // Range covers u1 (Jan 2020) and u2 (Mar 2020)
+        // Intervalo cobre u1 (Jan 2020) e u2 (Mar 2020)
         List<User> result = um.searchByRegisterDateRange(
                 LocalDate.of(2020, 1, 1), LocalDate.of(2020, 12, 31));
-        assert result.size() == 2 : "Expected 2 users in 2020 (got " + result.size() + ")";
+        assert result.size() == 2 : "Esperados 2 utilizadores em 2020 (obteve " + result.size() + ")";
 
-        // Range covers no users
+        // Intervalo não cobre nenhum utilizador
         List<User> empty = um.searchByRegisterDateRange(
                 LocalDate.of(2018, 1, 1), LocalDate.of(2019, 12, 31));
-        assert empty.isEmpty() : "No users registered in 2018-2019";
+        assert empty.isEmpty() : "Nenhum utilizador registado em 2018-2019";
 
-        System.out.println("PASS: searchByRegisterDateRange\n");
+        System.out.println("PASSOU: searchByRegisterDateRange\n");
     }
 
     /**
-     * Tests name-substring search on the name BST.
+     * Testa a pesquisa por substring do nome na BST de nomes.
      */
     public static void testUserManagerSearchByNameSubstring() {
         System.out.println("--- testUserManagerSearchByNameSubstring ---");
@@ -206,47 +212,47 @@ public class TestUserArtist {
 
         List<User> result = um.searchByNameSubstring("silva");
         assert result.size() == 1 && result.get(0).getId().equals("u1")
-                : "Should find Alice Silva";
+                : "Deveria encontrar Alice Silva";
 
         List<User> noMatch = um.searchByNameSubstring("xyz");
-        assert noMatch.isEmpty() : "Should find nobody for 'xyz'";
+        assert noMatch.isEmpty() : "Não deve encontrar ninguém para 'xyz'";
 
-        System.out.println("PASS: searchByNameSubstring\n");
+        System.out.println("PASSOU: searchByNameSubstring\n");
     }
 
     /**
-     * Tests region filter.
+     * Testa o filtro por região.
      */
     public static void testUserManagerSearchByRegion() {
         System.out.println("--- testUserManagerSearchByRegion ---");
         UserManager um = buildUserManager();
 
         List<User> pt = um.searchByRegion("PT");
-        assert pt.size() == 3 : "Expected 3 PT users (got " + pt.size() + ")";
+        assert pt.size() == 3 : "Esperados 3 utilizadores de PT (obteve " + pt.size() + ")";
 
         List<User> br = um.searchByRegion("BR");
-        assert br.size() == 1 : "Expected 1 BR user";
+        assert br.size() == 1 : "Esperado 1 utilizador de BR";
 
-        System.out.println("PASS: searchByRegion\n");
+        System.out.println("PASSOU: searchByRegion\n");
     }
 
     /**
-     * Tests combined region + date-range search.
+     * Testa a pesquisa combinada de região + intervalo de datas.
      */
     public static void testUserManagerSearchByRegionAndDateRange() {
         System.out.println("--- testUserManagerSearchByRegionAndDateRange ---");
         UserManager um = buildUserManager();
 
-        // u1 and u2 are PT in 2020
+        // u1 e u2 são PT em 2020
         List<User> result = um.searchByRegionAndDateRange(
                 "PT", LocalDate.of(2020, 1, 1), LocalDate.of(2020, 12, 31));
-        assert result.size() == 2 : "Expected 2 PT users in 2020 (got " + result.size() + ")";
+        assert result.size() == 2 : "Esperados 2 utilizadores PT em 2020 (obteve " + result.size() + ")";
 
-        System.out.println("PASS: searchByRegionAndDateRange\n");
+        System.out.println("PASSOU: searchByRegionAndDateRange\n");
     }
 
     /**
-     * Tests name-substring + region combined search.
+     * Testa a pesquisa combinada de substring de nome + região.
      */
     public static void testUserManagerSearchByNameSubstringAndRegion() {
         System.out.println("--- testUserManagerSearchByNameSubstringAndRegion ---");
@@ -254,100 +260,100 @@ public class TestUserArtist {
 
         List<User> result = um.searchByNameSubstringAndRegion("silva", "PT");
         assert result.size() == 1 && result.get(0).getId().equals("u1")
-                : "Should find Alice Silva in PT";
+                : "Deveria encontrar Alice Silva em PT";
 
         List<User> noMatch = um.searchByNameSubstringAndRegion("silva", "BR");
-        assert noMatch.isEmpty() : "Alice Silva is not in BR";
+        assert noMatch.isEmpty() : "Alice Silva não está no BR";
 
-        System.out.println("PASS: searchByNameSubstringAndRegion\n");
+        System.out.println("PASSOU: searchByNameSubstringAndRegion\n");
     }
 
     /**
-     * Tests preferred-genre search.
+     * Testa a pesquisa por género preferido.
      */
     public static void testUserManagerSearchByPreferredGenre() {
         System.out.println("--- testUserManagerSearchByPreferredGenre ---");
         UserManager um = buildUserManager();
 
         List<User> action = um.searchByPreferredGenre("g1");
-        assert action.size() == 2 : "Expected 2 users with Action preference";
+        assert action.size() == 2 : "Esperados 2 utilizadores com preferência por Action";
 
         List<User> none = um.searchByPreferredGenre("g99");
-        assert none.isEmpty() : "No users should prefer genre g99";
+        assert none.isEmpty() : "Nenhum utilizador deve preferir o género g99";
 
-        System.out.println("PASS: searchByPreferredGenre\n");
+        System.out.println("PASSOU: searchByPreferredGenre\n");
     }
 
     // -----------------------------------------------------------------------
-    // edu.ufp.streaming.rec.managers.ArtistManager tests
+    // Testes de edu.ufp.streaming.rec.managers.ArtistManager
     // -----------------------------------------------------------------------
 
     /**
-     * Tests insert and get on {@link ArtistManager}.
+     * Testa inserção e obtenção no {@link ArtistManager}.
      */
     public static void testArtistManagerInsertAndGet() {
         System.out.println("--- testArtistManagerInsertAndGet ---");
         ArtistManager am = buildArtistManager();
 
-        assert am.size() == 5 : "Expected 5 artists";
-        assert am.get("a1").getName().equals("Leonardo DiCaprio") : "a1 should be DiCaprio";
-        assert am.get("a99") == null : "Unknown ID should return null";
+        assert am.size() == 5 : "Esperados 5 artistas";
+        assert am.get("a1").getName().equals("Leonardo DiCaprio") : "a1 deveria ser DiCaprio";
+        assert am.get("a99") == null : "ID desconhecido deveria retornar null";
 
         Artist dup = new Artist("a1", "Dup", "US", "M", LocalDate.now(), ArtistRole.ACTOR);
-        assert !am.insert(dup) : "Duplicate insert should return false";
+        assert !am.insert(dup) : "Inserção duplicada deveria retornar false";
 
-        System.out.println("PASS: insert/get/duplicate\n");
+        System.out.println("PASSOU: inserção/obtenção/duplicados\n");
     }
 
     /**
-     * Tests remove from {@link ArtistManager}.
+     * Testa a remoção no {@link ArtistManager}.
      */
     public static void testArtistManagerRemove() {
         System.out.println("--- testArtistManagerRemove ---");
         ArtistManager am = buildArtistManager();
 
         Artist removed = am.remove("a3");
-        assert removed != null && removed.getId().equals("a3") : "Should return removed artist";
-        assert am.size() == 4 : "Size should be 4";
-        assert am.get("a3") == null : "Removed artist not retrievable";
+        assert removed != null && removed.getId().equals("a3") : "Deveria retornar o artista removido";
+        assert am.size() == 4 : "O tamanho deveria ser 4";
+        assert am.get("a3") == null : "Artista removido não deve ser recuperável";
 
-        System.out.println("PASS: remove\n");
+        System.out.println("PASSOU: remoção\n");
     }
 
     /**
-     * Tests edit + BST re-index on {@link ArtistManager}.
+     * Testa a edição + re-indexação na BST no {@link ArtistManager}.
      */
     public static void testArtistManagerEdit() {
         System.out.println("--- testArtistManagerEdit ---");
         ArtistManager am = buildArtistManager();
 
-        assert am.editName("a1", "Leo DiCaprio") : "Edit should succeed";
-        assert am.get("a1").getName().equals("Leo DiCaprio") : "Name should be updated";
+        assert am.editName("a1", "Leo DiCaprio") : "A edição deve ter sucesso";
+        assert am.get("a1").getName().equals("Leo DiCaprio") : "O nome deve estar atualizado";
 
         List<Artist> found = am.searchByNameSubstring("leo");
         assert found.stream().anyMatch(a -> a.getId().equals("a1"))
-                : "BST should reflect new name";
+                : "A BST deve refletir o novo nome";
 
-        System.out.println("PASS: editName + BST re-index\n");
+        System.out.println("PASSOU: editName + re-indexação na BST\n");
     }
 
     /**
-     * Tests birth-date range search on {@link ArtistManager}.
+     * Testa a pesquisa por intervalo de data de nascimento no {@link ArtistManager}.
      */
     public static void testArtistManagerSearchByBirthDateRange() {
         System.out.println("--- testArtistManagerSearchByBirthDateRange ---");
         ArtistManager am = buildArtistManager();
 
-        // Born in the 1970s: a3 (1970), a4 (1971), a1 (1974), a5 (1974)
+        // Nascidos na década de 70: a3 (1970), a4 (1971), a1 (1974), a5 (1974)
         List<Artist> result = am.searchByBirthDateRange(
                 LocalDate.of(1970, 1, 1), LocalDate.of(1979, 12, 31));
-        assert result.size() == 4 : "Expected 4 artists born in the 70s (got " + result.size() + ")";
+        assert result.size() == 4 : "Esperados 4 artistas nascidos nos anos 70 (obteve " + result.size() + ")";
 
-        System.out.println("PASS: searchByBirthDateRange\n");
+        System.out.println("PASSOU: searchByBirthDateRange\n");
     }
 
     /**
-     * Tests name-substring search on {@link ArtistManager}.
+     * Testa a pesquisa por substring de nome no {@link ArtistManager}.
      */
     public static void testArtistManagerSearchByNameSubstring() {
         System.out.println("--- testArtistManagerSearchByNameSubstring ---");
@@ -355,57 +361,57 @@ public class TestUserArtist {
 
         List<Artist> result = am.searchByNameSubstring("nolan");
         assert result.size() == 1 && result.get(0).getId().equals("a3")
-                : "Should find Christopher Nolan";
+                : "Deveria encontrar Christopher Nolan";
 
-        System.out.println("PASS: searchByNameSubstring\n");
+        System.out.println("PASSOU: searchByNameSubstring\n");
     }
 
     /**
-     * Tests nationality filter on {@link ArtistManager}.
+     * Testa o filtro por nacionalidade no {@link ArtistManager}.
      */
     public static void testArtistManagerSearchByNationality() {
         System.out.println("--- testArtistManagerSearchByNationality ---");
         ArtistManager am = buildArtistManager();
 
         List<Artist> us = am.searchByNationality("US");
-        assert us.size() == 4 : "Expected 4 US artists (got " + us.size() + ")";
+        assert us.size() == 4 : "Esperados 4 artistas dos EUA (obteve " + us.size() + ")";
 
         List<Artist> gb = am.searchByNationality("GB");
-        assert gb.size() == 1 : "Expected 1 GB artist";
+        assert gb.size() == 1 : "Esperado 1 artista do Reino Unido";
 
-        System.out.println("PASS: searchByNationality\n");
+        System.out.println("PASSOU: searchByNationality\n");
     }
 
     /**
-     * Tests gender filter on {@link ArtistManager}.
+     * Testa o filtro por género no {@link ArtistManager}.
      */
     public static void testArtistManagerSearchByGender() {
         System.out.println("--- testArtistManagerSearchByGender ---");
         ArtistManager am = buildArtistManager();
 
         List<Artist> female = am.searchByGender("F");
-        assert female.size() == 2 : "Expected 2 female artists (got " + female.size() + ")";
+        assert female.size() == 2 : "Esperadas 2 artistas do sexo feminino (obteve " + female.size() + ")";
 
-        System.out.println("PASS: searchByGender\n");
+        System.out.println("PASSOU: searchByGender\n");
     }
 
     /**
-     * Tests nationality + birth-date-range combined search.
+     * Testa a pesquisa combinada de nacionalidade + intervalo de data de nascimento.
      */
     public static void testArtistManagerSearchByNationalityAndBirthDateRange() {
         System.out.println("--- testArtistManagerSearchByNationalityAndBirthDateRange ---");
         ArtistManager am = buildArtistManager();
 
-        // US artists born in the 70s: a1 (1974), a4 (1971), a5 (1974)
+        // Artistas dos EUA nascidos nos anos 70: a1 (1974), a4 (1971), a5 (1974)
         List<Artist> result = am.searchByNationalityAndBirthDateRange(
                 "US", LocalDate.of(1970, 1, 1), LocalDate.of(1979, 12, 31));
-        assert result.size() == 3 : "Expected 3 US artists born in 70s (got " + result.size() + ")";
+        assert result.size() == 3 : "Esperados 3 artistas dos EUA nos anos 70 (obteve " + result.size() + ")";
 
-        System.out.println("PASS: searchByNationalityAndBirthDateRange\n");
+        System.out.println("PASSOU: searchByNationalityAndBirthDateRange\n");
     }
 
     /**
-     * Tests combined name-substring + nationality + gender search.
+     * Testa a pesquisa combinada de substring de nome + nacionalidade + género.
      */
     public static void testArtistManagerSearchByNameSubstringNationalityGender() {
         System.out.println("--- testArtistManagerSearchByNameSubstringNationalityGender ---");
@@ -413,33 +419,33 @@ public class TestUserArtist {
 
         List<Artist> result = am.searchByNameSubstringNationalityAndGender("coppola", "US", "F");
         assert result.size() == 1 && result.get(0).getId().equals("a4")
-                : "Should find Sofia Coppola";
+                : "Deveria encontrar Sofia Coppola";
 
-        System.out.println("PASS: searchByNameSubstringNationalityAndGender\n");
+        System.out.println("PASSOU: searchByNameSubstringNationalityAndGender\n");
     }
 
     /**
-     * Tests role filter on {@link ArtistManager}.
+     * Testa o filtro por papel (Role) no {@link ArtistManager}.
      */
     public static void testArtistManagerSearchByRole() {
         System.out.println("--- testArtistManagerSearchByRole ---");
         ArtistManager am = buildArtistManager();
 
         List<Artist> actors = am.searchByRole(ArtistRole.ACTOR);
-        assert actors.size() == 3 : "Expected 3 actors (got " + actors.size() + ")";
+        assert actors.size() == 3 : "Esperados 3 atores (obteve " + actors.size() + ")";
 
         List<Artist> directors = am.searchByRole(ArtistRole.DIRECTOR);
-        assert directors.size() == 2 : "Expected 2 directors (got " + directors.size() + ")";
+        assert directors.size() == 2 : "Esperados 2 realizadores (obteve " + directors.size() + ")";
 
-        System.out.println("PASS: searchByRole\n");
+        System.out.println("PASSOU: searchByRole\n");
     }
 
     // -----------------------------------------------------------------------
-    // edu.ufp.streaming.rec.managers.FollowManager tests
+    // Testes de edu.ufp.streaming.rec.managers.FollowManager
     // -----------------------------------------------------------------------
 
     /**
-     * Tests follow and unfollow operations in {@link FollowManager}.
+     * Testa as operações de seguir (follow) e deixar de seguir (unfollow) no {@link FollowManager}.
      */
     public static void testFollowManagerFollowAndUnfollow() {
         System.out.println("--- testFollowManagerFollowAndUnfollow ---");
@@ -451,22 +457,22 @@ public class TestUserArtist {
         User u3 = um.get("u3");
 
         UserFollow uf = fm.follow(u1, u2);
-        assert uf != null : "First follow should succeed";
-        assert fm.isFollowing("u1", "u2") : "u1 should be following u2";
-        assert fm.follow(u1, u2) == null : "Duplicate follow should return null";
+        assert uf != null : "O primeiro seguimento deve ter sucesso";
+        assert fm.isFollowing("u1", "u2") : "u1 deveria estar a seguir u2";
+        assert fm.follow(u1, u2) == null : "Seguimento duplicado deve retornar null";
 
         fm.follow(u1, u3);
-        assert fm.size() == 2 : "Should have 2 follow relationships";
+        assert fm.size() == 2 : "Deveria haver 2 relações de seguimento";
 
         fm.unfollow("u1", "u2");
-        assert !fm.isFollowing("u1", "u2") : "u1 should no longer follow u2";
-        assert fm.size() == 1 : "Should have 1 follow relationship after unfollow";
+        assert !fm.isFollowing("u1", "u2") : "u1 não deveria mais seguir u2";
+        assert fm.size() == 1 : "Deveria haver apenas 1 relação após o unfollow";
 
-        System.out.println("PASS: follow/unfollow/isFollowing\n");
+        System.out.println("PASSOU: follow/unfollow/isFollowing\n");
     }
 
     /**
-     * Tests getFollowers and getFollowing on {@link FollowManager}.
+     * Testa getFollowers e getFollowing no {@link FollowManager}.
      */
     public static void testFollowManagerGetFollowersAndFollowing() {
         System.out.println("--- testFollowManagerGetFollowersAndFollowing ---");
@@ -483,22 +489,22 @@ public class TestUserArtist {
         fm.follow(u4, u3);
 
         List<User> followers = fm.getFollowers("u3");
-        assert followers.size() == 3 : "u3 should have 3 followers";
+        assert followers.size() == 3 : "u3 deveria ter 3 seguidores";
 
         fm.follow(u1, u2);
         fm.follow(u1, u4);
 
         List<User> following = fm.getFollowing("u1");
-        assert following.size() == 3 : "u1 should follow 3 users";
+        assert following.size() == 3 : "u1 deveria estar a seguir 3 utilizadores";
 
-        assert fm.followerCount("u3") == 3 : "Follower count mismatch";
-        assert fm.followingCount("u1") == 3 : "Following count mismatch";
+        assert fm.followerCount("u3") == 3 : "Inconsistência na contagem de seguidores";
+        assert fm.followingCount("u1") == 3 : "Inconsistência na contagem de seguidos";
 
-        System.out.println("PASS: getFollowers/getFollowing/counts\n");
+        System.out.println("PASSOU: getFollowers/getFollowing/contagens\n");
     }
 
     /**
-     * Tests R4 consistency: removing a user removes all their follow relationships.
+     * Testa a consistência R4: remover um utilizador remove todas as suas relações de seguimento.
      */
     public static void testFollowManagerConsistencyOnUserRemoval() {
         System.out.println("--- testFollowManagerConsistencyOnUserRemoval ---");
@@ -512,20 +518,20 @@ public class TestUserArtist {
         fm.follow(u1, u2);
         fm.follow(u3, u1);
 
-        // Simulate removing u1: first clean up follow data, then remove from ST
+        // Simula a remoção do u1: primeiro limpa os dados de follow, depois remove da tabela de símbolos
         fm.removeAllRelationships("u1");
         um.remove("u1");
 
-        assert !fm.isFollowing("u1", "u2") : "Relationship u1→u2 should be removed";
-        assert !fm.isFollowing("u3", "u1") : "Relationship u3→u1 should be removed";
-        assert fm.size() == 0 : "No follow relationships should remain";
-        assert um.get("u1") == null : "u1 should be removed from ST";
+        assert !fm.isFollowing("u1", "u2") : "A relação u1→u2 deveria ter sido removida";
+        assert !fm.isFollowing("u3", "u1") : "A relação u3→u1 deveria ter sido removida";
+        assert fm.size() == 0 : "Não deveriam restar relações de seguimento";
+        assert um.get("u1") == null : "u1 deveria ter sido removido da ST";
 
-        System.out.println("PASS: R4 consistency on user removal\n");
+        System.out.println("PASSOU: Consistência R4 na remoção de utilizador\n");
     }
 
     /**
-     * Tests follow date-range search using the BST in {@link FollowManager}.
+     * Testa a pesquisa de intervalo de datas de seguimento usando a BST no {@link FollowManager}.
      */
     public static void testFollowManagerDateRange() {
         System.out.println("--- testFollowManagerDateRange ---");
@@ -536,7 +542,7 @@ public class TestUserArtist {
         User u2 = um.get("u2");
         User u3 = um.get("u3");
 
-        // All follows happen now; range query should catch them
+        // Todos os seguimentos ocorrem agora; a consulta por intervalo deve capturá-los
         fm.follow(u1, u2);
         fm.follow(u1, u3);
 
@@ -544,8 +550,40 @@ public class TestUserArtist {
         LocalDateTime to   = LocalDateTime.now().plusMinutes(1);
 
         List<UserFollow> result = fm.searchByDateRange(from, to);
-        assert result.size() == 2 : "Expected 2 follow events in range (got " + result.size() + ")";
+        assert result.size() == 2 : "Esperados 2 eventos de follow no intervalo (obteve " + result.size() + ")";
 
-        System.out.println("PASS: searchByDateRange\n");
+        System.out.println("PASSOU: searchByDateRange\n");
+    }
+
+    /**
+     * Testa addPreference e removePreference no {@link UserManager}.
+     */
+    public static void testUserManagerPreferences() {
+        System.out.println("--- testUserManagerPreferences ---");
+        UserManager um = buildUserManager();
+
+        Genre g3 = new Genre("g3", "Sci-Fi");
+
+        // addPreference através do manager
+        assert um.addPreference("u1", g3) : "Deveria adicionar g3 à u1";
+        assert um.get("u1").getPreferences().contains(g3) : "u1 deveria ter g3 nas preferências";
+
+        // duplicado deve retornar false
+        assert !um.addPreference("u1", g3) : "Adição duplicada deveria retornar false";
+
+        // utilizador desconhecido
+        assert !um.addPreference("u99", g3) : "Utilizador desconhecido deveria retornar false";
+
+        // removePreference através do manager
+        assert um.removePreference("u1", g3) : "Deveria remover g3 da u1";
+        assert !um.get("u1").getPreferences().contains(g3) : "u1 não deveria mais ter g3";
+
+        // remover preferência inexistente
+        assert !um.removePreference("u1", g3) : "Remover género ausente deve retornar false";
+
+        // searchByPreferredGenre ainda funciona após a remoção
+        assert um.searchByPreferredGenre("g3").isEmpty() : "Nenhum utilizador deve ter g3 após a remoção";
+
+        System.out.println("PASSOU: addPreference / removePreference\n");
     }
 }

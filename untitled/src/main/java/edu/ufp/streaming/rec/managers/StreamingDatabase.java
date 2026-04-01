@@ -6,17 +6,19 @@ import edu.ufp.streaming.rec.models.*;
 import java.time.LocalDate;
 
 /**
- * Central coordinator for the streaming platform's data layer (Phase 1).
+ * Coordenador central da camada de dados da plataforma de streaming (Fase 1).
  *
- * <p>Holds references to all managers and enforces R4 consistency:
- * removing an entity cascades automatically to all related structures.
+ * <p>Mantém referências para todos os gestores e garante a consistência R4:
+ * a remoção de uma entidade propaga-se automaticamente para todas as estruturas relacionadas.
  *
  * <ul>
- *   <li>Removing a {@link User} → cleans {@link FollowManager} (all follow edges)</li>
- *   <li>Removing an {@link Artist} → cleans {@link ArtistContentManager} (all participations)</li>
- *   <li>Removing a {@link Content} → cleans {@link ArtistContentManager} (all participations)</li>
+ * <li>Remover um {@link User} → limpa o {@link FollowManager} (todas as arestas de seguimento)</li>
+ * <li>Remover um {@link Artist} → limpa o {@link ArtistContentManager} (todas as participações)</li>
+ * <li>Remover um {@link Content} → limpa o {@link ArtistContentManager} (todas as participações)</li>
  * </ul>
-**/
+ * @author  Diogo Vicente
+ * */
+
 public class StreamingDatabase {
 
     private final UserManager userManager;
@@ -28,7 +30,7 @@ public class StreamingDatabase {
     private final FollowManager followManager;
 
     /**
-     * Constructs a new empty StreamingDatabase with all managers initialised.
+     * Constrói uma nova StreamingDatabase vazia com todos os gestores inicializados.
      */
     public StreamingDatabase() {
         this.userManager          = new UserManager();
@@ -41,7 +43,7 @@ public class StreamingDatabase {
     }
 
     // -------------------------------------------------------------------------
-    // Accessors
+    // Getters
     // -------------------------------------------------------------------------
 
     /** @return the {@link UserManager} */
@@ -66,58 +68,58 @@ public class StreamingDatabase {
     public FollowManager follows() { return followManager; }
 
     // -------------------------------------------------------------------------
-    // Consistent inserts
+    // Inserções Consistentes
     // -------------------------------------------------------------------------
 
     /**
-     * Inserts a {@link User} into the system.
+     * Insere um {@link User} no sistema.
      *
-     * @param user the user to insert
-     * @return {@code true} if inserted successfully
+     * @param user o utilizador a inserir
+     * @return {@code true} se inserido com sucesso
      */
     public boolean addUser(User user) {
         return userManager.insert(user);
     }
 
     /**
-     * Inserts an {@link Artist} into the system.
+     * Insere um {@link Artist} no sistema.
      *
-     * @param artist the artist to insert
-     * @return {@code true} if inserted successfully
+     * @param artist o artista a inserir
+     * @return {@code true} se inserido com sucesso
      */
     public boolean addArtist(Artist artist) {
         return artistManager.insert(artist);
     }
 
     /**
-     * Inserts a {@link Content} item into the system.
-     * Automatically added to both the ST and the ContentBST.
+     * Insere um item de {@link Content} no sistema.
+     * Adicionado automaticamente tanto à ST como à ContentBST.
      *
-     * @param content the content to insert
-     * @return {@code true} if inserted successfully
+     * @param content o conteúdo a inserir
+     * @return {@code true} se inserido com sucesso
      */
     public boolean addContent(Content content) {
         return contentManager.insert(content);
     }
 
     /**
-     * Inserts a {@link Genre} into the system.
+     * Insere um {@link Genre} no sistema.
      *
-     * @param genre the genre to insert
-     * @return {@code true} if inserted successfully
+     * @param genre o género a inserir
+     * @return {@code true} se inserido com sucesso
      */
     public boolean addGenre(Genre genre) {
         return genreManager.insert(genre);
     }
 
     /**
-     * Records an Artist↔Content participation.
+     * Regista uma participação Artista↔Conteúdo.
      *
-     * @param artistId  ID of the artist (must already exist)
-     * @param contentId ID of the content (must already exist)
-     * @param role      the artist's role in this content
-     * @param date      the participation date
-     * @return the created {@link ArtistContent}, or {@code null} on failure
+     * @param artistId  ID do artista (deve já existir)
+     * @param contentId ID do conteúdo (deve já existir)
+     * @param role      a função do artista neste conteúdo
+     * @param date      a data da participação
+     * @return o {@link ArtistContent} criado, ou {@code null} em caso de falha
      */
     public ArtistContent addParticipation(String artistId, String contentId,
                                           ArtistRole role, LocalDate date) {
@@ -128,11 +130,11 @@ public class StreamingDatabase {
     }
 
     /**
-     * Records a follow relationship between two users.
+     * Regista uma relação de seguimento entre dois utilizadores.
      *
-     * @param followerId ID of the follower (must already exist)
-     * @param followedId ID of the user being followed (must already exist)
-     * @return the created {@link UserFollow}, or {@code null} on failure
+     * @param followerId ID do seguidor (deve já existir)
+     * @param followedId ID do utilizador seguido (deve já existir)
+     * @return o {@link UserFollow} criado, ou {@code null} em caso de falha
      */
     public UserFollow addFollow(String followerId, String followedId) {
         User follower = userManager.get(followerId);
@@ -142,15 +144,15 @@ public class StreamingDatabase {
     }
 
     // -------------------------------------------------------------------------
-    // R4 — Consistent removals (cascade)
+    // R4 — Remoções Consistentes (Cascata)
     // -------------------------------------------------------------------------
 
     /**
-     * Removes a {@link User} from the system and cascades to all related structures.
-     * Cascade: removes all follow relationships (incoming and outgoing).
+     * Remove um {@link User} do sistema e propaga para todas as estruturas relacionadas.
+     * Cascata: remove todas as relações de seguimento (enviadas e recebidas).
      *
-     * @param userId the ID of the user to remove
-     * @return the removed {@link User}, or {@code null} if not found
+     * @param userId o ID do utilizador a remover
+     * @return o {@link User} removido, ou {@code null} se não for encontrado
      */
     public User removeUser(String userId) {
         if (!userManager.contains(userId)) return null;
@@ -159,11 +161,11 @@ public class StreamingDatabase {
     }
 
     /**
-     * Removes an {@link Artist} from the system and cascades to all related structures.
-     * Cascade: removes all Artist↔Content participation records.
+     * Remove um {@link Artist} do sistema e propaga para todas as estruturas relacionadas.
+     * Cascata: remove todos os registos de participação Artista↔Conteúdo.
      *
-     * @param artistId the ID of the artist to remove
-     * @return the removed {@link Artist}, or {@code null} if not found
+     * @param artistId o ID do artista a remover
+     * @return o {@link Artist} removido, ou {@code null} se não for encontrado
      */
     public Artist removeArtist(String artistId) {
         if (!artistManager.contains(artistId)) return null;
@@ -172,12 +174,12 @@ public class StreamingDatabase {
     }
 
     /**
-     * Removes a {@link Content} item from the system and cascades to all related structures.
-     * Cascade: removes all Artist↔Content participation records for this content.
-     * Both the ST and the ContentBST are updated via ContentManager.remove().
+     * Remove um item de {@link Content} do sistema e propaga para todas as estruturas relacionadas.
+     * Cascata: remove todos os registos de participação Artista↔Conteúdo para este conteúdo.
+     * Tanto a ST como a ContentBST são atualizadas via ContentManager.remove().
      *
-     * @param contentId the ID of the content to remove
-     * @return the removed {@link Content}, or {@code null} if not found
+     * @param contentId o ID do conteúdo a remover
+     * @return o {@link Content} removido, ou {@code null} se não for encontrado
      */
     public Content removeContent(String contentId) {
         if (contentManager.get(contentId) == null) return null;
@@ -186,10 +188,10 @@ public class StreamingDatabase {
     }
 
     /**
-     * Removes a {@link Genre} from the system.
+     * Remove um {@link Genre} do sistema.
      *
-     * @param genreId the ID of the genre to remove
-     * @return the removed {@link Genre}, or {@code null} if not found
+     * @param genreId o ID do género a remover
+     * @return o {@link Genre} removido, ou {@code null} se não for encontrado
      */
     public Genre removeGenre(String genreId) {
         return genreManager.remove(genreId);

@@ -5,36 +5,36 @@ import edu.ufp.streaming.rec.enums.ArtistRole;
 import java.time.LocalDate;
 
 /**
- * Represents the participation of an {@link Artist} in a {@link Content} item.
+ * Representa a participação de um {@link Artist} num item de {@link Content}.
  *
- * <p>This is the association class linking artists to the content they participated in,
- * capturing the role played (e.g. ACTOR, DIRECTOR) and the date of participation.
+ * <p>Esta é a classe de associação que liga artistas ao conteúdo em que participaram,
+ * capturando a função desempenhada (ex: ACTOR, DIRECTOR) e a data da participação.
  *
- * <p>In Phase 2, each {@code ArtistContent} maps directly to a directed weighted
- * edge {@code Artist → Content} in the platform graph.
- *
+ * <p>Na Fase 2, cada {@code ArtistContent} mapeia diretamente para uma aresta
+ * pesada direcionada {@code Artista → Conteúdo} no grafo da plataforma.
+ * @author  Diogo Vicente
  */
 public class ArtistContent {
 
-  /** The artist who participated in the content. */
+  /** O artista que participou no conteúdo. */
   private Artist artist;
 
-  /** The content item the artist participated in. */
+  /** O item de conteúdo no qual o artista participou. */
   private Content content;
 
-  /** The role the artist played in this content. */
+  /** A função (papel) que o artista desempenhou neste conteúdo. */
   private ArtistRole role;
 
-  /** The date of participation (e.g. release date or filming date). */
+  /** A data da participação (ex: data de lançamento ou data de filmagem). */
   private LocalDate date;
 
   /**
-   * Constructs a new ArtistContent participation record.
+   * Constrói um novo registo de participação ArtistContent.
    *
-   * @param artist  the participating {@link Artist}
-   * @param content the {@link Content} item
-   * @param role    the {@link ArtistRole} the artist played
-   * @param date    the date of participation
+   * @param artist  o {@link Artist} participante
+   * @param content o item de {@link Content}
+   * @param role    a função ({@link ArtistRole}) que o artista desempenhou
+   * @param date    a data da participação
    */
   public ArtistContent(Artist artist, Content content, ArtistRole role, LocalDate date) {
     this.artist = artist;
@@ -44,30 +44,30 @@ public class ArtistContent {
   }
 
   /**
-   * Returns the artist who participated.
+   * Retorna o artista que participou.
    *
-   * @return the {@link Artist}
+   * @return o {@link Artist}
    */
   public Artist getArtist() { return artist; }
 
   /**
-   * Returns the content item.
+   * Retorna o item de conteúdo.
    *
-   * @return the {@link Content}
+   * @return o {@link Content}
    */
   public Content getContent() { return content; }
 
   /**
-   * Returns the role the artist played in this content.
+   * Retorna a função que o artista desempenhou neste conteúdo.
    *
-   * @return the {@link ArtistRole}
+   * @return a {@link ArtistRole}
    */
   public ArtistRole getRole() { return role; }
 
   /**
-   * Returns the date of participation.
+   * Retorna a data da participação.
    *
-   * @return participation date
+   * @return data da participação
    */
   public LocalDate getDate() { return date; }
 

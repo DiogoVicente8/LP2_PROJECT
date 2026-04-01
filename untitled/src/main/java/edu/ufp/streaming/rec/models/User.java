@@ -5,46 +5,47 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents a user/client of the streaming platform.
+ * Representa um utilizador/cliente da plataforma de streaming.
  *
- * <p>A user has a unique ID, personal details, a preferred region,
- * a list of genre preferences, a watch history, and recorded interactions
- * with platform content.
+ * <p>Um utilizador possui um ID único, detalhes pessoais, uma região preferencial,
+ * uma lista de géneros preferidos, um histórico de visualização e interações
+ * registadas com o conteúdo da plataforma.
+ * @author  Diogo Vicente
  */
 public class User {
 
-  /** Unique identifier for this user. */
+  /** Identificador único para este utilizador. */
   private String id;
 
-  /** Display name of the user. */
+  /** Nome de exibição do utilizador. */
   private String name;
 
-  /** Contact email address. */
+  /** Endereço de e-mail de contacto. */
   private String email;
 
-  /** Geographic region (e.g. "PT", "US", "BR"). */
+  /** Região geográfica (ex: "PT", "US", "BR"). */
   private String region;
 
-  /** Date the user registered on the platform. */
+  /** Data em que o utilizador se registou na plataforma. */
   private LocalDate registerDate;
 
-  /** List of genres the user has marked as preferences. */
+  /** Lista de géneros que o utilizador marcou como preferidos. */
   private List<Genre> preferences;
 
-  /** Ordered list of content the user has watched. */
+  /** Lista ordenada de conteúdo que o utilizador assistiu. */
   private List<Content> watchHistory;
 
-  /** All recorded interactions (watch, rate, bookmark, skip). */
+  /** Todas as interações registadas (ver, avaliar, marcar, saltar). */
   private List<Interation> interactions;
 
   /**
-   * Constructs a new User with the given details.
+   * Constrói um novo Utilizador com os detalhes fornecidos.
    *
-   * @param id           unique user ID
-   * @param name         display name
-   * @param email        email address
-   * @param region       geographic region
-   * @param registerDate date of registration on the platform
+   * @param id           ID único do utilizador
+   * @param name         nome de exibição
+   * @param email        endereço de e-mail
+   * @param region       região geográfica
+   * @param registerDate data de registo na plataforma
    */
   public User(String id, String name, String email, String region, LocalDate registerDate) {
     this.id = id;
@@ -58,121 +59,121 @@ public class User {
   }
 
   /**
-   * Returns the user's unique ID.
+   * Retorna o ID único do utilizador.
    *
-   * @return user ID string
+   * @return string do ID do utilizador
    */
   public String getId() { return id; }
 
   /**
-   * Returns the user's display name.
+   * Retorna o nome de exibição do utilizador.
    *
-   * @return name string
+   * @return string do nome
    */
   public String getName() { return name; }
 
   /**
-   * Returns the user's email address.
+   * Retorna o endereço de e-mail do utilizador.
    *
-   * @return email string
+   * @return string do e-mail
    */
   public String getEmail() { return email; }
 
   /**
-   * Returns the user's geographic region.
+   * Retorna a região geográfica do utilizador.
    *
-   * @return region string
+   * @return string da região
    */
   public String getRegion() { return region; }
 
   /**
-   * Returns the date the user registered on the platform.
+   * Retorna a data em que o utilizador se registou na plataforma.
    *
-   * @return registration date
+   * @return data de registo
    */
   public LocalDate getRegisterDate() { return registerDate; }
 
   /**
-   * Returns the list of genres the user prefers.
+   * Retorna a lista de géneros preferidos do utilizador.
    *
-   * @return mutable list of {@link Genre} preferences
+   * @return lista mutável de preferências de {@link Genre}
    */
   public List<Genre> getPreferences() { return preferences; }
 
   /**
-   * Returns the user's watch history.
+   * Retorna o histórico de visualização do utilizador.
    *
-   * @return mutable list of watched {@link Content}
+   * @return lista mutável de {@link Content} assistidos
    */
   public List<Content> getWatchHistory() { return watchHistory; }
 
   /**
-   * Returns all interactions recorded for this user.
+   * Retorna todas as interações registadas para este utilizador.
    *
-   * @return mutable list of {@link Interation} objects
+   * @return lista mutável de objetos {@link Interation}
    */
   public List<Interation> getInteractions() { return interactions; }
 
   /**
-   * Sets the user's unique ID.
+   * Define o ID único do utilizador.
    *
-   * @param id new ID string
+   * @param id nova string de ID
    */
   public void setId(String id) { this.id = id; }
 
   /**
-   * Updates the user's display name.
+   * Atualiza o nome de exibição do utilizador.
    *
-   * @param name new name
+   * @param name novo nome
    */
   public void setName(String name) { this.name = name; }
 
   /**
-   * Updates the user's email address.
+   * Atualiza o endereço de e-mail do utilizador.
    *
-   * @param email new email address
+   * @param email novo endereço de e-mail
    */
   public void setEmail(String email) { this.email = email; }
 
   /**
-   * Updates the user's geographic region.
+   * Atualiza a região geográfica do utilizador.
    *
-   * @param region new region string
+   * @param region nova string de região
    */
   public void setRegion(String region) { this.region = region; }
 
   /**
-   * Updates the user's registration date.
+   * Atualiza a data de registo do utilizador.
    *
-   * @param registerDate new registration date
+   * @param registerDate nova data de registo
    */
   public void setRegisterDate(LocalDate registerDate) { this.registerDate = registerDate; }
 
   /**
-   * Replaces the user's genre preferences list.
+   * Substitui a lista de preferências de género do utilizador.
    *
-   * @param preferences new list of {@link Genre} preferences
+   * @param preferences nova lista de preferências de {@link Genre}
    */
   public void setPreferences(List<Genre> preferences) { this.preferences = preferences; }
 
   /**
-   * Replaces the user's watch history list.
+   * Substitui a lista do histórico de visualização do utilizador.
    *
-   * @param watchHistory new list of watched {@link Content}
+   * @param watchHistory nova lista de {@link Content} assistidos
    */
   public void setWatchHistory(List<Content> watchHistory) { this.watchHistory = watchHistory; }
 
   /**
-   * Replaces the user's interactions list.
+   * Substitui a lista de interações do utilizador.
    *
-   * @param interactions new list of {@link Interation} objects
+   * @param interactions nova lista de objetos {@link Interation}
    */
   public void setInteractions(List<Interation> interactions) { this.interactions = interactions; }
 
   /**
-   * Adds a genre to the user's preferences if not already present.
+   * Adiciona um género às preferências do utilizador, se ainda não estiver presente.
    *
-   * @param genre the {@link Genre} to add; ignored if {@code null} or already present
+   * @param genre o {@link Genre} a adicionar; ignorado se for {@code null} ou se já existir
    */
   public void addPreference(Genre genre) {
     if (this.preferences == null) this.preferences = new ArrayList<>();
@@ -180,24 +181,28 @@ public class User {
   }
 
   /**
-   * Records an interaction for this user.
+   * Regista uma interação para este utilizador.
    *
-   * @param interation the {@link Interation} to add
+   * @param interation a {@link Interation} a adicionar
    */
   public void addInteration(Interation interation) {
     this.interactions.add(interation);
   }
 
   /**
-   * Placeholder for the follow action.
-   * Actual follow logic is managed by {@link edu.ufp.streaming.rec.managers.FollowManager}.
+   * Espaço reservado para a ação de seguir.
+   * A lógica real de seguimento é gerida pelo {@link edu.ufp.streaming.rec.managers.FollowManager}.
    *
-   * @param u the user to follow
+   * @param u o utilizador a seguir
    */
   public void follow(User u) {
-    // Follow logic is delegated to FollowManager
+    // A lógica de follow é delegada ao FollowManager
   }
 
+  /**
+   * Retorna a lista de seguidores (vazia por defeito, gerida externamente).
+   * * @return lista de utilizadores seguidores
+   */
   public List<User> getFollowers() { return new ArrayList<>(); }
 
   @Override

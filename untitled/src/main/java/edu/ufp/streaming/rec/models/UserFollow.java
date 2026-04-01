@@ -2,32 +2,32 @@ package edu.ufp.streaming.rec.models;
 
 import java.time.LocalDateTime;
 /**
- * Represents a follow relationship between two {@link User} entities.
+ * Representa uma relação de seguimento (follow) entre duas entidades {@link User}.
  *
- * <p>Stores the follower, the followed user, and the timestamp of when
- * the follow relationship was created.
+ * <p>Armazena o seguidor, o utilizador seguido e o carimbo de data/hora (timestamp)
+ * de quando a relação de seguimento foi criada.
  *
- * <p>In Phase 2, each {@code UserFollow} maps directly to a directed
- * weighted edge {@code follower → followed} in the platform graph.
- *
+ * <p>Na Fase 2, cada {@code UserFollow} mapeia diretamente para uma aresta pesada
+ * direcionada {@code seguidor → seguido} no grafo da plataforma.
+ ** @author  Diogo Vicente
  **/
 public class UserFollow {
 
-  /** The user who initiated the follow. */
-  private User follower;
+  /** O utilizador que iniciou o seguimento (seguidor). */
+  private final User follower;
 
-  /** The user being followed. */
-  private User followed;
+  /** O utilizador que está a ser seguido. */
+  private final User followed;
 
-  /** The date and time when the follow relationship was created. */
-  private LocalDateTime followDate;
+  /** A data e hora em que a relação de seguimento foi criada. */
+  private final LocalDateTime followDate;
 
   /**
-   * Constructs a new UserFollow relationship between two users.
-   * The follow date is automatically set to the current date and time.
+   * Constrói uma nova relação UserFollow entre dois utilizadores.
+   * A data de seguimento é definida automaticamente para a data e hora atuais.
    *
-   * @param follower the {@link User} who is following
-   * @param followed the {@link User} being followed
+   * @param follower o {@link User} que está a seguir
+   * @param followed o {@link User} que está a ser seguido
    */
   public UserFollow(User follower, User followed) {
     this.follower = follower;
@@ -36,23 +36,23 @@ public class UserFollow {
   }
 
   /**
-   * Returns the user who initiated the follow.
+   * Retorna o utilizador que iniciou o seguimento.
    *
-   * @return the follower {@link User}
+   * @return o {@link User} seguidor
    */
   public User getFollower() { return follower; }
 
   /**
-   * Returns the user being followed.
+   * Retorna o utilizador que está a ser seguido.
    *
-   * @return the followed {@link User}
+   * @return o {@link User} seguido
    */
   public User getFollowed() { return followed; }
 
   /**
-   * Returns the date and time when this follow relationship was created.
+   * Retorna a data e hora em que esta relação de seguimento foi criada.
    *
-   * @return follow timestamp
+   * @return carimbo de data/hora do follow
    */
   public LocalDateTime getDate() { return followDate; }
 

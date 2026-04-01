@@ -10,25 +10,27 @@ import edu.ufp.streaming.rec.models.Content;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-
+/**
+ * Gere todas as relações de participação {@link ArtistContent} entre
+ * as entidades {@link Artist} (Artista) e {@link Content} (Conteúdo) na plataforma.
+ * @author  Diogo Vicente
+ */
 public class ArtistContentManager {
 
-    /** Primary ST: "artistId:contentId:role" → edu.pt.lp2.edu.ufp.streaming.rec.models.ArtistContent. */
+    /** ST Primária: "artistId:contentId:role" → ArtistContent. */
     private final ST<String, ArtistContent> participationST;
 
-    /** Index: artistId → list of edu.pt.lp2.edu.ufp.streaming.rec.models.ArtistContent (filmography). */
+    /** Índice: artistId → lista de ArtistContent. */
     private final ST<String, List<ArtistContent>> byArtistIndex;
 
-    /** Index: contentId → list of edu.pt.lp2.edu.ufp.streaming.rec.models.ArtistContent (cast/crew of a content). */
+    /** Índice: contentId → lista de ArtistContent (elenco/equipa de um conteúdo). */
     private final ST<String, List<ArtistContent>> byContentIndex;
 
-    /** BST ordered by participation date for temporal range queries.
-     * CORREÇÃO: Alterado de LocalDate para Long para funcionar com o RedBlackBST
-     */
+    /** BST Ordenada: data de participação como dia da época (Long) → lista de ArtistContent. */
     private final RedBlackBST<Long, List<ArtistContent>> byDateBST;
 
     /**
-     * Constructs an empty edu.pt.lp2.managers.edu.ufp.streaming.rec.managers.ArtistContentManager.
+     * Constrói um ArtistContentManager vazio.
      */
     public ArtistContentManager() {
         this.participationST = new ST<>();
@@ -37,10 +39,16 @@ public class ArtistContentManager {
         this.byDateBST       = new RedBlackBST<>();
     }
 
-    // -------------------------------------------------------------------------
-    // Insert / Remove
-    // -------------------------------------------------------------------------
-
+    /**
+     * Regista a participação de um artista num item de conteúdo.
+     * Também atualiza a filmografia interna do artista via {@link Artist#addParticipation(ArtistContent)}.
+     *
+     * @param artist  o {@link Artist} participante; não deve ser {@code null}
+     * @param content o item de {@link Content}; não deve ser {@code null}
+     * @param role    a função ({@link ArtistRole}) que o artista desempenhou
+     * @param date    a data da participação
+     * @return o {@link ArtistContent} criado, ou {@code null} se já existir ou for inválido
+     */
     public ArtistContent addParticipation(Artist artist, Content content,
                                           ArtistRole role, LocalDate date) {
         if (artist == null || content == null || role == null || date == null) return null;
@@ -60,6 +68,14 @@ public class ArtistContentManager {
         return ac;
     }
 
+    /**
+     * Remove um registo de participação específico.
+     *
+     * @param artistId  o ID do artista
+     * @param contentId o ID do conteúdo
+     * @param role      a função que o artista desempenhou nesse conteúdo
+     * @return o {@link ArtistContent} removido, ou {@code null} se não for encontrado
+     */
     public ArtistContent removeParticipation(String artistId, String contentId, ArtistRole role) {
         String key = compositeKey(artistId, contentId, role);
         if (!participationST.contains(key)) return null;
@@ -72,6 +88,12 @@ public class ArtistContentManager {
         return ac;
     }
 
+    /**
+     * Remove TODOS os registos de participação de um determinado artista.
+     * Deve ser chamado quando um artista é apagado (consistência R4).
+     *
+     * @param artistId o ID do artista a ser removido
+     */
     public void removeAllByArtist(String artistId) {
         List<ArtistContent> list = byArtistIndex.get(artistId);
         if (list == null) return;
@@ -85,6 +107,12 @@ public class ArtistContentManager {
         byArtistIndex.delete(artistId);
     }
 
+    /**
+     * Remove TODOS os registos de participação de um determinado conteúdo.
+     * Deve ser chamado quando um conteúdo é apagado (consistência R4).
+     *
+     * @param contentId o ID do conteúdo a ser removido
+     */
     public void removeAllByContent(String contentId) {
         List<ArtistContent> list = byContentIndex.get(contentId);
         if (list == null) return;
@@ -98,20 +126,35 @@ public class ArtistContentManager {
         byContentIndex.delete(contentId);
     }
 
-    // -------------------------------------------------------------------------
-    // Queries
-    // -------------------------------------------------------------------------
-
+    /**
+     * Retorna a filmografia de um artista (todos os conteúdos em que participou).
+     *
+     * @param artistId o ID do artista
+     * @return lista de registos {@link ArtistContent}; vazia se nenhuns
+     */
     public List<ArtistContent> getFilmography(String artistId) {
         List<ArtistContent> list = byArtistIndex.get(artistId);
         return list != null ? new ArrayList<>(list) : new ArrayList<>();
     }
 
+    /**
+     * Retorna todos os artistas que participaram num conteúdo (elenco + equipa técnica).
+     *
+     * @param contentId o ID do conteúdo
+     * @return lista de registos {@link ArtistContent}; vazia se nenhuns
+     */
     public List<ArtistContent> getCastAndCrew(String contentId) {
         List<ArtistContent> list = byContentIndex.get(contentId);
         return list != null ? new ArrayList<>(list) : new ArrayList<>();
     }
 
+    /**
+     * Retorna todas as participações de um artista filtradas por função.
+     *
+     * @param artistId o ID do artista
+     * @param role     a {@link ArtistRole} pela qual filtrar
+     * @return lista de registos {@link ArtistContent} correspondentes
+     */
     public List<ArtistContent> getFilmographyByRole(String artistId, ArtistRole role) {
         List<ArtistContent> result = new ArrayList<>();
         List<ArtistContent> list = byArtistIndex.get(artistId);
@@ -122,6 +165,14 @@ public class ArtistContentManager {
         return result;
     }
 
+    /**
+     * Retorna todas as participações de um artista dentro de um intervalo de datas.
+     *
+     * @param artistId o ID do artista
+     * @param from     início do intervalo (inclusive)
+     * @param to       fim do intervalo (inclusive)
+     * @return lista de registos {@link ArtistContent} correspondentes
+     */
     public List<ArtistContent> getFilmographyByDateRange(String artistId,
                                                          LocalDate from, LocalDate to) {
         List<ArtistContent> result = new ArrayList<>();
@@ -136,6 +187,13 @@ public class ArtistContentManager {
         return result;
     }
 
+    /**
+     * Retorna todas as participações de todos os artistas num intervalo de datas.
+     *
+     * @param from início do intervalo (inclusive)
+     * @param to   fim do intervalo (inclusive)
+     * @return lista de todos os registos {@link ArtistContent} no intervalo
+     */
     public List<ArtistContent> getAllByDateRange(LocalDate from, LocalDate to) {
         List<ArtistContent> result = new ArrayList<>();
         // CORREÇÃO: from.toEpochDay() e to.toEpochDay()
@@ -146,6 +204,12 @@ public class ArtistContentManager {
         return result;
     }
 
+    /**
+     * Retorna todos os realizadores de um determinado conteúdo.
+     *
+     * @param contentId o ID do conteúdo
+     * @return lista de objetos {@link Artist} com a função DIRECTOR nesse conteúdo
+     */
     public List<Artist> getDirectors(String contentId) {
         List<Artist> result = new ArrayList<>();
         List<ArtistContent> list = byContentIndex.get(contentId);
@@ -156,6 +220,12 @@ public class ArtistContentManager {
         return result;
     }
 
+    /**
+     * Retorna todos os atores de um determinado conteúdo.
+     *
+     * @param contentId o ID do conteúdo
+     * @return lista de objetos {@link Artist} com a função ACTOR nesse conteúdo
+     */
     public List<Artist> getActors(String contentId) {
         List<Artist> result = new ArrayList<>();
         List<ArtistContent> list = byContentIndex.get(contentId);
@@ -166,6 +236,13 @@ public class ArtistContentManager {
         return result;
     }
 
+    /**
+     * Verifica se um artista tem alguma participação num determinado conteúdo.
+     *
+     * @param artistId  o ID do artista
+     * @param contentId o ID do conteúdo
+     * @return {@code true} se existir pelo menos uma participação
+     */
     public boolean hasParticipation(String artistId, String contentId) {
         List<ArtistContent> list = byArtistIndex.get(artistId);
         if (list == null) return false;
@@ -175,21 +252,28 @@ public class ArtistContentManager {
         return false;
     }
 
-
+    /**
+     * Retorna o número total de registos de participação.
+     *
+     * @return contagem total
+     */
     public int size() {
         return participationST.size();
     }
 
+    /**
+     * Retorna todos os registos de participação como uma lista simples.
+     *
+     * @return lista de todos os objetos {@link ArtistContent}
+     */
     public List<ArtistContent> listAll() {
         List<ArtistContent> result = new ArrayList<>();
         for (String key : participationST.keys()) result.add(participationST.get(key));
         return result;
     }
 
-    // -------------------------------------------------------------------------
-    // Private helpers
-    // -------------------------------------------------------------------------
-
+    // --- Métodos Auxiliares de Indexação ---
+    
     private String compositeKey(String artistId, String contentId, ArtistRole role) {
         return artistId + ":" + contentId + ":" + role.name();
     }
@@ -209,7 +293,6 @@ public class ArtistContentManager {
     }
 
     private void indexByDate(ArtistContent ac) {
-        // CORREÇÃO: Transformar LocalDate num Long
         Long dateKey = ac.getDate().toEpochDay();
         List<ArtistContent> bucket = byDateBST.get(dateKey);
         if (bucket == null) { bucket = new ArrayList<>(); byDateBST.put(dateKey, bucket); }
@@ -229,7 +312,6 @@ public class ArtistContentManager {
     }
 
     private void removeFromDateIndex(ArtistContent ac) {
-        // CORREÇÃO: Transformar LocalDate num Long
         Long dateKey = ac.getDate().toEpochDay();
         List<ArtistContent> bucket = byDateBST.get(dateKey);
         if (bucket != null) { bucket.remove(ac); if (bucket.isEmpty()) byDateBST.delete(dateKey); }
