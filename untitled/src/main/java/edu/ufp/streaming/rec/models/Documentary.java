@@ -1,15 +1,15 @@
 package edu.ufp.streaming.rec.models;
 
 import java.time.LocalDate;
+import java.io.Serializable;
 
+public class Documentary extends Content implements Serializable {
 /**
  * Representa um documentário disponível na plataforma de streaming.
  * Herda de {@link Content} e adiciona o tema e o narrador.
  *
  * @author Pedro
- * @version 1.0
  */
-public class Documentary extends Content {
 
   /** Tema principal do documentário. */
   private String topic;

@@ -1,16 +1,15 @@
 package edu.ufp.streaming.rec.models;
 
 import java.time.LocalDate;
+import java.io.Serializable;
 
+public class Content implements Serializable {
 /**
  * Classe base que representa um conteúdo multimédia da plataforma de streaming.
  * Serve de superclasse para {@link Movie}, {@link Series} e {@link Documentary}.
  *
  * @author Pedro
- * @version 1.0
  */
-public class Content {
-
   /** Identificador único do conteúdo. */
   private String id;
 

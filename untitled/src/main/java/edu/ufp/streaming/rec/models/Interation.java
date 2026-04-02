@@ -2,6 +2,7 @@ package edu.ufp.streaming.rec.models;
 
 import edu.ufp.streaming.rec.enums.InterationType;
 import java.time.LocalDateTime;
+import java.io.Serializable;
 
 /**
  * Representa uma interação de um utilizador com um conteúdo na plataforma de streaming.
@@ -9,7 +10,7 @@ import java.time.LocalDateTime;
  * @author Pedro
  * @version 1.0
  */
-public class Interation {
+public class Interation implements Serializable {
 
   /** Utilizador que realizou a interação. */
   private User user;

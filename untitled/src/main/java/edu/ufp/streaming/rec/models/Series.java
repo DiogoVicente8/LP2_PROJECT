@@ -3,15 +3,15 @@ package edu.ufp.streaming.rec.models;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.Serializable;
 
+public class Series extends Content implements Serializable {
 /**
  * Representa uma série disponível na plataforma de streaming.
  * Herda de {@link Content} e adiciona temporadas e episódios.
  *
  * @author Pedro
- * @version 1.0
  */
-public class Series extends Content {
 
   /** Número de temporadas da série. */
   private int seasons;

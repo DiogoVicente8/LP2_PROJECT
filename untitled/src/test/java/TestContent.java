@@ -1,6 +1,4 @@
-    import edu.ufp.streaming.rec.managers.ContentBST;
-    import edu.ufp.streaming.rec.managers.ContentManager;
-    import edu.ufp.streaming.rec.managers.GenreManager;
+    import edu.ufp.streaming.rec.managers.*;
     import edu.ufp.streaming.rec.models.Content;
     import edu.ufp.streaming.rec.models.Documentary;
     import edu.ufp.streaming.rec.models.Genre;
@@ -8,7 +6,6 @@
     import edu.ufp.streaming.rec.models.Series;
     import edu.ufp.streaming.rec.models.Interation;
     import edu.ufp.streaming.rec.enums.InterationType;
-    import edu.ufp.streaming.rec.managers.ContentFileManager;
 
     import java.time.LocalDate;
     import java.time.LocalDateTime;
@@ -43,6 +40,7 @@
             testContentBSTDateRange();
             testInteration();
             testFileImportExport();
+            testSerialization();
 
             System.out.println("========================================");
             System.out.println(" All TestContent tests completed.");
@@ -312,5 +310,38 @@
             assert cm2.get("C01").getTitle().equals("Inception") : "Title should match";
 
             System.out.println("PASS: File import/export\n");
+        }
+        /**
+         * Testa a serialização binária de conteúdos e géneros (R11).
+         */
+        public static void testSerialization() {
+            System.out.println("--- testSerialization ---");
+            ContentBST bst = new ContentBST();
+            ContentManager cm = new ContentManager(bst);
+            GenreManager gm = new GenreManager();
+
+            Genre g1 = genre("G01", "Acao");
+            Genre g2 = genre("G02", "Drama");
+            gm.insert(g1);
+            gm.insert(g2);
+
+            cm.insert(movie("C01", "Inception", g1, LocalDate.of(2010, 7, 16)));
+            cm.insert(series("C02", "Breaking Bad", g2, LocalDate.of(2008, 1, 20), 5));
+
+            ContentSerializer.exportGenres(gm, "genres.bin");
+            ContentSerializer.exportContents(cm, "contents.bin");
+
+            GenreManager gm2 = new GenreManager();
+            ContentBST bst2 = new ContentBST();
+            ContentManager cm2 = new ContentManager(bst2);
+
+            ContentSerializer.importGenres(gm2, "genres.bin");
+            ContentSerializer.importContents(cm2, "contents.bin");
+
+            assert gm2.size() == 2 : "Should import 2 genres";
+            assert cm2.size() == 2 : "Should import 2 contents";
+            assert cm2.get("C01").getTitle().equals("Inception") : "Title should match";
+
+            System.out.println("PASS: Serialization\n");
         }
     }
