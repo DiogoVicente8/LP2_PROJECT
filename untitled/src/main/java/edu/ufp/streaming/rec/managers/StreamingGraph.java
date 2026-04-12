@@ -3,6 +3,8 @@ package edu.ufp.streaming.rec.managers;
 import edu.princeton.cs.algs4.DirectedEdge;
 import edu.princeton.cs.algs4.EdgeWeightedDigraph;
 import edu.princeton.cs.algs4.DijkstraSP;
+import edu.princeton.cs.algs4.KosarajuSharirSCC;
+import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.ST;
 import edu.ufp.streaming.rec.enums.InterationType;
 import edu.ufp.streaming.rec.models.*;
@@ -144,6 +146,15 @@ public class StreamingGraph {
         grafo.addEdge(new DirectedEdge(idParaIndice.get(origemId), idParaIndice.get(destinoId), peso));
     }
 
+    /**
+     * Remove todas as arestas e o vértice de um conteúdo removido do sistema (R4).
+     *
+     * @param contentId o ID do conteúdo a remover do grafo
+     */
+    public void removeContentEdges(String contentId) {
+        reconstruirGrafoExcluindo(null, contentId);
+    }
+
     // -------------------------------------------------------------------------
     // R8a — Caminho mais curto entre utilizadores
     // -------------------------------------------------------------------------
@@ -240,24 +251,159 @@ public class StreamingGraph {
         return sub;
     }
 
+    /**
+     * Extrai um subgrafo apenas com utilizadores que classificaram conteúdos acima de um rating mínimo.
+     * Inclui as arestas de follow entre esses utilizadores.
+     *
+     * @param minRating  rating mínimo (inclusive)
+     * @param userMgr    o {@link UserManager} para obter as interações
+     * @return novo {@link EdgeWeightedDigraph} com utilizadores que cumprem o critério
+     */
+    public EdgeWeightedDigraph subgrafoByMinRating(double minRating, UserManager userMgr) {
+        Set<Integer> idxUtilizadores = new HashSet<>();
+        for (User u : userMgr.listAll()) {
+            boolean qualifica = false;
+            for (var i : u.getInteractions()) {
+                if (i.getType() == InterationType.RATE && i.getRating() >= minRating) {
+                    qualifica = true;
+                    break;
+                }
+            }
+            if (qualifica && idParaIndice.contains(u.getId()))
+                idxUtilizadores.add(idParaIndice.get(u.getId()));
+        }
+
+        EdgeWeightedDigraph sub = new EdgeWeightedDigraph(capacidade);
+        for (int v : idxUtilizadores) {
+            for (DirectedEdge e : grafo.adj(v)) {
+                if (idxUtilizadores.contains(e.to())) sub.addEdge(e);
+            }
+        }
+        return sub;
+    }
+
+    // -------------------------------------------------------------------------
+    // R8b (cont.) — Caminho mais curto entre dois artistas via conteúdos partilhados
+    // -------------------------------------------------------------------------
+
+    /**
+     * Calcula o caminho mais curto entre dois artistas com base nos conteúdos
+     * em que participaram em conjunto (grafo artista → artista via conteúdos partilhados).
+     *
+     * <p>Dois artistas estão ligados se participaram no mesmo conteúdo.
+     * O peso da aresta é o {@code toEpochDay()} da data de participação mais antiga
+     * no conteúdo partilhado. O algoritmo constrói um grafo temporário
+     * artista→artista e aplica Dijkstra.
+     *
+     * @param artistIdOrigem  ID do artista de origem
+     * @param artistIdDestino ID do artista de destino
+     * @param acMgr           o {@link ArtistContentManager} para obter as participações
+     * @return lista de IDs de artistas representando o caminho, ou lista vazia se não existir
+     */
+    public List<String> caminhoMaisCurtoEntreArtistas(String artistIdOrigem,
+                                                      String artistIdDestino,
+                                                      ArtistContentManager acMgr) {
+        // Recolher todos os artistas presentes nas participações
+        List<ArtistContent> todasParticipacoes = acMgr.listAll();
+        if (todasParticipacoes.isEmpty()) return new ArrayList<>();
+
+        // Mapear artistId → índice local para o grafo temporário
+        ST<String, Integer> artistIdx = new ST<>();
+        ST<Integer, String> idxArtist = new ST<>();
+        int count = 0;
+        for (ArtistContent ac : todasParticipacoes) {
+            String aid = ac.getArtist().getId();
+            if (!artistIdx.contains(aid)) {
+                artistIdx.put(aid, count);
+                idxArtist.put(count, aid);
+                count++;
+            }
+        }
+
+        if (!artistIdx.contains(artistIdOrigem) || !artistIdx.contains(artistIdDestino))
+            return new ArrayList<>();
+
+        // Construir grafo temporário artista → artista via conteúdos partilhados
+        // Agrupar participações por contentId para encontrar pares de artistas no mesmo conteúdo
+        ST<String, List<ArtistContent>> porConteudo = new ST<>();
+        for (ArtistContent ac : todasParticipacoes) {
+            String cid = ac.getContent().getId();
+            List<ArtistContent> lista = porConteudo.contains(cid)
+                    ? porConteudo.get(cid) : new ArrayList<>();
+            lista.add(ac);
+            porConteudo.put(cid, lista);
+        }
+
+        EdgeWeightedDigraph grafoArtistas = new EdgeWeightedDigraph(count);
+        for (String cid : porConteudo.keys()) {
+            List<ArtistContent> participantes = porConteudo.get(cid);
+            for (int i = 0; i < participantes.size(); i++) {
+                for (int j = 0; j < participantes.size(); j++) {
+                    if (i == j) continue;
+                    ArtistContent a = participantes.get(i);
+                    ArtistContent b = participantes.get(j);
+                    int idxA = artistIdx.get(a.getArtist().getId());
+                    int idxB = artistIdx.get(b.getArtist().getId());
+                    // Peso = dia da época da participação (data mais antiga do par)
+                    double peso = Math.min(
+                            a.getDate().toEpochDay(),
+                            b.getDate().toEpochDay());
+                    grafoArtistas.addEdge(new DirectedEdge(idxA, idxB, peso));
+                }
+            }
+        }
+
+        int src  = artistIdx.get(artistIdOrigem);
+        int dest = artistIdx.get(artistIdDestino);
+
+        DijkstraSP sp = new DijkstraSP(grafoArtistas, src);
+        List<String> caminho = new ArrayList<>();
+        if (!sp.hasPathTo(dest)) return caminho;
+
+        for (DirectedEdge e : sp.pathTo(dest)) {
+            if (caminho.isEmpty()) caminho.add(idxArtist.get(e.from()));
+            caminho.add(idxArtist.get(e.to()));
+        }
+        return caminho;
+    }
+
     // -------------------------------------------------------------------------
     // R8c — Verificar se o grafo de utilizadores é fortemente conexo
     // -------------------------------------------------------------------------
 
     /**
-     * Verifica se o subgrafo de utilizadores é fortemente conexo.
+     * Verifica se o subgrafo de utilizadores é fortemente conexo, recorrendo ao
+     * algoritmo de Kosaraju-Sharir (KosarajuSharirSCC da algs4).
+     *
+     * <p>Um grafo dirigido é fortemente conexo se todos os pares de vértices
+     * se alcançam mutuamente. Kosaraju-Sharir determina as componentes fortemente
+     * conexas (SCCs) em O(V+E) — correto e eficiente para este fim.
      *
      * @return {@code true} se todos os utilizadores se alcançam mutuamente via follow
      */
     public boolean isGrafoUtilizadoresConexo() {
         List<Integer> verticesUtilizadores = getVerticesUtilizadores();
-        if (verticesUtilizadores.isEmpty()) return true;
+        if (verticesUtilizadores.size() <= 1) return true;
 
-        for (int src : verticesUtilizadores) {
-            DijkstraSP sp = new DijkstraSP(grafo, src);
-            for (int dest : verticesUtilizadores) {
-                if (src != dest && !sp.hasPathTo(dest)) return false;
+        // Construir um Digraph (não pesado) apenas com os vértices de utilizadores
+        // KosarajuSharirSCC da algs4 opera sobre Digraph, não EdgeWeightedDigraph
+        int n = capacidade;
+        Digraph digraphUtilizadores = new Digraph(n);
+
+        for (int v : verticesUtilizadores) {
+            for (DirectedEdge e : grafo.adj(v)) {
+                if (verticesUtilizadores.contains(e.to())) {
+                    digraphUtilizadores.addEdge(e.from(), e.to());
+                }
             }
+        }
+
+        KosarajuSharirSCC scc = new KosarajuSharirSCC(digraphUtilizadores);
+
+        // Verificar que todos os vértices de utilizadores pertencem à mesma SCC
+        int componenteReferencia = scc.id(verticesUtilizadores.get(0));
+        for (int v : verticesUtilizadores) {
+            if (scc.id(v) != componenteReferencia) return false;
         }
         return true;
     }
@@ -384,7 +530,7 @@ public class StreamingGraph {
     }
 
     // -------------------------------------------------------------------------
-    // R8g — Seguidores que viram o mesmo conteúdo num intervalo (já existia)
+    // R8g — Seguidores que viram o mesmo conteúdo num intervalo
     // -------------------------------------------------------------------------
 
     /**
@@ -491,17 +637,18 @@ public class StreamingGraph {
         grafo = novoGrafo;
     }
 
-    private void reconstruirGrafoExcluindo(String excludeId, String excludeContentId) {
+    private void reconstruirGrafoExcluindo(String excludeUserId, String excludeContentId) {
         EdgeWeightedDigraph novoGrafo = new EdgeWeightedDigraph(capacidade);
-        Integer idxExcluido = idParaIndice.contains(excludeId) ? idParaIndice.get(excludeId) : -1;
-        Integer idxConteudoExcluido = (excludeContentId != null && idParaIndice.contains(excludeContentId))
+        Integer idxUser    = (excludeUserId    != null && idParaIndice.contains(excludeUserId))
+                ? idParaIndice.get(excludeUserId)    : -1;
+        Integer idxContent = (excludeContentId != null && idParaIndice.contains(excludeContentId))
                 ? idParaIndice.get(excludeContentId) : -1;
 
         for (int v = 0; v < grafo.V(); v++) {
-            if (v == idxExcluido) continue;
+            if (v == idxUser || v == idxContent) continue;
             for (DirectedEdge e : grafo.adj(v)) {
-                if (e.from() == idxExcluido || e.to() == idxExcluido) continue;
-                if (e.from() == idxConteudoExcluido || e.to() == idxConteudoExcluido) continue;
+                if (e.from() == idxUser    || e.to() == idxUser)    continue;
+                if (e.from() == idxContent || e.to() == idxContent) continue;
                 novoGrafo.addEdge(e);
             }
         }

@@ -1,5 +1,6 @@
 package edu.ufp.streaming.rec.models;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,9 +11,13 @@ import java.util.List;
  * <p>Um utilizador possui um ID único, detalhes pessoais, uma região preferencial,
  * uma lista de géneros preferidos, um histórico de visualização e interações
  * registadas com o conteúdo da plataforma.
+ *
  * @author  Diogo Vicente
  */
-public class User {
+public class User implements Serializable {
+
+  /** Identificador de versão para serialização. */
+  private static final long serialVersionUID = 1L;
 
   /** Identificador único para este utilizador. */
   private String id;
@@ -35,8 +40,13 @@ public class User {
   /** Lista ordenada de conteúdo que o utilizador assistiu. */
   private List<Content> watchHistory;
 
-  /** Todas as interações registadas (ver, avaliar, marcar, saltar). */
-  private List<Interation> interactions;
+  /**
+   * Todas as interações registadas (ver, avaliar, marcar, saltar).
+   * Marcada como transient para evitar referências circulares durante a serialização
+   * (Interation → User → Interation...).
+   * Após desserialização, esta lista é reconstruída pelo sistema.
+   */
+  private transient List<Interation> interactions;
 
   /**
    * Constrói um novo Utilizador com os detalhes fornecidos.
@@ -109,10 +119,14 @@ public class User {
 
   /**
    * Retorna todas as interações registadas para este utilizador.
+   * Se a lista for null (após desserialização), inicializa-a automaticamente.
    *
    * @return lista mutável de objetos {@link Interation}
    */
-  public List<Interation> getInteractions() { return interactions; }
+  public List<Interation> getInteractions() {
+    if (interactions == null) interactions = new ArrayList<>();
+    return interactions;
+  }
 
   /**
    * Define o ID único do utilizador.
@@ -186,6 +200,7 @@ public class User {
    * @param interation a {@link Interation} a adicionar
    */
   public void addInteration(Interation interation) {
+    if (this.interactions == null) this.interactions = new ArrayList<>();
     this.interactions.add(interation);
   }
 
@@ -201,7 +216,8 @@ public class User {
 
   /**
    * Retorna a lista de seguidores (vazia por defeito, gerida externamente).
-   * * @return lista de utilizadores seguidores
+   *
+   * @return lista de utilizadores seguidores
    */
   public List<User> getFollowers() { return new ArrayList<>(); }
 

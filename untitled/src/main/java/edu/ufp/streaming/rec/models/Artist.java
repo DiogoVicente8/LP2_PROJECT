@@ -2,6 +2,7 @@ package edu.ufp.streaming.rec.models;
 
 import edu.ufp.streaming.rec.enums.ArtistRole;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +16,10 @@ import java.util.List;
  *
  * @author  Diogo Vicente
  */
-public class Artist {
+public class Artist implements Serializable {
+
+  /** Identificador de versão para serialização. */
+  private static final long serialVersionUID = 1L;
 
   /** Identificador único para este artista. */
   private String id;
@@ -35,8 +39,13 @@ public class Artist {
   /** Função principal na plataforma (ex: ACTOR, DIRECTOR). */
   private ArtistRole role;
 
-  /** Lista de participações em conteúdos (filmografia). */
-  private List<ArtistContent> participates;
+  /**
+   * Lista de participações em conteúdos (filmografia).
+   * Marcada como transient para evitar referências circulares durante a serialização
+   * (ArtistContent → Content → Artist → ArtistContent...).
+   * Após desserialização, esta lista é reconstruída pelo ArtistContentManager.
+   */
+  private transient List<ArtistContent> participates;
 
   /**
    * Constrói um novo Artista com os detalhes fornecidos.
@@ -103,17 +112,24 @@ public class Artist {
 
   /**
    * Retorna a filmografia do artista (lista de participações em conteúdos).
+   * Se a lista for null (após desserialização), inicializa-a automaticamente.
    *
    * @return lista mutável de {@link ArtistContent}
    */
-  public List<ArtistContent> getFilmography() { return participates; }
+  public List<ArtistContent> getFilmography() {
+    if (participates == null) participates = new ArrayList<>();
+    return participates;
+  }
 
   /**
    * Retorna a lista de participações do artista (alias para {@link #getFilmography()}).
    *
    * @return lista mutável de {@link ArtistContent}
    */
-  public List<ArtistContent> getParticipates() { return participates; }
+  public List<ArtistContent> getParticipates() {
+    if (participates == null) participates = new ArrayList<>();
+    return participates;
+  }
 
   /**
    * Define o ID único do artista.
@@ -171,7 +187,10 @@ public class Artist {
    *
    * @param ac a associação {@link ArtistContent} a adicionar
    */
-  public void addParticipation(ArtistContent ac) { this.participates.add(ac); }
+  public void addParticipation(ArtistContent ac) {
+    if (participates == null) participates = new ArrayList<>();
+    this.participates.add(ac);
+  }
 
   @Override
   public String toString() {
