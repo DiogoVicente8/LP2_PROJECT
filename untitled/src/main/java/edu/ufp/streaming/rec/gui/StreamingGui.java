@@ -20,7 +20,7 @@ import java.util.Map;
  *
  * @author Diogo Vicente & Pedro
  */
-public class StreamingGUI extends JFrame {
+public class StreamingGUI    extends JFrame {
 
     private final StreamingDatabase db;
 
