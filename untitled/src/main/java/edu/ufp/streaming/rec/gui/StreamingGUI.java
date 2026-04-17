@@ -32,6 +32,8 @@ public class StreamingGUI extends JFrame {
         setSize(1100, 750);
         setLocationRelativeTo(null);
 
+        setJMenuBar(buildMenuBar()); // R10 / R11
+
         tabbedPane = new JTabbedPane();
         tabbedPane.addTab("👤 Utilizadores",  buildUtilizadoresPanel());
         tabbedPane.addTab("🎬 Conteúdos",     buildConteudosPanel());
@@ -42,6 +44,52 @@ public class StreamingGUI extends JFrame {
         add(buildStatusBar(), BorderLayout.SOUTH);
 
         setVisible(true);
+    }
+
+    // -----------------------------------------------------------------------
+    // Menu Bar (R10 / R11)
+    // -----------------------------------------------------------------------
+
+    private JMenuBar buildMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu menuFicheiro = new JMenu("Ficheiro");
+
+        JMenuItem exportTxt = new JMenuItem("Exportar Conteúdos TXT (R10)");
+        exportTxt.addActionListener(e -> {
+            ContentFileManager.exportGenres(db.genres(), "genres.txt");
+            ContentFileManager.exportContents(db.contents(), "contents.txt");
+            JOptionPane.showMessageDialog(this, "Dados exportados para genres.txt e contents.txt");
+        });
+
+        JMenuItem importTxt = new JMenuItem("Importar Conteúdos TXT (R10)");
+        importTxt.addActionListener(e -> {
+            ContentFileManager.importGenres(db.genres(), "genres.txt");
+            ContentFileManager.importContents(db.contents(), db.genres(), "contents.txt");
+            JOptionPane.showMessageDialog(this, "Dados importados de genres.txt e contents.txt");
+        });
+
+        JMenuItem exportBin = new JMenuItem("Exportar Binário (R11)");
+        exportBin.addActionListener(e -> {
+            ContentSerializer.exportGenres(db.genres(), "genres.bin");
+            ContentSerializer.exportContents(db.contents(), "contents.bin");
+            JOptionPane.showMessageDialog(this, "Dados serializados para genres.bin e contents.bin");
+        });
+
+        JMenuItem importBin = new JMenuItem("Importar Binário (R11)");
+        importBin.addActionListener(e -> {
+            ContentSerializer.importGenres(db.genres(), "genres.bin");
+            ContentSerializer.importContents(db.contents(), "contents.bin");
+            JOptionPane.showMessageDialog(this, "Dados deserializados de genres.bin e contents.bin");
+        });
+
+        menuFicheiro.add(exportTxt);
+        menuFicheiro.add(importTxt);
+        menuFicheiro.addSeparator();
+        menuFicheiro.add(exportBin);
+        menuFicheiro.add(importBin);
+
+        menuBar.add(menuFicheiro);
+        return menuBar;
     }
 
     // -----------------------------------------------------------------------
@@ -59,7 +107,6 @@ public class StreamingGUI extends JFrame {
         JTable table = new JTable(model);
         refreshUserTable(model);
 
-        // --- Formulário de inserção ---
         JPanel form = new JPanel(new GridLayout(0, 2, 6, 6));
         form.setBorder(new TitledBorder("Inserir Utilizador"));
 
@@ -86,7 +133,6 @@ public class StreamingGUI extends JFrame {
                 JOptionPane.showMessageDialog(this, "ID e Nome são obrigatórios.", "Erro", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            // Validação: email duplicado
             if (!email.isEmpty()) {
                 for (User u : db.users().listAll()) {
                     if (u.getEmail().equalsIgnoreCase(email)) {
@@ -114,7 +160,6 @@ public class StreamingGUI extends JFrame {
             refreshUserTable(model);
         });
 
-        // --- Edições ---
         JPanel editPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         editPanel.setBorder(new TitledBorder("Editar Utilizador Selecionado"));
 
@@ -128,7 +173,6 @@ public class StreamingGUI extends JFrame {
             String atual = (String) model.getValueAt(row, 2);
             String novoEmail = JOptionPane.showInputDialog(this, "Novo Email:", atual);
             if (novoEmail == null || novoEmail.trim().isEmpty()) return;
-            // Verificar duplicado
             for (User u : db.users().listAll()) {
                 if (!u.getId().equals(id) && u.getEmail().equalsIgnoreCase(novoEmail.trim())) {
                     JOptionPane.showMessageDialog(this,
@@ -153,14 +197,13 @@ public class StreamingGUI extends JFrame {
         editPanel.add(btnEditEmail);
         editPanel.add(btnEditRegiao);
 
-        // --- Follows ---
         JPanel followPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         followPanel.setBorder(new TitledBorder("Gestão de Follows"));
 
-        JTextField fFollowId = new JTextField(6);
-        JButton btnFollow    = new JButton("Seguir");
-        JButton btnUnfollow  = new JButton("Deixar de Seguir");
-        JButton btnVerSeg    = new JButton("Ver Seguidores");
+        JTextField fFollowId   = new JTextField(6);
+        JButton btnFollow      = new JButton("Seguir");
+        JButton btnUnfollow    = new JButton("Deixar de Seguir");
+        JButton btnVerSeg      = new JButton("Ver Seguidores");
         JButton btnVerSeguindo = new JButton("Ver a Seguir");
 
         btnFollow.addActionListener(e -> {
@@ -171,7 +214,7 @@ public class StreamingGUI extends JFrame {
             if (followedId.isEmpty()) { JOptionPane.showMessageDialog(this, "Introduz o ID do utilizador a seguir."); return; }
             UserFollow uf = db.addFollow(followerId, followedId);
             if (uf != null) JOptionPane.showMessageDialog(this, followerId + " passou a seguir " + followedId + " ✓");
-            else JOptionPane.showMessageDialog(this, "Não foi possível criar o follow. Verifica os IDs ou se já existe.", "Erro", JOptionPane.ERROR_MESSAGE);
+            else JOptionPane.showMessageDialog(this, "Não foi possível criar o follow.", "Erro", JOptionPane.ERROR_MESSAGE);
         });
 
         btnUnfollow.addActionListener(e -> {
@@ -220,7 +263,6 @@ public class StreamingGUI extends JFrame {
         followPanel.add(btnVerSeg);
         followPanel.add(btnVerSeguindo);
 
-        // --- Pesquisa ---
         JPanel search = new JPanel(new FlowLayout(FlowLayout.LEFT));
         search.setBorder(new TitledBorder("Pesquisar por Nome"));
         JTextField fSearch = new JTextField(15);
@@ -235,25 +277,6 @@ public class StreamingGUI extends JFrame {
         btnAll.addActionListener(e -> refreshUserTable(model));
         search.add(fSearch); search.add(btnSearch); search.add(btnAll);
 
-        // Montar painel sul
-        JPanel south = new JPanel(new BorderLayout());
-        south.add(search, BorderLayout.NORTH);
-        south.add(form,   BorderLayout.CENTER);
-
-        JPanel actionBtns = new JPanel(new BorderLayout());
-        JPanel topBtns = new JPanel(new FlowLayout());
-        topBtns.add(new JButton("Adicionar") {{ addActionListener(btnAdd.getActionListeners()[0]); }});
-        topBtns.add(btnRemove);
-
-        JPanel bottomActions = new JPanel(new GridLayout(1, 2));
-        bottomActions.add(editPanel);
-        bottomActions.add(followPanel);
-
-        actionBtns.add(topBtns, BorderLayout.NORTH);
-        actionBtns.add(bottomActions, BorderLayout.CENTER);
-        south.add(actionBtns, BorderLayout.SOUTH);
-
-        // Substituir o botão duplicado — usar apenas btnAdd original
         JPanel southFinal = new JPanel(new BorderLayout());
         southFinal.add(search, BorderLayout.NORTH);
         southFinal.add(form,   BorderLayout.CENTER);
@@ -261,9 +284,9 @@ public class StreamingGUI extends JFrame {
         JPanel allActions = new JPanel(new BorderLayout());
         JPanel insertBtns = new JPanel(new FlowLayout());
         insertBtns.add(btnAdd); insertBtns.add(btnRemove);
-        allActions.add(insertBtns,    BorderLayout.NORTH);
-        allActions.add(editPanel,     BorderLayout.CENTER);
-        allActions.add(followPanel,   BorderLayout.SOUTH);
+        allActions.add(insertBtns,  BorderLayout.NORTH);
+        allActions.add(editPanel,   BorderLayout.CENTER);
+        allActions.add(followPanel, BorderLayout.SOUTH);
 
         southFinal.add(allActions, BorderLayout.SOUTH);
 
@@ -347,7 +370,6 @@ public class StreamingGUI extends JFrame {
             refreshContentTable(model);
         });
 
-        // Pesquisas
         JPanel searchContainer = new JPanel();
         searchContainer.setLayout(new BoxLayout(searchContainer, BoxLayout.Y_AXIS));
         searchContainer.setBorder(new TitledBorder("Pesquisar Conteúdos"));
@@ -426,7 +448,6 @@ public class StreamingGUI extends JFrame {
         JTable table = new JTable(model);
         refreshArtistTable(model);
 
-        // Formulário
         JPanel form = new JPanel(new GridLayout(0, 2, 6, 6));
         form.setBorder(new TitledBorder("Inserir Artista"));
 
@@ -467,7 +488,6 @@ public class StreamingGUI extends JFrame {
             refreshArtistTable(model);
         });
 
-        // --- Editar Nacionalidade ---
         JPanel editPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         editPanel.setBorder(new TitledBorder("Editar Artista Selecionado"));
 
@@ -475,20 +495,18 @@ public class StreamingGUI extends JFrame {
         btnEditNac.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row == -1) { JOptionPane.showMessageDialog(this, "Seleciona um artista."); return; }
-            String id   = (String) model.getValueAt(row, 0);
+            String id    = (String) model.getValueAt(row, 0);
             String atual = (String) model.getValueAt(row, 2);
-            String nova = JOptionPane.showInputDialog(this, "Nova Nacionalidade:", atual);
+            String nova  = JOptionPane.showInputDialog(this, "Nova Nacionalidade:", atual);
             if (nova == null || nova.trim().isEmpty()) return;
             if (db.artists().editNationality(id, nova.trim())) refreshArtistTable(model);
         });
         editPanel.add(btnEditNac);
 
-        // --- Pesquisas ---
         JPanel searchContainer = new JPanel();
         searchContainer.setLayout(new BoxLayout(searchContainer, BoxLayout.Y_AXIS));
         searchContainer.setBorder(new TitledBorder("Pesquisar Artistas"));
 
-        // Linha 1: por nome e papel
         JPanel searchRow1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JTextField fSearchNome = new JTextField(12);
         JButton btnSearchNome  = new JButton("Por Nome");
@@ -519,11 +537,10 @@ public class StreamingGUI extends JFrame {
         searchRow1.add(new JLabel("Nome:"));  searchRow1.add(fSearchNome); searchRow1.add(btnSearchNome);
         searchRow1.add(new JLabel("Papel:")); searchRow1.add(cbRoleFilter); searchRow1.add(btnSearchRole);
 
-        // Linha 2: por data de nascimento exacta
         JPanel searchRow2 = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JTextField fSearchData  = new JTextField(10);
-        JButton btnSearchData   = new JButton("Por Data Nasc.");
-        JButton btnAllArtistas  = new JButton("Ver Todos");
+        JTextField fSearchData = new JTextField(10);
+        JButton btnSearchData  = new JButton("Por Data Nasc.");
+        JButton btnAllArtistas = new JButton("Ver Todos");
 
         btnSearchData.addActionListener(e -> {
             String q = fSearchData.getText().trim();
@@ -531,7 +548,6 @@ public class StreamingGUI extends JFrame {
             try {
                 LocalDate dataExata = LocalDate.parse(q);
                 model.setRowCount(0);
-                // Usa o método searchByBirthDate do ArtistManager (R3)
                 for (Artist a : db.artists().searchByBirthDate(dataExata))
                     model.addRow(new Object[]{a.getId(), a.getName(), a.getNationality(),
                             a.getGender(), a.getBirthDate(), a.getRole()});
@@ -579,7 +595,6 @@ public class StreamingGUI extends JFrame {
         output.setEditable(false);
         output.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
 
-        // R8a
         JPanel r8a = new JPanel(new FlowLayout(FlowLayout.LEFT));
         r8a.setBorder(new TitledBorder("R8a — Caminho mais curto entre utilizadores"));
         JTextField fOrigem  = new JTextField(6);
@@ -600,7 +615,6 @@ public class StreamingGUI extends JFrame {
         r8a.add(new JLabel("Destino:")); r8a.add(fDestino);
         r8a.add(btnCaminho);
 
-        // R8c
         JPanel r8c = new JPanel(new FlowLayout(FlowLayout.LEFT));
         r8c.setBorder(new TitledBorder("R8c — Grafo de utilizadores é fortemente conexo?"));
         JButton btnConexo = new JButton("Verificar");
@@ -610,7 +624,6 @@ public class StreamingGUI extends JFrame {
         });
         r8c.add(btnConexo);
 
-        // R8g
         JPanel r8g = new JPanel(new FlowLayout(FlowLayout.LEFT));
         r8g.setBorder(new TitledBorder("R8g — Seguidores que viram um conteúdo (2024)"));
         JTextField fUserG = new JTextField(6);
@@ -636,7 +649,6 @@ public class StreamingGUI extends JFrame {
         r8g.add(new JLabel("Content ID:")); r8g.add(fContG);
         r8g.add(btnG);
 
-        // Info grafo
         JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton btnInfo = new JButton("ℹ️ Info do Grafo");
         btnInfo.addActionListener(e -> output.setText(
