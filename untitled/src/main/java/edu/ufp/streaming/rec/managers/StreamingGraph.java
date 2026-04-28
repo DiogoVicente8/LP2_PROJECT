@@ -108,7 +108,8 @@ public class StreamingGraph {
         String destinoId = follow.getFollowed().getId();
         if (!idParaIndice.contains(origemId) || !idParaIndice.contains(destinoId)) return;
 
-        double peso = follow.getDate().toEpochSecond(ZoneOffset.UTC);
+        long dataAtual = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+        double peso = (double) (dataAtual - follow.getDate().toEpochSecond(ZoneOffset.UTC));
         grafo.addEdge(new DirectedEdge(idParaIndice.get(origemId), idParaIndice.get(destinoId), peso));
     }
 
@@ -140,8 +141,8 @@ public class StreamingGraph {
         if (!idParaIndice.contains(origemId) || !idParaIndice.contains(destinoId)) return;
 
         double peso = interacao.getType() == InterationType.WATCH
-                ? interacao.getProgress()
-                : interacao.getRating();
+                ? (1.0 - interacao.getProgress()) // Progresso de 100% = distância 0.0
+                : (5.0 - interacao.getRating());  // Rating de 5.0 = distância 0.0
 
         grafo.addEdge(new DirectedEdge(idParaIndice.get(origemId), idParaIndice.get(destinoId), peso));
     }
@@ -643,6 +644,20 @@ public class StreamingGraph {
                 ? idParaIndice.get(excludeUserId)    : -1;
         Integer idxContent = (excludeContentId != null && idParaIndice.contains(excludeContentId))
                 ? idParaIndice.get(excludeContentId) : -1;
+
+        // Limpar o utilizador das STs
+        if (excludeUserId != null && idParaIndice.contains(excludeUserId)) {
+            idParaIndice.delete(excludeUserId);
+            indiceParaId.delete(idxUser);
+            indiceParaTipo.delete(idxUser);
+        }
+
+        // Limpar o conteúdo das STs
+        if (excludeContentId != null && idParaIndice.contains(excludeContentId)) {
+            idParaIndice.delete(excludeContentId);
+            indiceParaId.delete(idxContent);
+            indiceParaTipo.delete(idxContent);
+        }
 
         for (int v = 0; v < grafo.V(); v++) {
             if (v == idxUser || v == idxContent) continue;
