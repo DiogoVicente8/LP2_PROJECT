@@ -6,20 +6,22 @@ import edu.ufp.streaming.rec.models.*;
 import java.time.LocalDate;
 
 /**
- * Coordenador central da camada de dados da plataforma de streaming (Fase 1+ Fase 2).
+ * Coordenador central da camada de dados da plataforma de streaming (Fase 1 + Fase 2).
  *
  * <p>Mantém referências para todos os gestores e garante a consistência R4:
- * a remoção de uma entidade propaga-se automaticamente para todas as estruturas relacionadas, incluindo o grafo
+ * a remoção de uma entidade propaga-se automaticamente para todas as estruturas
+ * relacionadas, incluindo o grafo.
  *
  * <ul>
- * <li>Remover um {@link User} → limpa o {@link FollowManager} e {@link StreamingGraph}</li>
- * <li>Remover um {@link Artist} → limpa o {@link ArtistContentManager}</li>
- * <li>Remover um {@link Content} → limpa o {@link ArtistContentManager} e {@link StreamingGraph}</li>
+ *   <li>Remover um {@link User}    → limpa o {@link FollowManager} e {@link StreamingGraph}</li>
+ *   <li>Remover um {@link Artist}  → limpa o {@link ArtistContentManager}</li>
+ *   <li>Remover um {@link Content} → limpa o {@link ArtistContentManager} e {@link StreamingGraph}</li>
  * </ul>
- * @author  Diogo Vicente
- * */
-
+ *
+ * @author Diogo Vicente
+ */
 public class StreamingDatabase {
+
     /** Gere as entidades {@link User}. */
     private final UserManager userManager;
 
@@ -45,7 +47,7 @@ public class StreamingDatabase {
     private final StreamingGraph graph;
 
     /**
-     * Constrói uma nova StreamingDatabase vazia com todos os gestores inicializados e o grafo com capacidade.
+     * Constrói uma nova StreamingDatabase vazia com todos os gestores inicializados.
      */
     public StreamingDatabase() {
         this.userManager          = new UserManager();
@@ -59,32 +61,82 @@ public class StreamingDatabase {
     }
 
     // -------------------------------------------------------------------------
-    // Getters
+    // Getters dos gestores
     // -------------------------------------------------------------------------
 
-    /** @return the {@link UserManager} */
+    /** @return o {@link UserManager} */
     public UserManager users() { return userManager; }
 
-    /** @return the {@link ArtistManager} */
+    /** @return o {@link ArtistManager} */
     public ArtistManager artists() { return artistManager; }
 
-    /** @return the {@link ContentManager} */
+    /** @return o {@link ContentManager} */
     public ContentManager contents() { return contentManager; }
 
-    /** @return the {@link ContentBST} */
+    /** @return o {@link ContentBST} */
     public ContentBST contentBST() { return contentBST; }
 
-    /** @return the {@link GenreManager} */
+    /** @return o {@link GenreManager} */
     public GenreManager genres() { return genreManager; }
 
-    /** @return the {@link ArtistContentManager} */
+    /** @return o {@link ArtistContentManager} */
     public ArtistContentManager participations() { return artistContentManager; }
 
-    /** @return the {@link FollowManager} */
+    /** @return o {@link FollowManager} */
     public FollowManager follows() { return followManager; }
 
     /** @return o {@link StreamingGraph} */
     public StreamingGraph getGraph() { return graph; }
+
+    // -------------------------------------------------------------------------
+    // Autenticação
+    // -------------------------------------------------------------------------
+
+    /**
+     * Autentica um utilizador com o ID e password fornecidos.
+     *
+     * @param id          ID do utilizador
+     * @param rawPassword password em texto simples
+     * @return o {@link User} autenticado, ou {@code null} se as credenciais forem inválidas
+     *         ou se a password ainda não estiver definida
+     */
+    public User authenticate(String id, String rawPassword) {
+        return userManager.authenticate(id, rawPassword);
+    }
+
+    /**
+     * Altera a password de um utilizador.
+     *
+     * @param userId         ID do utilizador
+     * @param newRawPassword nova password em texto simples
+     * @return {@code true} se alterada com sucesso; {@code false} se o utilizador não existir
+     */
+    public boolean changePassword(String userId, String newRawPassword) {
+        return userManager.changePassword(userId, newRawPassword);
+    }
+
+    /**
+     * Define a password inicial de um utilizador que ainda não tem password.
+     * Falha se o utilizador já tiver password definida.
+     *
+     * @param userId      ID do utilizador
+     * @param rawPassword password em texto simples
+     * @return {@code true} se definida com sucesso
+     */
+    public boolean setInitialPassword(String userId, String rawPassword) {
+        return userManager.setInitialPassword(userId, rawPassword);
+    }
+
+    /**
+     * Indica se um utilizador já tem password definida.
+     *
+     * @param userId ID do utilizador
+     * @return {@code true} se a password estiver definida
+     */
+    public boolean hasPassword(String userId) {
+        return userManager.hasPassword(userId);
+    }
+
     // -------------------------------------------------------------------------
     // Inserções Consistentes
     // -------------------------------------------------------------------------
@@ -144,7 +196,7 @@ public class StreamingDatabase {
      */
     public ArtistContent addParticipation(String artistId, String contentId,
                                           ArtistRole role, LocalDate date) {
-        Artist artist   = artistManager.get(artistId);
+        Artist  artist  = artistManager.get(artistId);
         Content content = contentManager.get(contentId);
         if (artist == null || content == null) return null;
         return artistContentManager.addParticipation(artist, content, role, date);
@@ -161,23 +213,23 @@ public class StreamingDatabase {
         User follower = userManager.get(followerId);
         User followed = userManager.get(followedId);
         if (follower == null || followed == null) return null;
-        UserFollow uf = followManager.follow(follower,followed);
+        UserFollow uf = followManager.follow(follower, followed);
         if (uf != null) graph.addFollowEdge(uf);
         return uf;
     }
 
     /**
-     * Regista uma interacção do utilizador com um conteúdo e adiciona a aresta ao grafo.
-     * Apenas interacções do tipo WATCH e RATE são adicionadas como arestas no grafo.
+     * Regista uma interação do utilizador com um conteúdo e adiciona a aresta ao grafo.
+     * Apenas interações do tipo WATCH e RATE são adicionadas como arestas no grafo.
      *
-     * @param interacao a {@link Interation} a registar
+     * @param interaction a {@link Interation} a registar
      */
-    public void addInteraction(Interation interacao) {
-        if (interacao == null) return;
-        User user = userManager.get(interacao.getUser().getId());
+    public void addInteraction(Interation interaction) {
+        if (interaction == null) return;
+        User user = userManager.get(interaction.getUser().getId());
         if (user == null) return;
-        user.addInteration(interacao);
-        graph.addInteractionEdge(interacao);
+        user.addInteraction(interaction);
+        graph.addInteractionEdge(interaction);
     }
 
     // -------------------------------------------------------------------------

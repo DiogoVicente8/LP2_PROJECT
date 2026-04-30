@@ -22,11 +22,19 @@ import java.util.List;
 public class StreamingGUI extends JFrame {
 
     private final StreamingDatabase db;
+    private final User loggedUser;
     private JTabbedPane tabbedPane;
 
-    public StreamingGUI() {
-        super("Plataforma de Streaming — LP2/AED2");
-        this.db = buildSampleDB();
+    /**
+     * Constrói a janela principal com o utilizador autenticado.
+     *
+     * @param db         base de dados da plataforma
+     * @param loggedUser utilizador que autenticou com sucesso
+     */
+    public StreamingGUI(StreamingDatabase db, User loggedUser) {
+        super("Plataforma de Streaming — LP2/AED2  |  " + loggedUser.getName());
+        this.db         = db;
+        this.loggedUser = loggedUser;
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1100, 750);
@@ -110,15 +118,19 @@ public class StreamingGUI extends JFrame {
         JPanel form = new JPanel(new GridLayout(0, 2, 6, 6));
         form.setBorder(new TitledBorder("Inserir Utilizador"));
 
-        JTextField fId     = new JTextField();
-        JTextField fNome   = new JTextField();
-        JTextField fEmail  = new JTextField();
-        JTextField fRegiao = new JTextField("PT");
+        JTextField     fId       = new JTextField();
+        JTextField     fNome     = new JTextField();
+        JTextField     fEmail    = new JTextField();
+        JTextField     fRegiao   = new JTextField("PT");
+        JPasswordField fPassword = new JPasswordField();
+        JPasswordField fConfirm  = new JPasswordField();
 
-        form.add(new JLabel("ID:"));     form.add(fId);
-        form.add(new JLabel("Nome:"));   form.add(fNome);
-        form.add(new JLabel("Email:"));  form.add(fEmail);
-        form.add(new JLabel("Região:")); form.add(fRegiao);
+        form.add(new JLabel("ID:"));               form.add(fId);
+        form.add(new JLabel("Nome:"));             form.add(fNome);
+        form.add(new JLabel("Email:"));            form.add(fEmail);
+        form.add(new JLabel("Região:"));           form.add(fRegiao);
+        form.add(new JLabel("Password:"));         form.add(fPassword);
+        form.add(new JLabel("Confirmar password:")); form.add(fConfirm);
 
         JButton btnAdd    = new JButton("Adicionar");
         JButton btnRemove = new JButton("Remover Selecionado");
@@ -128,9 +140,20 @@ public class StreamingGUI extends JFrame {
             String nome   = fNome.getText().trim();
             String email  = fEmail.getText().trim();
             String regiao = fRegiao.getText().trim();
+            String pwd    = new String(fPassword.getPassword());
+            String conf   = new String(fConfirm.getPassword());
 
             if (id.isEmpty() || nome.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "ID e Nome são obrigatórios.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (pwd.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "A password é obrigatória.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!pwd.equals(conf)) {
+                JOptionPane.showMessageDialog(this, "As passwords não coincidem.", "Erro", JOptionPane.ERROR_MESSAGE);
+                fPassword.setText(""); fConfirm.setText("");
                 return;
             }
             if (!email.isEmpty()) {
@@ -143,10 +166,11 @@ public class StreamingGUI extends JFrame {
                     }
                 }
             }
-            User u = new User(id, nome, email, regiao, LocalDate.now());
+            User u = new User(id, nome, email, regiao, LocalDate.now(), pwd);
             if (db.addUser(u)) {
                 refreshUserTable(model);
                 fId.setText(""); fNome.setText(""); fEmail.setText("");
+                fPassword.setText(""); fConfirm.setText("");
             } else {
                 JOptionPane.showMessageDialog(this, "ID já existe.", "Erro", JOptionPane.ERROR_MESSAGE);
             }
@@ -194,8 +218,49 @@ public class StreamingGUI extends JFrame {
             if (db.users().editRegion(id, novaRegiao.trim())) refreshUserTable(model);
         });
 
+        JButton btnAltPassword = new JButton("Alterar Password");
+        btnAltPassword.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) { JOptionPane.showMessageDialog(this, "Seleciona um utilizador."); return; }
+            String id = (String) model.getValueAt(row, 0);
+
+            // Apenas o próprio utilizador pode alterar a sua password
+            if (!id.equals(loggedUser.getId())) {
+                JOptionPane.showMessageDialog(this,
+                        "Só podes alterar a tua própria password.",
+                        "Sem permissão", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            JPasswordField novaPwd    = new JPasswordField(16);
+            JPasswordField confirmPwd = new JPasswordField(16);
+            JPanel p = new JPanel(new GridLayout(0, 1, 4, 4));
+            p.add(new JLabel("Nova password:")); p.add(novaPwd);
+            p.add(new JLabel("Confirmar:")); p.add(confirmPwd);
+
+            int res = JOptionPane.showConfirmDialog(this, p,
+                    "Alterar Password", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (res != JOptionPane.OK_OPTION) return;
+
+            String nova    = new String(novaPwd.getPassword());
+            String confirm = new String(confirmPwd.getPassword());
+            if (nova.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "A password não pode estar vazia.",
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!nova.equals(confirm)) {
+                JOptionPane.showMessageDialog(this, "As passwords não coincidem.",
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            db.changePassword(id, nova);
+            JOptionPane.showMessageDialog(this, "Password alterada com sucesso!");
+        });
+
         editPanel.add(btnEditEmail);
         editPanel.add(btnEditRegiao);
+        editPanel.add(btnAltPassword);
 
         JPanel followPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         followPanel.setBorder(new TitledBorder("Gestão de Follows"));
@@ -681,7 +746,21 @@ public class StreamingGUI extends JFrame {
     // Base de dados de exemplo
     // -----------------------------------------------------------------------
 
-    private StreamingDatabase buildSampleDB() {
+    /**
+     * Cria e povoa uma base de dados de exemplo com utilizadores (com passwords),
+     * conteúdos, artistas, follows e interações.
+     *
+     * <p>Credenciais de teste:
+     * <ul>
+     *   <li>ID: u1  Password: alice123</li>
+     *   <li>ID: u2  Password: bruno123</li>
+     *   <li>ID: u3  Password: carla123</li>
+     *   <li>ID: u4  Password: david123</li>
+     * </ul>
+     *
+     * @return base de dados populada
+     */
+    public static StreamingDatabase buildSampleDB() {
         StreamingDatabase sdb = new StreamingDatabase();
 
         Genre gAcao  = new Genre("g1", "Acao");
@@ -689,10 +768,10 @@ public class StreamingGUI extends JFrame {
         Genre gSci   = new Genre("g3", "Sci-Fi");
         sdb.addGenre(gAcao); sdb.addGenre(gDrama); sdb.addGenre(gSci);
 
-        User u1 = new User("u1", "Alice Silva",   "alice@mail.com",  "PT", LocalDate.of(2020, 1, 10));
-        User u2 = new User("u2", "Bruno Costa",   "bruno@mail.com",  "PT", LocalDate.of(2020, 3, 15));
-        User u3 = new User("u3", "Carla Pereira", "carla@mail.com",  "BR", LocalDate.of(2021, 6, 20));
-        User u4 = new User("u4", "David Alves",   "david@mail.com",  "US", LocalDate.of(2022, 9,  5));
+        User u1 = new User("u1", "Alice Silva",   "alice@mail.com",  "PT", LocalDate.of(2020, 1, 10), "alice123");
+        User u2 = new User("u2", "Bruno Costa",   "bruno@mail.com",  "PT", LocalDate.of(2020, 3, 15), "bruno123");
+        User u3 = new User("u3", "Carla Pereira", "carla@mail.com",  "BR", LocalDate.of(2021, 6, 20), "carla123");
+        User u4 = new User("u4", "David Alves",   "david@mail.com",  "US", LocalDate.of(2022, 9,  5), "david123");
         sdb.addUser(u1); sdb.addUser(u2); sdb.addUser(u3); sdb.addUser(u4);
 
         Movie  m1 = new Movie ("c1", "Inception",    gAcao,  LocalDate.of(2010, 7, 16), 148, "PT", null);
@@ -721,7 +800,21 @@ public class StreamingGUI extends JFrame {
         return sdb;
     }
 
+    /**
+     * Ponto de entrada da aplicação.
+     * Apresenta o diálogo de login antes de abrir a janela principal.
+     * O acesso é negado se a autenticação falhar ou o utilizador cancelar.
+     */
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(StreamingGUI::new);
+        SwingUtilities.invokeLater(() -> {
+            StreamingDatabase db = buildSampleDB();
+            LoginDialog login = new LoginDialog(null, db);
+            login.setVisible(true);
+            if (login.isAuthenticated()) {
+                new StreamingGUI(db, login.getLoggedUser());
+            } else {
+                System.exit(0);
+            }
+        });
     }
 }
