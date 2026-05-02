@@ -297,6 +297,7 @@ public class User implements Serializable {
   /** @param interactions nova lista de objetos {@link Interation} */
   public void setInteractions(List<Interation> interactions) { this.interations = interations; }
 
+  public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
   // -------------------------------------------------------------------------
   // Métodos de negócio
   // -------------------------------------------------------------------------
@@ -320,6 +321,9 @@ public class User implements Serializable {
     if (interations == null) interations = new ArrayList<>();
     interations.add(interaction);
   }
+  /** @return hash da password (formato salt:hash), ou {@code null} se não definida */
+  public String getPasswordHash() { return passwordHash; }
+
 
   @Override
   public String toString() {
