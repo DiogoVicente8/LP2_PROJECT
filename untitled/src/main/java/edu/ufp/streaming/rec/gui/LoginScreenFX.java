@@ -16,186 +16,214 @@ import java.util.function.Consumer;
 
 public class LoginScreenFX {
 
-    private double xOffset = 0;
-    private double yOffset = 0;
+    // ── Netflix palette ───────────────────────────────────────────────────
+    private static final String N_BG     = "#141414";
+    private static final String N_CARD   = "#1F1F1F";
+    private static final String N_RED    = "#E50914";
+    private static final String N_TEXT   = "#FFFFFF";
+    private static final String N_MUTED  = "#A0A0A0";
+    private static final String N_INPUT  = "#333333";
+    private static final String N_BORDER = "#404040";
+
+    private double xOffset = 0, yOffset = 0;
 
     public LoginScreenFX(StreamingDatabase db, Stage stage, Consumer<User> onSuccess) {
-        VBox root = new VBox(15);
-        root.setPadding(new Insets(30));
-        root.setStyle("-fx-background-color: #0A0A12; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #E53935; -fx-border-width: 2 0 0 0;");
-        root.setAlignment(Pos.CENTER);
 
-        // ── Header (Título e Botão de Fechar) ──
-        HBox header = new HBox();
-        header.setAlignment(Pos.CENTER_LEFT);
-        Label title = new Label("▶ StreamingApp");
-        title.setStyle("-fx-text-fill: #F0F0F5; -fx-font-size: 22px; -fx-font-weight: bold;");
+        // ── Root ─────────────────────────────────────────────────────────
+        StackPane root = new StackPane();
+        root.setStyle("-fx-background-color:" + N_BG + ";-fx-background-radius:12;");
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS); // Empurra o botão X para a direita
+        // ── Card central ─────────────────────────────────────────────────
+        VBox card = new VBox(0);
+        card.setAlignment(Pos.TOP_LEFT);
+        card.setMaxWidth(420);
+        card.setStyle(
+                "-fx-background-color:" + N_CARD + ";" +
+                        "-fx-background-radius:8;" +
+                        "-fx-padding:48 48 40 48;"
+        );
 
-        Button btnCloseTop = new Button("✕");
-        btnCloseTop.setStyle("-fx-background-color: transparent; -fx-text-fill: #8C8CA0; -fx-font-size: 16px; -fx-cursor: hand;");
-        btnCloseTop.setOnAction(e -> System.exit(0));
+        // Drag
+        root.setOnMousePressed(ev -> { xOffset = ev.getSceneX(); yOffset = ev.getSceneY(); });
+        root.setOnMouseDragged(ev -> { stage.setX(ev.getScreenX()-xOffset); stage.setY(ev.getScreenY()-yOffset); });
 
-        header.getChildren().addAll(title, spacer, btnCloseTop);
+        // ── Logo + fechar ─────────────────────────────────────────────────
+        HBox topRow = new HBox();
+        topRow.setAlignment(Pos.CENTER_LEFT);
 
-        // Label para mensagens de erro/sucesso
+        Label logo = new Label("STREAMINGAPP");
+        logo.setStyle(
+                "-fx-text-fill:" + N_RED + ";" +
+                        "-fx-font-size:26px;" +
+                        "-fx-font-weight:bold;" +
+                        "-fx-font-family:'Georgia';"
+        );
+
+        Region sp = new Region(); HBox.setHgrow(sp, Priority.ALWAYS);
+
+        Button btnX = new Button("✕");
+        btnX.setStyle("-fx-background-color:transparent;-fx-text-fill:"+N_MUTED+";-fx-font-size:14px;-fx-cursor:hand;");
+        btnX.setOnAction(e -> System.exit(0));
+
+        topRow.getChildren().addAll(logo, sp, btnX);
+
+        // ── Mensagem de feedback ──────────────────────────────────────────
         Label msgLabel = new Label(" ");
-        msgLabel.setStyle("-fx-text-fill: #FF5050;"); // Vermelho por defeito
+        msgLabel.setStyle("-fx-text-fill:#FF5252;-fx-font-size:13px;");
+        msgLabel.setWrapText(true);
+        msgLabel.setMaxWidth(Double.MAX_VALUE);
 
-        // Estilos CSS globais para caixas e botões
-        String fieldStyle = "-fx-background-color: #1C1C2A; -fx-text-fill: white; -fx-border-color: #323246; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10;";
-        String btnPrimary = "-fx-background-color: #E53935; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 10 20; -fx-cursor: hand;";
-        String btnSecondary = "-fx-background-color: transparent; -fx-text-fill: #8C8CA0; -fx-underline: true; -fx-cursor: hand;";
+        // ── Estilos ───────────────────────────────────────────────────────
+        String fStyle =
+                "-fx-background-color:" + N_INPUT + ";" +
+                        "-fx-text-fill:" + N_TEXT + ";" +
+                        "-fx-prompt-text-fill:" + N_MUTED + ";" +
+                        "-fx-border-color:" + N_BORDER + ";" +
+                        "-fx-border-radius:4;-fx-background-radius:4;" +
+                        "-fx-padding:14 16;-fx-font-size:14px;";
 
-        // ─────────────────────────────────────────────────────────────────
-        // FORMULÁRIO DE LOGIN
-        // ─────────────────────────────────────────────────────────────────
-        VBox loginForm = new VBox(10);
-        loginForm.setAlignment(Pos.CENTER);
+        String btnRed =
+                "-fx-background-color:" + N_RED + ";" +
+                        "-fx-text-fill:white;" +
+                        "-fx-font-size:16px;" +
+                        "-fx-font-weight:bold;" +
+                        "-fx-background-radius:4;" +
+                        "-fx-padding:14;-fx-cursor:hand;";
 
-        TextField txtLoginId = new TextField();
-        txtLoginId.setPromptText("ID de utilizador");
-        txtLoginId.setStyle(fieldStyle);
+        String btnLink =
+                "-fx-background-color:transparent;" +
+                        "-fx-text-fill:" + N_MUTED + ";" +
+                        "-fx-font-size:13px;" +
+                        "-fx-cursor:hand;-fx-underline:false;";
 
-        PasswordField txtLoginPwd = new PasswordField();
-        txtLoginPwd.setPromptText("Password");
-        txtLoginPwd.setStyle(fieldStyle);
+        // ── FORMULÁRIO LOGIN ──────────────────────────────────────────────
+        VBox loginForm = new VBox(14);
+        loginForm.setAlignment(Pos.TOP_LEFT);
+
+        Label loginTitle = new Label("Iniciar Sessão");
+        loginTitle.setStyle("-fx-text-fill:"+N_TEXT+";-fx-font-size:28px;-fx-font-weight:bold;");
+
+        TextField fId = new TextField();
+        fId.setPromptText("ID de utilizador");
+        fId.setStyle(fStyle);
+        fId.setMaxWidth(Double.MAX_VALUE);
+
+        PasswordField fPwd = new PasswordField();
+        fPwd.setPromptText("Password");
+        fPwd.setStyle(fStyle);
+        fPwd.setMaxWidth(Double.MAX_VALUE);
 
         Button btnLogin = new Button("Entrar");
-        btnLogin.setStyle(btnPrimary);
+        btnLogin.setStyle(btnRed);
         btnLogin.setMaxWidth(Double.MAX_VALUE);
 
-        Button btnGoToRegister = new Button("Não tens conta? Criar nova conta");
-        btnGoToRegister.setStyle(btnSecondary);
+        Separator sep1 = new Separator();
+        sep1.setStyle("-fx-background-color:"+N_BORDER+";-fx-opacity:0.5;");
 
-        loginForm.getChildren().addAll(txtLoginId, txtLoginPwd, btnLogin, new Label(" "), btnGoToRegister);
+        HBox regRow = new HBox(4);
+        regRow.setAlignment(Pos.CENTER);
+        Label regTxt = new Label("Novo no StreamingApp?");
+        regTxt.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:13px;");
+        Button btnGoReg = new Button("Criar conta.");
+        btnGoReg.setStyle(btnLink + "-fx-text-fill:white;-fx-font-weight:bold;");
+        regRow.getChildren().addAll(regTxt, btnGoReg);
 
-        // ─────────────────────────────────────────────────────────────────
-        // FORMULÁRIO DE REGISTO
-        // ─────────────────────────────────────────────────────────────────
-        VBox registerForm = new VBox(10);
-        registerForm.setAlignment(Pos.CENTER);
-        registerForm.setVisible(false); // Escondido por defeito
-        registerForm.setManaged(false); // Não ocupa espaço enquanto estiver escondido
+        loginForm.getChildren().addAll(loginTitle, fId, fPwd, btnLogin, sep1, regRow);
 
-        HBox row1 = new HBox(10);
-        TextField txtRegId = new TextField(); txtRegId.setPromptText("ID (ex: u5)"); txtRegId.setStyle(fieldStyle);
-        TextField txtRegRegion = new TextField(); txtRegRegion.setPromptText("Região (ex: PT)"); txtRegRegion.setStyle(fieldStyle);
-        HBox.setHgrow(txtRegId, Priority.ALWAYS); HBox.setHgrow(txtRegRegion, Priority.ALWAYS);
-        row1.getChildren().addAll(txtRegId, txtRegRegion);
+        // ── FORMULÁRIO REGISTO ────────────────────────────────────────────
+        VBox registerForm = new VBox(14);
+        registerForm.setAlignment(Pos.TOP_LEFT);
+        registerForm.setVisible(false);
+        registerForm.setManaged(false);
 
-        TextField txtRegName = new TextField(); txtRegName.setPromptText("Nome completo"); txtRegName.setStyle(fieldStyle);
-        TextField txtRegEmail = new TextField(); txtRegEmail.setPromptText("E-mail"); txtRegEmail.setStyle(fieldStyle);
-        PasswordField txtRegPwd = new PasswordField(); txtRegPwd.setPromptText("Password"); txtRegPwd.setStyle(fieldStyle);
-        PasswordField txtRegConfirm = new PasswordField(); txtRegConfirm.setPromptText("Confirmar password"); txtRegConfirm.setStyle(fieldStyle);
+        Label regTitle = new Label("Criar Conta");
+        regTitle.setStyle("-fx-text-fill:"+N_TEXT+";-fx-font-size:28px;-fx-font-weight:bold;");
 
-        Button btnRegister = new Button("Criar Conta");
-        btnRegister.setStyle(btnPrimary);
-        btnRegister.setMaxWidth(Double.MAX_VALUE);
+        HBox rRow1 = new HBox(10);
+        TextField rId = field(fStyle, "ID (ex: u5)");
+        TextField rRegion = field(fStyle, "Região (PT)");
+        HBox.setHgrow(rId, Priority.ALWAYS); HBox.setHgrow(rRegion, Priority.ALWAYS);
+        rRow1.getChildren().addAll(rId, rRegion);
 
-        Button btnGoToLogin = new Button("Já tens conta? Entrar");
-        btnGoToLogin.setStyle(btnSecondary);
+        TextField rName  = field(fStyle, "Nome completo");
+        TextField rEmail = field(fStyle, "E-mail");
+        PasswordField rPwd  = pwd(fStyle, "Password");
+        PasswordField rConf = pwd(fStyle, "Confirmar password");
 
-        registerForm.getChildren().addAll(row1, txtRegName, txtRegEmail, txtRegPwd, txtRegConfirm, btnRegister, new Label(" "), btnGoToLogin);
+        Button btnReg = new Button("Criar Conta");
+        btnReg.setStyle(btnRed);
+        btnReg.setMaxWidth(Double.MAX_VALUE);
 
-        // ─────────────────────────────────────────────────────────────────
-        // LÓGICA DOS BOTÕES
-        // ─────────────────────────────────────────────────────────────────
+        Separator sep2 = new Separator();
+        sep2.setStyle("-fx-background-color:"+N_BORDER+";-fx-opacity:0.5;");
 
-        // Alternar para Registo
-        btnGoToRegister.setOnAction(e -> {
+        HBox loginRow = new HBox(4);
+        loginRow.setAlignment(Pos.CENTER);
+        Label loginTxt = new Label("Já tens conta?");
+        loginTxt.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:13px;");
+        Button btnGoLogin = new Button("Iniciar sessão.");
+        btnGoLogin.setStyle(btnLink + "-fx-text-fill:white;-fx-font-weight:bold;");
+        loginRow.getChildren().addAll(loginTxt, btnGoLogin);
+
+        registerForm.getChildren().addAll(regTitle, rRow1, rName, rEmail, rPwd, rConf, btnReg, sep2, loginRow);
+
+        // ── Lógica ────────────────────────────────────────────────────────
+        btnGoReg.setOnAction(e -> {
             loginForm.setVisible(false); loginForm.setManaged(false);
             registerForm.setVisible(true); registerForm.setManaged(true);
-            msgLabel.setText(" "); // limpa erros
+            msgLabel.setText(" ");
         });
-
-        // Alternar para Login
-        btnGoToLogin.setOnAction(e -> {
+        btnGoLogin.setOnAction(e -> {
             registerForm.setVisible(false); registerForm.setManaged(false);
             loginForm.setVisible(true); loginForm.setManaged(true);
-            msgLabel.setText(" "); // limpa erros
+            msgLabel.setText(" ");
         });
 
-        // Ação: Entrar
         btnLogin.setOnAction(e -> {
-            String id = txtLoginId.getText().trim();
-            String pwd = txtLoginPwd.getText();
-
-            if (id.isEmpty() || pwd.isEmpty()) {
-                msgLabel.setStyle("-fx-text-fill: #FF5050;");
-                msgLabel.setText("Preenche o ID e Password.");
-                return;
-            }
-
+            String id = fId.getText().trim(), pwd = fPwd.getText();
+            if (id.isEmpty() || pwd.isEmpty()) { msg(msgLabel, "Preenche o ID e Password.", false); return; }
             User u = db.authenticate(id, pwd);
-            if (u != null) {
-                msgLabel.setStyle("-fx-text-fill: #2ECC71;");
-                msgLabel.setText("Bem-vindo(a), " + u.getName() + "!");
-                onSuccess.accept(u); // Entra na App
-            } else {
-                msgLabel.setStyle("-fx-text-fill: #FF5050;");
-                msgLabel.setText("ID ou password incorretos.");
-            }
+            if (u != null) { msg(msgLabel, "Bem-vindo, " + u.getName() + "!", true); onSuccess.accept(u); }
+            else msg(msgLabel, "ID ou password incorretos.", false);
         });
 
-        // Ação: Criar Conta
-        btnRegister.setOnAction(e -> {
-            String id = txtRegId.getText().trim();
-            String nome = txtRegName.getText().trim();
-            String email = txtRegEmail.getText().trim();
-            String regiao = txtRegRegion.getText().trim();
-            String pwd = txtRegPwd.getText();
-            String confirm = txtRegConfirm.getText();
+        // Enter no campo de password faz login
+        fPwd.setOnAction(e -> btnLogin.fire());
 
-            if (id.isEmpty() || nome.isEmpty() || pwd.isEmpty()) {
-                msgLabel.setStyle("-fx-text-fill: #FF5050;");
-                msgLabel.setText("ID, Nome e Password são obrigatórios.");
-                return;
-            }
-            if (!pwd.equals(confirm)) {
-                msgLabel.setStyle("-fx-text-fill: #FF5050;");
-                msgLabel.setText("As passwords não coincidem.");
-                return;
-            }
-            if (db.users().contains(id)) {
-                msgLabel.setStyle("-fx-text-fill: #FF5050;");
-                msgLabel.setText("O ID \"" + id + "\" já existe no sistema.");
-                return;
-            }
-
-            String regiaoFinal = regiao.isEmpty() ? "PT" : regiao.toUpperCase();
-            User novo = new User(id, nome, email, regiaoFinal, LocalDate.now(), pwd);
+        btnReg.setOnAction(e -> {
+            String id = rId.getText().trim(), nome = rName.getText().trim();
+            String email = rEmail.getText().trim(), regiao = rRegion.getText().trim();
+            String pwd = rPwd.getText(), conf = rConf.getText();
+            if (id.isEmpty() || nome.isEmpty() || pwd.isEmpty()) { msg(msgLabel, "ID, Nome e Password são obrigatórios.", false); return; }
+            if (!pwd.equals(conf)) { msg(msgLabel, "As passwords não coincidem.", false); return; }
+            if (db.users().contains(id)) { msg(msgLabel, "O ID \"" + id + "\" já existe.", false); return; }
+            User novo = new User(id, nome, email, regiao.isEmpty() ? "PT" : regiao.toUpperCase(), LocalDate.now(), pwd);
             db.addUser(novo);
-
-            msgLabel.setStyle("-fx-text-fill: #2ECC71;");
-            msgLabel.setText("Conta criada! A entrar...");
-            onSuccess.accept(novo); // Entra na App automaticamente após criar
+            msg(msgLabel, "Conta criada! A entrar...", true);
+            onSuccess.accept(novo);
         });
 
-        // ─────────────────────────────────────────────────────────────────
-        // MONTAR A JANELA
-        // ─────────────────────────────────────────────────────────────────
-        root.getChildren().addAll(header, new Label(" "), msgLabel, loginForm, registerForm);
+        // ── Montar ────────────────────────────────────────────────────────
+        VBox.setMargin(loginTitle,  new Insets(0, 0, 8, 0));
+        VBox.setMargin(regTitle,    new Insets(0, 0, 8, 0));
+        VBox.setMargin(topRow,      new Insets(0, 0, 32, 0));
+        VBox.setMargin(msgLabel,    new Insets(0, 0, 4, 0));
 
-        Scene scene = new Scene(root, 400, 560);
+        card.getChildren().addAll(topRow, msgLabel, loginForm, registerForm);
+
+        StackPane.setAlignment(card, Pos.CENTER);
+        root.getChildren().add(card);
+
+        Scene scene = new Scene(root, 420, 580);
         scene.setFill(Color.TRANSPARENT);
-
-        // Arrastar a janela
-        root.setOnMousePressed(event -> {
-            xOffset = event.getSceneX();
-            yOffset = event.getSceneY();
-        });
-        root.setOnMouseDragged(event -> {
-            stage.setX(event.getScreenX() - xOffset);
-            stage.setY(event.getScreenY() - yOffset);
-        });
-
         stage.initStyle(StageStyle.TRANSPARENT);
         stage.setScene(scene);
-        stage.setTitle("Login / Registo");
+        stage.setTitle("Login");
         stage.centerOnScreen();
         stage.show();
     }
+
+    private TextField    field(String s, String p) { TextField f = new TextField(); f.setPromptText(p); f.setStyle(s); f.setMaxWidth(Double.MAX_VALUE); return f; }
+    private PasswordField  pwd(String s, String p) { PasswordField f = new PasswordField(); f.setPromptText(p); f.setStyle(s); f.setMaxWidth(Double.MAX_VALUE); return f; }
+    private void           msg(Label l, String t, boolean ok) { l.setText(t); l.setStyle("-fx-text-fill:" + (ok ? "#46D369" : "#FF5252") + ";-fx-font-size:13px;"); }
 }
