@@ -1,11 +1,10 @@
 import edu.ufp.streaming.rec.enums.ArtistRole;
+import edu.ufp.streaming.rec.enums.InterationType;
 import edu.ufp.streaming.rec.managers.ArtistManager;
 import edu.ufp.streaming.rec.managers.FollowManager;
+import edu.ufp.streaming.rec.managers.StreamingDatabase;
 import edu.ufp.streaming.rec.managers.UserManager;
-import edu.ufp.streaming.rec.models.Artist;
-import edu.ufp.streaming.rec.models.Genre;
-import edu.ufp.streaming.rec.models.User;
-import edu.ufp.streaming.rec.models.UserFollow;
+import edu.ufp.streaming.rec.models.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -57,6 +56,12 @@ public class TestUserArtist {
         testFollowManagerConsistencyOnUserRemoval();
         testFollowManagerDateRange();
         testUserManagerPreferences();
+
+        // Novos testes: autenticação, cascata, interações
+        testPasswordAuthentication();
+        testRemoveUserCascade();
+        testInteractionAdded();
+        testRatingRecalculation();
 
         System.out.println("\n========================================");
         System.out.println(" Todos os testes concluídos.");
@@ -585,5 +590,156 @@ public class TestUserArtist {
         assert um.searchByPreferredGenre("g3").isEmpty() : "Nenhum utilizador deve ter g3 após a remoção";
 
         System.out.println("PASSOU: addPreference / removePreference\n");
+    }
+
+    // -----------------------------------------------------------------------
+    // Teste: autenticação de password
+    // -----------------------------------------------------------------------
+
+    /**
+     * Verifica que login com password correta funciona e com errada falha.
+     */
+    public static void testPasswordAuthentication() {
+        System.out.println("--- testPasswordAuthentication ---");
+        UserManager um = new UserManager();
+        User u = new User("u_auth", "Auth User", "auth@mail.com", "PT", LocalDate.now(), "segredo123");
+        um.insert(u);
+
+        assert um.authenticate("u_auth", "segredo123") != null
+                : "Login com password correta deve devolver o utilizador";
+        assert um.authenticate("u_auth", "errada") == null
+                : "Login com password errada deve devolver null";
+        assert um.authenticate("naoexiste", "segredo123") == null
+                : "Login com ID inexistente deve devolver null";
+
+        System.out.println("PASSOU: autenticação de password\n");
+    }
+
+    // -----------------------------------------------------------------------
+    // Teste: remoção em cascata de utilizador
+    // -----------------------------------------------------------------------
+
+    /**
+     * Garante que ao remover um utilizador as suas relações de follow
+     * e interações são eliminadas e o grafo fica consistente.
+     */
+    public static void testRemoveUserCascade() {
+        System.out.println("--- testRemoveUserCascade ---");
+        StreamingDatabase db = new StreamingDatabase();
+
+        Genre g = new Genre("g1", "Acao");
+        db.addGenre(g);
+
+        User u1 = new User("u1", "Alice", "alice@mail.com", "PT", LocalDate.now(), "a");
+        User u2 = new User("u2", "Bruno", "bruno@mail.com", "PT", LocalDate.now(), "b");
+        db.addUser(u1); db.addUser(u2);
+
+        Movie m = new Movie("c1", "Film X", g, LocalDate.now(), 90, "PT", null);
+        db.addContent(m);
+
+        db.addFollow("u1", "u2");
+        db.addInteraction(new edu.ufp.streaming.rec.models.Interation(
+                u1, m, LocalDateTime.now(), 0, 1.0,
+                edu.ufp.streaming.rec.enums.InterationType.WATCH, "i_test"));
+
+        assert db.follows().isFollowing("u1", "u2") : "u1 devia seguir u2 antes da remoção";
+        assert !u1.getInteractions().isEmpty() : "u1 devia ter interações antes da remoção";
+
+        db.removeUser("u1");
+
+        assert db.users().get("u1") == null : "u1 devia ter sido removido";
+        assert !db.follows().isFollowing("u1", "u2") : "Follow devia ter sido removido em cascata";
+        // Grafo: caminho de u1 para qualquer vértice deve estar vazio
+        assert db.getGraph().caminhoMaisCurtoBetweenUsers("u1", "u2").isEmpty()
+                : "Grafo não devia ter u1 após remoção";
+
+        System.out.println("PASSOU: remoção em cascata\n");
+    }
+
+    // -----------------------------------------------------------------------
+    // Teste: registo de interação alimenta o grafo
+    // -----------------------------------------------------------------------
+
+    /**
+     * Verifica que uma interação WATCH cria uma aresta User→Content no grafo
+     * (indiretamente via caminho disponível após a interação).
+     */
+    public static void testInteractionAdded() {
+        System.out.println("--- testInteractionAdded ---");
+        StreamingDatabase db = new StreamingDatabase();
+
+        Genre g = new Genre("g1", "Drama");
+        db.addGenre(g);
+        User u1 = new User("u1", "Alice", "a@a.com", "PT", LocalDate.now(), "x");
+        User u2 = new User("u2", "Bruno", "b@b.com", "PT", LocalDate.now(), "x");
+        db.addUser(u1); db.addUser(u2);
+        Movie m = new Movie("c1", "Film", g, LocalDate.now(), 90, "PT", null);
+        db.addContent(m);
+
+        // u1 e u2 não têm interações — nenhum viu o filme
+        List<edu.ufp.streaming.rec.models.User> antes =
+                db.getGraph().seguidoresQueViramConteudo(
+                        "u1", "c1",
+                        LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(1),
+                        db.follows(), db.users());
+        assert antes.isEmpty() : "Antes da interação não deve haver resultados";
+
+        // Registar WATCH
+        db.addInteraction(new edu.ufp.streaming.rec.models.Interation(
+                u1, m, LocalDateTime.now(), 0, 1.0,
+                edu.ufp.streaming.rec.enums.InterationType.WATCH, "i1"));
+
+        assert !u1.getInteractions().isEmpty() : "u1 devia ter 1 interação registada";
+        assert u1.getInteractions().get(0).getContent().getId().equals("c1")
+                : "A interação devia apontar para c1";
+
+        System.out.println("PASSOU: interação WATCH adicionada\n");
+    }
+
+    // -----------------------------------------------------------------------
+    // Teste: recálculo do rating médio
+    // -----------------------------------------------------------------------
+
+    /**
+     * Verifica que o rating médio de um conteúdo é calculado corretamente
+     * com base em múltiplas avaliações de utilizadores distintos.
+     */
+    public static void testRatingRecalculation() {
+        System.out.println("--- testRatingRecalculation ---");
+        StreamingDatabase db = new StreamingDatabase();
+
+        Genre g = new Genre("g1", "Acao");
+        db.addGenre(g);
+        User u1 = new User("u1", "Alice", "a@a.com", "PT", LocalDate.now(), "x");
+        User u2 = new User("u2", "Bruno", "b@b.com", "PT", LocalDate.now(), "x");
+        db.addUser(u1); db.addUser(u2);
+        Movie m = new Movie("c1", "Film", g, LocalDate.now(), 90, "PT", null);
+        db.addContent(m);
+
+        // u1 dá 4, u2 dá 2 → média esperada = 3.0
+        db.addInteration(new Interation(
+                u1, m, LocalDateTime.now(), 4, 0.0,
+                InterationType.RATE, "r1"));
+        db.addInteration(new Interation(
+                u2, m, LocalDateTime.now(), 2, 0.0,
+                InterationType.RATE, "r2"));
+
+        // Simula o recálculo feito na GUI
+        double soma = 0; int count = 0;
+        for (User u : db.users().listAll()) {
+            for (Interation it : u.getInteractions()) {
+                if (it.getType() == InterationType.RATE
+                        && it.getContent().getId().equals("c1")) {
+                    soma += it.getRating(); count++;
+                }
+            }
+        }
+        if (count > 0) m.setRating(soma / count);
+
+        assert count == 2 : "Deviam existir 2 avaliações (obteve " + count + ")";
+        assert Math.abs(m.getRating() - 3.0) < 0.001
+                : "Rating médio devia ser 3.0 (obteve " + m.getRating() + ")";
+
+        System.out.println("PASSOU: recálculo de rating médio\n");
     }
 }

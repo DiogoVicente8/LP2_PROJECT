@@ -246,7 +246,7 @@ public class StreamingDatabase {
     public User removeUser(String userId) {
         if (!userManager.contains(userId)) return null;
         followManager.removeAllRelationships(userId);
-        graph.removeFollowEdges(userId);
+        graph.removeUserEdges(userId); // remove follow + interaction edges
         return userManager.remove(userId);
     }
 

@@ -2,8 +2,8 @@ package edu.ufp.streaming.rec.gui;
 
 import edu.ufp.streaming.rec.enums.ArtistRole;
 import edu.ufp.streaming.rec.enums.InterationType;
+import edu.ufp.streaming.rec.managers.AppStateSerializer;
 import edu.ufp.streaming.rec.managers.StreamingDatabase;
-import edu.ufp.streaming.rec.managers.UserPersistenceManager;
 import edu.ufp.streaming.rec.models.*;
 import javafx.application.Application;
 import javafx.stage.Stage;
@@ -19,16 +19,19 @@ public class StreamingAppFX extends Application {
     public void start(Stage primaryStage) {
         db = buildSampleDB();
 
-        // Carrega utilizadores guardados em sessões anteriores.
-        // Utilizadores com o mesmo ID dos dados de exemplo são ignorados (sem duplicados).
-        int loaded = UserPersistenceManager.load(db);
-        if (loaded > 0) System.out.println("[Persistência] " + loaded + " utilizador(es) carregado(s) de users_data.json");
+        // Carrega estado completo (utilizadores, conteúdos, follows, interações).
+        // Dados de exemplo com o mesmo ID não são duplicados.
+        AppStateSerializer.load(db);
 
-        new LoginScreenFX(db, primaryStage, loggedUser -> {
-            new StreamingDashboardFX(db, loggedUser).start(primaryStage);
-        });
+        // Guarda estado ao fechar a janela principal
+        primaryStage.setOnCloseRequest(e -> AppStateSerializer.save(db));
+
+        new LoginScreenFX(db, primaryStage, loggedUser ->
+                new StreamingDashboardFX(db, loggedUser).start(primaryStage)
+        );
     }
 
+    /** Ponto de entrada JavaFX. */
     public static void main(String[] args) {
         launch(args);
     }
@@ -53,7 +56,8 @@ public class StreamingAppFX extends Application {
         sdb.addParticipation("a1", "c1", ArtistRole.DIRECTOR, LocalDate.of(2010, 7, 16));
 
         sdb.addFollow("u1", "u2");
-        sdb.addInteraction(new Interation(u1, m1, LocalDateTime.of(2024, 1, 10, 20, 0), 0, 0.9, InterationType.WATCH, "i1"));
+        sdb.addInteraction(new Interation(u1, m1, LocalDateTime.of(2024, 1, 10, 20, 0),
+                0, 0.9, InterationType.WATCH, "i1"));
 
         return sdb;
     }

@@ -122,6 +122,17 @@ public class StreamingGraph {
         reconstruirGrafoExcluindo(userId, null);
     }
 
+    /**
+     * Remove o vértice de um utilizador e TODAS as arestas associadas
+     * (follows e interações User→Content). Deve ser chamado ao remover
+     * um utilizador para manter o grafo consistente.
+     *
+     * @param userId o ID do utilizador a remover do grafo
+     */
+    public void removeUserEdges(String userId) {
+        reconstruirGrafoExcluindo(userId, null);
+    }
+
     // -------------------------------------------------------------------------
     // Gestão de arestas — User → Content (visualizar / classificar)
     // -------------------------------------------------------------------------

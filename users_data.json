@@ -1,0 +1,34 @@
+[
+  {
+    "id": "u",
+    "name": "Diogo",
+    "email": "diogo",
+    "region": "diogo",
+    "registerDate": "2026-05-03",
+    "passwordHash": "/zc9Z90faWdO+aBTjwQM2Q==:cde3f85392ae3fabe7d00e06fbb4cbcc518272231cdc07b145f26d02b5cc505c"
+  },
+  {
+    "id": "u1",
+    "name": "Alice Silva",
+    "email": "alice@mail.com",
+    "region": "PT",
+    "registerDate": "2020-01-10",
+    "passwordHash": "3lo1VSL/4CXzvUk5dfNcZQ==:fca3e19ec82d9ce5234a53ea947e31afbc3cfc4917c917fdf671518d6ab6efe1"
+  },
+  {
+    "id": "u2",
+    "name": "Bruno Costa",
+    "email": "bruno@mail.com",
+    "region": "PT",
+    "registerDate": "2020-03-15",
+    "passwordHash": "JWbCxXp15vn6Cyt9hGn+wQ==:ab95cdd47021027da1041028e9ae5dc9865ce1258c2128db038eb0f18c1493c9"
+  },
+  {
+    "id": "u4",
+    "name": "dsda",
+    "email": "asd",
+    "region": "sd",
+    "registerDate": "2026-05-03",
+    "passwordHash": "hXkBnPSMmAA5wIqYwUR1QA==:0bea4f16c8feebdbaee072e6db74828b7918eccc297baeb5166c252a00755222"
+  }
+]
