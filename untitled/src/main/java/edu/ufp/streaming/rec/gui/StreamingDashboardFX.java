@@ -10,6 +10,7 @@ import edu.ufp.streaming.rec.managers.UserPersistenceManager;
 import edu.ufp.streaming.rec.models.*;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -62,10 +63,30 @@ public class StreamingDashboardFX {
 
     private final Label snackLabel = new Label();
     private javafx.animation.PauseTransition snackTimer;
+    private Runnable refreshStats;
+
+    // ── Lista partilhada para o histórico de interações ───────────────────
+    // FIX: ObservableList partilhada entre a tab Conteúdos e Minha Conta.
+    // Sempre que addInteractionAndRefresh() é chamado, a tabela atualiza automaticamente.
+    private final ObservableList<Interation> interactionsList = FXCollections.observableArrayList();
 
     public StreamingDashboardFX(StreamingDatabase db, User loggedUser) {
         this.db = db;
         this.loggedUser = loggedUser;
+        // Inicializa com as interações existentes do utilizador
+        interactionsList.setAll(loggedUser.getInteractions());
+    }
+
+    /**
+     * FIX: Método centralizado para adicionar interação e sincronizar a lista observable.
+     * Chama db.addInteraction() e depois atualiza o interactionsList para que o TableView
+     * na tab "Minha Conta" reflita a mudança imediatamente, sem precisar de refresh manual.
+     */
+    private void addInteractionAndRefresh(Interation interaction) {
+        db.addInteraction(interaction);
+        interactionsList.setAll(loggedUser.getInteractions());
+        AppStateSerializer.save(db);
+        if (refreshStats != null) refreshStats.run();
     }
 
     public void start(Stage oldStage) {
@@ -133,7 +154,7 @@ public class StreamingDashboardFX {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // NAVBAR (estilo Netflix — logo vermelho, links horizontais)
+    // NAVBAR
     // ═══════════════════════════════════════════════════════════════════════
     private HBox buildNavBar(Stage stage) {
         HBox bar = new HBox(32);
@@ -152,7 +173,6 @@ public class StreamingDashboardFX {
 
         Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // Menu ficheiro
         Menu mFich = new Menu("Ficheiro");
         MenuItem expTxt = new MenuItem("Exportar TXT (R10)");
         MenuItem impTxt = new MenuItem("Importar TXT (R10)");
@@ -166,7 +186,6 @@ public class StreamingDashboardFX {
         MenuBar menuBar = new MenuBar(mFich);
         menuBar.setStyle("-fx-background-color:transparent;-fx-padding:0;");
 
-        // Avatar + nome
         Label avatar = new Label(initials(loggedUser.getName()));
         avatar.setStyle(
                 "-fx-background-color:" + N_RED + ";-fx-text-fill:white;" +
@@ -235,7 +254,7 @@ public class StreamingDashboardFX {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 1. TAB UTILIZADORES — cards tipo Netflix
+    // 1. TAB UTILIZADORES
     // ═══════════════════════════════════════════════════════════════════════
     private Tab buildUsersTab() {
         Tab tab = new Tab("Utilizadores");
@@ -258,12 +277,10 @@ public class StreamingDashboardFX {
         };
         rl[0].run();
 
-        // Sidebar
         VBox sidebar = new VBox(16);
         sidebar.setPrefWidth(340);
         sidebar.setPadding(new Insets(0, 0, 0, 20));
 
-        // Pesquisa
         VBox sCard = nCard("Pesquisar");
         TextField fSearch = field("Nome...");
         Button bS = btn("Pesquisar", BTN_R), bA = btn("Todos", BTN_S);
@@ -279,19 +296,14 @@ public class StreamingDashboardFX {
         return tab;
     }
 
-    // ── Card Netflix de utilizador ────────────────────────────────────────
     private javafx.scene.Node buildUserCard(User u, User[] sel, Runnable[] rl) {
         HBox card = new HBox(16);
         card.setAlignment(Pos.CENTER_LEFT);
         card.setPadding(new Insets(16, 20, 16, 20));
 
-        Runnable styleNormal = () -> card.setStyle(
-                "-fx-background-color:" + N_CARD + ";-fx-background-radius:6;-fx-cursor:hand;");
-        Runnable styleHover = () -> card.setStyle(
-                "-fx-background-color:" + N_CARD2 + ";-fx-background-radius:6;-fx-cursor:hand;");
-        Runnable styleSelected = () -> card.setStyle(
-                "-fx-background-color:#2a0a0a;-fx-border-color:"+N_RED+";-fx-border-width:0 0 0 3;-fx-background-radius:6;-fx-cursor:hand;");
-
+        Runnable styleNormal   = () -> card.setStyle("-fx-background-color:" + N_CARD + ";-fx-background-radius:6;-fx-cursor:hand;");
+        Runnable styleHover    = () -> card.setStyle("-fx-background-color:" + N_CARD2 + ";-fx-background-radius:6;-fx-cursor:hand;");
+        Runnable styleSelected = () -> card.setStyle("-fx-background-color:#2a0a0a;-fx-border-color:"+N_RED+";-fx-border-width:0 0 0 3;-fx-background-radius:6;-fx-cursor:hand;");
         styleNormal.run();
 
         Label av = new Label(initials(u.getName()));
@@ -329,7 +341,6 @@ public class StreamingDashboardFX {
 
         info.getChildren().addAll(lName, meta, statsRow);
 
-        // Botão follow inline
         boolean isMe    = u.getId().equals(loggedUser.getId());
         boolean jaSegue = db.follows().getFollowing(loggedUser.getId()).stream().anyMatch(x->x.getId().equals(u.getId()));
         Button bFollow  = new Button(isMe ? "—" : jaSegue ? "✓ A seguir" : "+ Seguir");
@@ -340,6 +351,7 @@ public class StreamingDashboardFX {
                 boolean segueAgora = db.follows().getFollowing(loggedUser.getId()).stream().anyMatch(x->x.getId().equals(u.getId()));
                 if (segueAgora) { db.follows().unfollow(loggedUser.getId(),u.getId()); snack("✓ Deixaste de seguir "+u.getName(),true); }
                 else { db.addFollow(loggedUser.getId(),u.getId()); snack("✓ Passaste a seguir "+u.getName(),true); }
+                if (refreshStats != null) refreshStats.run();
                 rl[0].run();
             });
         }
@@ -489,7 +501,8 @@ public class StreamingDashboardFX {
                 starVal[0] = v;
                 paintStars.run();
                 String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
-                db.addInteraction(new Interation(loggedUser, c, LocalDateTime.now(), v, 0.0, InterationType.RATE, iId));
+                // FIX: usar addInteractionAndRefresh em vez de db.addInteraction direto
+                addInteractionAndRefresh(new Interation(loggedUser, c, LocalDateTime.now(), v, 0.0, InterationType.RATE, iId));
                 double soma = 0; int cnt = 0;
                 for (User u : db.users().listAll())
                     for (Interation it : u.getInteractions())
@@ -513,7 +526,8 @@ public class StreamingDashboardFX {
             boolean on = "✓ SAVED".equals(bBk.getText());
             if (!on) {
                 String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
-                db.addInteraction(new Interation(loggedUser, c, LocalDateTime.now(), 0, 0.0, InterationType.BOOKMARK, iId));
+                // FIX: usar addInteractionAndRefresh — atualiza o histórico imediatamente
+                addInteractionAndRefresh(new Interation(loggedUser, c, LocalDateTime.now(), 0, 0.0, InterationType.BOOKMARK, iId));
                 bBk.setText("✓ SAVED");
                 bBk.setStyle(actionStyle("#1a2a1a", N_GREEN, N_GREEN));
                 snack("✓ \"" + c.getTitle() + "\" guardado", true);
@@ -527,7 +541,8 @@ public class StreamingDashboardFX {
             boolean on = "✓ VISTO".equals(bWt.getText());
             if (!on) {
                 String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
-                db.addInteraction(new Interation(loggedUser, c, LocalDateTime.now(), 0, 1.0, InterationType.WATCH, iId));
+                // FIX: usar addInteractionAndRefresh — atualiza o histórico imediatamente
+                addInteractionAndRefresh(new Interation(loggedUser, c, LocalDateTime.now(), 0, 1.0, InterationType.WATCH, iId));
                 bWt.setText("✓ VISTO");
                 bWt.setStyle(actionStyle("#831010", "white", "#831010"));
                 bSk.setText("SKIP");
@@ -543,7 +558,8 @@ public class StreamingDashboardFX {
             boolean on = "✓ SKIP".equals(bSk.getText());
             if (!on) {
                 String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
-                db.addInteraction(new Interation(loggedUser, c, LocalDateTime.now(), 0, 0.0, InterationType.SKIP, iId));
+                // FIX: usar addInteractionAndRefresh — atualiza o histórico imediatamente
+                addInteractionAndRefresh(new Interation(loggedUser, c, LocalDateTime.now(), 0, 0.0, InterationType.SKIP, iId));
                 bSk.setText("✓ SKIP");
                 bSk.setStyle(actionStyle("#1a1a2a", "#8888FF", "#555555"));
                 bWt.setText("WATCHED");
@@ -667,7 +683,6 @@ public class StreamingDashboardFX {
                         "-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;"
         );
 
-        // ── Thumbnail com iniciais ────────────────────────────────────────────
         StackPane thumb = new StackPane();
         thumb.setPrefHeight(110);
         thumb.setStyle("-fx-background-color:" + roleBg + ";");
@@ -696,7 +711,6 @@ public class StreamingDashboardFX {
 
         thumb.getChildren().addAll(av, roleBadge, genderLbl);
 
-        // ── Body ──────────────────────────────────────────────────────────────
         VBox body = new VBox(6);
         body.setPadding(new Insets(12, 14, 14, 14));
 
@@ -728,7 +742,6 @@ public class StreamingDashboardFX {
     }
 
     private javafx.scene.Node buildArtistCard(Artist a, Runnable[] rl) {
-        // cores por papel
         String roleColor = switch (a.getRole().toString()) {
             case "DIRECTOR" -> "#185FA5";
             case "PRODUCER" -> "#3B6D11";
@@ -748,7 +761,6 @@ public class StreamingDashboardFX {
                         "-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;"
         );
 
-        // ── Thumbnail com iniciais ────────────────────────────────────────────
         StackPane thumb = new StackPane();
         thumb.setPrefHeight(110);
         thumb.setStyle("-fx-background-color:" + roleBg + ";");
@@ -777,14 +789,9 @@ public class StreamingDashboardFX {
 
         thumb.getChildren().addAll(av, roleBadge, genderLbl);
 
-        // ── Body ──────────────────────────────────────────────────────────────
-
-
-        // Separador
         Separator sep = new Separator();
         sep.setStyle("-fx-background-color:" + N_BORDER + ";-fx-padding:0;");
 
-        // Botões: Editar Nac. + Remover
         Button bEN  = actionBtn("✏ Nac.",   "#2A2A2A",    N_MUTED,  N_BORDER);
         Button bRem = actionBtn("Remover",  "transparent", "#FF5252", "#FF5252");
 
@@ -896,18 +903,29 @@ public class StreamingDashboardFX {
             heroSub.setText(u.getId()+"  •  "+u.getEmail()+"  •  "+u.getRegion());
         };
 
-        int tw  = (int) loggedUser.getInteractions().stream().filter(i->i.getType()==InterationType.WATCH).count();
-        int tr  = (int) loggedUser.getInteractions().stream().filter(i->i.getType()==InterationType.RATE).count();
-        int tfo = db.follows().getFollowing(loggedUser.getId()).size();
-        int tfi = db.follows().getFollowers(loggedUser.getId()).size();
+        VBox chipVistos     = statChip("▶", 0, "vistos");
+        VBox chipAvaliados  = statChip("★", 0, "avaliados");
+        VBox chipSeguindo   = statChip("➜", 0, "seguindo");
+        VBox chipSeguidores = statChip("👥", 0, "seguidores");
 
         HBox stats = new HBox(16);
         stats.setPadding(new Insets(10,0,0,0));
-        stats.getChildren().addAll(statChip("▶",tw,"vistos"), statChip("★",tr,"avaliados"), statChip("➜",tfo,"seguindo"), statChip("👥",tfi,"seguidores"));
+        stats.getChildren().addAll(chipVistos, chipAvaliados, chipSeguindo, chipSeguidores);
+
+        refreshStats = () -> {
+            int tw  = (int) loggedUser.getInteractions().stream().filter(i->i.getType()==InterationType.WATCH).count();
+            int tr  = (int) loggedUser.getInteractions().stream().filter(i->i.getType()==InterationType.RATE).count();
+            int tfo = db.follows().getFollowing(loggedUser.getId()).size();
+            int tfi = db.follows().getFollowers(loggedUser.getId()).size();
+            ((Label) chipVistos.getChildren().get(0)).setText("▶ " + tw);
+            ((Label) chipAvaliados.getChildren().get(0)).setText("★ " + tr);
+            ((Label) chipSeguindo.getChildren().get(0)).setText("➜ " + tfo);
+            ((Label) chipSeguidores.getChildren().get(0)).setText("👥 " + tfi);
+        };
+        refreshStats.run();
 
         heroInfo.getChildren().addAll(heroName, heroSub, heroDate, stats);
 
-        // Botões edição perfil
         VBox editBtns = new VBox(8);
         editBtns.setAlignment(Pos.CENTER_RIGHT);
         Button bN=btn("✏  Nome",BTN_S), bE=btn("✉  Email",BTN_S), bR=btn("🌍  Região",BTN_S), bP=btn("🔒  Password",BTN_G);
@@ -945,7 +963,12 @@ public class StreamingDashboardFX {
                 col("Data",     d->d.getValue().getWatchDate().toLocalDate().toString())
         );
         tI.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        tI.setItems(FXCollections.observableArrayList(loggedUser.getInteractions()));
+
+        // FIX: ligar o TableView à interactionsList partilhada.
+        // A partir daqui, sempre que addInteractionAndRefresh() for chamado
+        // (na tab Conteúdos ou aqui no formulário), a tabela atualiza sozinha.
+        tI.setItems(interactionsList);
+
         tI.setPlaceholder(new Label("Sem interações."));
         VBox.setVgrow(tI,Priority.ALWAYS);
         interCard.getChildren().add(tI);
@@ -990,29 +1013,9 @@ public class StreamingDashboardFX {
         else{ FlowPane fp=new FlowPane(8,8); for(Genre g:prefs){Label chip=new Label("  "+g.getName()+"  ");chip.setStyle("-fx-background-color:#2a0505;-fx-text-fill:"+N_RED+";-fx-border-color:"+N_RED+";-fx-border-radius:20;-fx-background-radius:20;-fx-font-size:11px;-fx-padding:4 8;");fp.getChildren().add(chip);} prefCard.getChildren().add(fp); }
         row2.getChildren().addAll(fCard, fCard2, prefCard);
 
-        // ── Linha 3: Registar interação ───────────────────────────────────
-        VBox watchCard = nCard("Registar Interação");
-        GridPane wForm = grid();
-        ComboBox<String> cbC = new ComboBox<>(); cbC.setStyle(FIELD+"-fx-pref-width:200px;"); cbC.setPromptText("Seleciona conteúdo...");
-        db.contents().listAll().forEach(c->cbC.getItems().add(c.getId()+" — "+c.getTitle()));
-        ComboBox<InterationType> cbT = new ComboBox<>(FXCollections.observableArrayList(InterationType.WATCH,InterationType.BOOKMARK,InterationType.SKIP));
-        cbT.setValue(InterationType.WATCH); cbT.setStyle(FIELD);
-        TextField fPrg = field("Progresso 0.0–1.0"); fPrg.setText("1.0");
-        wForm.addRow(0,lbl("Conteúdo:"),cbC,lbl("Tipo:"),cbT);
-        wForm.addRow(1,lbl("Progresso:"),fPrg);
-        Button bW = btn("Registar", BTN_R);
-        bW.setOnAction(e->{
-            String sel=cbC.getValue(); if(sel==null){showAlert(Alert.AlertType.ERROR,"Erro","Seleciona um conteúdo.");return;}
-            String cid=sel.split(" — ")[0].trim(); Content c=db.contents().get(cid); if(c==null){showAlert(Alert.AlertType.ERROR,"Erro","Conteúdo não encontrado.");return;}
-            double prg=1.0; try{prg=Double.parseDouble(fPrg.getText().trim());}catch(Exception ignored){} prg=Math.max(0.0,Math.min(1.0,prg));
-            String iId="i_"+loggedUser.getId()+"_"+cid+"_"+System.currentTimeMillis();
-            db.addInteraction(new Interation(loggedUser,c,LocalDateTime.now(),0.0,prg,cbT.getValue(),iId));
-            tI.setItems(FXCollections.observableArrayList(loggedUser.getInteractions()));
-            snack("✓ "+cbT.getValue()+" registado para \""+c.getTitle()+"\"",true);
-        });
-        watchCard.getChildren().addAll(wForm, row(bW));
 
-        main.getChildren().addAll(hero, row1, row2, watchCard);
+
+        main.getChildren().addAll(hero, row1, row2);
         rootScroll.setContent(main);
         tab.setContent(rootScroll);
         return tab;
@@ -1070,7 +1073,6 @@ public class StreamingDashboardFX {
         info.getChildren().addAll(ln,li); chip.getChildren().addAll(av,info); return chip;
     }
 
-    // ── Helpers base ──────────────────────────────────────────────────────
     private VBox nCard(String title) {
         VBox box=new VBox(12); box.setPadding(new Insets(16));
         box.setStyle("-fx-background-color:"+N_CARD+";-fx-background-radius:8;");
@@ -1084,13 +1086,13 @@ public class StreamingDashboardFX {
         c.setCellValueFactory(d->new SimpleStringProperty(fn.apply(d))); return c;
     }
 
-    private TextField    field(String p)     { TextField f=new TextField(); f.setPromptText(p); f.setStyle(FIELD); return f; }
-    private PasswordField  pwd(String p)     { PasswordField f=new PasswordField(); f.setPromptText(p); f.setStyle(FIELD); return f; }
+    private TextField    field(String p)          { TextField f=new TextField(); f.setPromptText(p); f.setStyle(FIELD); return f; }
+    private PasswordField  pwd(String p)          { PasswordField f=new PasswordField(); f.setPromptText(p); f.setStyle(FIELD); return f; }
     private Button         btn(String t,String s) { Button b=new Button(t); b.setStyle(s); return b; }
-    private Label          lbl(String t)     { Label l=new Label(t); l.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;"); return l; }
-    private GridPane      grid()             { GridPane g=new GridPane(); g.setHgap(10); g.setVgap(10); return g; }
+    private Label          lbl(String t)          { Label l=new Label(t); l.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;"); return l; }
+    private GridPane      grid()                  { GridPane g=new GridPane(); g.setHgap(10); g.setVgap(10); return g; }
     private HBox           row(javafx.scene.Node... n) { HBox h=new HBox(8,n); h.setAlignment(Pos.CENTER_LEFT); return h; }
-    private ScrollPane    scroll(javafx.scene.Node n) { ScrollPane s=new ScrollPane(n); s.setFitToWidth(true); s.setStyle("-fx-background-color:"+N_BG+";-fx-background:"+N_BG+";"); return s; }
+    private ScrollPane    scroll(javafx.scene.Node n)  { ScrollPane s=new ScrollPane(n); s.setFitToWidth(true); s.setStyle("-fx-background-color:"+N_BG+";-fx-background:"+N_BG+";"); return s; }
     private void    showAlert(Alert.AlertType t, String title, String msg) { Alert a=new Alert(t); a.setTitle(title); a.setHeaderText(null); a.setContentText(msg); a.showAndWait(); }
-    private String  askInput(String h, String d) { TextInputDialog td=new TextInputDialog(d); td.setTitle("Editar"); td.setHeaderText(h); return td.showAndWait().orElse(null); }
+    private String  askInput(String h, String d)  { TextInputDialog td=new TextInputDialog(d); td.setTitle("Editar"); td.setHeaderText(h); return td.showAndWait().orElse(null); }
 }
