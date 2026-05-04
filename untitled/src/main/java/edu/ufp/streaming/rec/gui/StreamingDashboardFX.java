@@ -358,91 +358,242 @@ public class StreamingDashboardFX {
     private Tab buildContentsTab() {
         Tab tab = new Tab("Conteúdos");
         BorderPane pane = new BorderPane();
-        pane.setStyle("-fx-background-color:" + N_BG + ";"); pane.setPadding(new Insets(20));
+        pane.setStyle("-fx-background-color:" + N_BG + ";");
+        pane.setPadding(new Insets(20));
 
-        TableView<Content> table = new TableView<>();
-        table.getColumns().addAll(
-                col("ID",              d->d.getValue().getId()),
-                col("Tipo",            d->d.getValue() instanceof Movie?"Filme":d.getValue() instanceof Series?"Série":"Documentário"),
-                col("Título",          d->d.getValue().getTitle()),
-                col("Género",          d->d.getValue().getGenre().getName()),
-                col("Data Lançamento", d->d.getValue().getReleaseDate().toString()),
-                col("Duração (min)",   d->String.valueOf(d.getValue().getDuration())),
-                col("Rating",          d->String.format("%.1f ★",d.getValue().getRating()))
+        TextField fSearch = field("Pesquisar título...");
+        ToggleGroup tgType = new ToggleGroup();
+        ToggleButton tbAll = typeToggle("Todos",  tgType, true);
+        ToggleButton tbMov = typeToggle("Filmes", tgType, false);
+        ToggleButton tbSer = typeToggle("Séries", tgType, false);
+        ToggleButton tbDoc = typeToggle("Docs",   tgType, false);
+
+        HBox topBar = new HBox(10, fSearch, tbAll, tbMov, tbSer, tbDoc);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+        topBar.setPadding(new Insets(0, 0, 16, 0));
+        HBox.setHgrow(fSearch, Priority.ALWAYS);
+
+        FlowPane grid = new FlowPane(14, 14);
+        grid.setPadding(new Insets(4));
+        ScrollPane scrollPane = new ScrollPane(grid);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color:" + N_BG + ";-fx-background:" + N_BG + ";");
+
+        Runnable[] rl = {null};
+        rl[0] = () -> {
+            String q = fSearch.getText().trim().toLowerCase();
+            String typeFilter = ((ToggleButton) tgType.getSelectedToggle()).getText();
+            grid.getChildren().clear();
+            db.contents().listAll().stream()
+                    .filter(c -> c.getTitle().toLowerCase().contains(q))
+                    .filter(c -> {
+                        if ("Todos".equals(typeFilter))  return true;
+                        if ("Filmes".equals(typeFilter)) return c instanceof Movie;
+                        if ("Séries".equals(typeFilter)) return c instanceof Series;
+                        if ("Docs".equals(typeFilter))   return c instanceof Documentary;
+                        return true;
+                    })
+                    .forEach(c -> grid.getChildren().add(buildContentCard(c, rl)));
+        };
+        rl[0].run();
+
+        fSearch.textProperty().addListener((o, old, nv) -> rl[0].run());
+        tgType.selectedToggleProperty().addListener((o, old, nv) -> { if (nv != null) rl[0].run(); });
+
+        VBox main = new VBox(0, topBar, scrollPane);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        main.setStyle("-fx-background-color:" + N_BG + ";");
+
+        pane.setCenter(main);
+        tab.setContent(pane);
+        return tab;
+    }
+
+    private javafx.scene.Node buildContentCard(Content c, Runnable[] rl) {
+        String typeLabel = c instanceof Movie ? "FILME" : c instanceof Series ? "SÉRIE" : "DOC";
+        String typeColor = c instanceof Movie ? N_RED   : c instanceof Series ? "#185FA5" : "#3B6D11";
+        String icon      = c instanceof Movie ? "🎬"   : c instanceof Series ? "📺"      : "🎥";
+        String thumbBg   = c instanceof Movie ? "#1a0505" : c instanceof Series ? "#05051a" : "#051a05";
+
+        VBox card = new VBox(0);
+        card.setPrefWidth(210);
+        card.setMaxWidth(210);
+        card.setStyle(
+                "-fx-background-color:" + N_CARD + ";-fx-background-radius:8;" +
+                        "-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;"
         );
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        Runnable refresh = () -> table.setItems(FXCollections.observableArrayList(db.contents().listAll()));
-        refresh.run();
 
-        VBox sidebar = new VBox(16); sidebar.setPrefWidth(340); sidebar.setPadding(new Insets(0,0,0,20));
+        // ── Thumbnail ─────────────────────────────────────────────────────────
+        StackPane thumb = new StackPane();
+        thumb.setPrefHeight(120);
+        thumb.setStyle("-fx-background-color:" + thumbBg + ";");
 
-        // Pesquisa
-        VBox sCard = nCard("Pesquisar Conteúdos");
-        TextField fTit = field("Título...");
-        Button bST = btn("Por Título",BTN_R); bST.setOnAction(e->table.setItems(FXCollections.observableArrayList(db.contents().searchByTitleSubstring(fTit.getText().trim()))));
-        HBox sr1 = new HBox(8,fTit,bST); sr1.setAlignment(Pos.CENTER_LEFT); HBox.setHgrow(fTit,Priority.ALWAYS);
-        ComboBox<String> cbT = new ComboBox<>(FXCollections.observableArrayList("-- Todos --","Filme","Série","Documentário")); cbT.setValue("-- Todos --"); cbT.setStyle(FIELD);
-        Button bSType=btn("Por Tipo",BTN_S), bAll=btn("Todos",BTN_S);
-        bSType.setOnAction(e->{ String s=cbT.getValue(); if(s.startsWith("--")){refresh.run();return;} table.setItems(FXCollections.observableArrayList(db.contents().listAll().stream().filter(c->(s.equals("Filme")&&c instanceof Movie)||(s.equals("Série")&&c instanceof Series)||(s.equals("Documentário")&&c instanceof Documentary)).toList())); });
-        bAll.setOnAction(e->refresh.run());
-        sCard.getChildren().addAll(sr1, new HBox(8,cbT,bSType,bAll));
+        Label iconLbl = new Label(icon);
+        iconLbl.setStyle("-fx-font-size:38px;");
 
-        // Inserir
-        VBox iCard = nCard("Inserir Conteúdo");
-        GridPane form = grid();
-        ComboBox<String> cbType = new ComboBox<>(FXCollections.observableArrayList("Filme","Série","Documentário")); cbType.setValue("Filme"); cbType.setStyle(FIELD);
-        TextField fId=field("ID"), fTitF=field("Título"), fGId=field("ID Género"), fData=field("2024-01-01"), fDur=field("120"), fReg=field("PT");
-        form.addRow(0, lbl("Tipo:"),cbType, lbl("ID:"),fId);
-        form.addRow(1, lbl("Título:"),fTitF, lbl("ID Género:"),fGId);
-        form.addRow(2, lbl("Data:"),fData, lbl("Duração(m):"),fDur);
-        form.addRow(3, lbl("Região:"),fReg);
-        Button bAdd=btn("Adicionar",BTN_R), bRem=btn("Remover Sel.",BTN_G);
-        bAdd.setOnAction(e->{ try{ Genre g=db.genres().get(fGId.getText().trim()); if(g==null){showAlert(Alert.AlertType.ERROR,"Erro","Género não existe!");return;} LocalDate d=LocalDate.parse(fData.getText().trim()); int dur=Integer.parseInt(fDur.getText().trim()); Content c=switch(cbType.getValue()){ case"Série"->new Series(fId.getText().trim(),fTitF.getText(),g,d,dur,fReg.getText(),1); case"Documentário"->new Documentary(fId.getText().trim(),fTitF.getText(),g,d,dur,fReg.getText(),"",""); default->new Movie(fId.getText().trim(),fTitF.getText(),g,d,dur,fReg.getText(),null); }; if(db.addContent(c)){refresh.run();fId.clear();fTitF.clear();snack("✓ Conteúdo adicionado",true);}else showAlert(Alert.AlertType.ERROR,"Erro","ID já existe."); }catch(Exception ex){showAlert(Alert.AlertType.ERROR,"Erro","Verifica datas/números.");} });
-        bRem.setOnAction(e->{ Content c=table.getSelectionModel().getSelectedItem(); if(c!=null){db.removeContent(c.getId());refresh.run();snack("✓ Conteúdo removido",true);} });
-        iCard.getChildren().addAll(form, row(bAdd,bRem));
+        Label typeBadge = new Label(typeLabel);
+        typeBadge.setStyle(
+                "-fx-background-color:" + typeColor + ";-fx-text-fill:white;" +
+                        "-fx-font-size:9px;-fx-font-weight:bold;-fx-padding:3 8;-fx-background-radius:4;"
+        );
+        StackPane.setAlignment(typeBadge, Pos.TOP_LEFT);
+        StackPane.setMargin(typeBadge, new Insets(8));
 
-        // Rating por estrelas
-        VBox rCard = nCard("Avaliar Conteúdo Selecionado");
-        final int[] cr = {0};
+        Label ratingBadge = new Label(String.format("%.1f ★", c.getRating()));
+        ratingBadge.setStyle(
+                "-fx-background-color:#0d0d0d;-fx-text-fill:" + N_RED + ";" +
+                        "-fx-font-size:10px;-fx-font-weight:bold;-fx-padding:3 7;-fx-background-radius:4;"
+        );
+        StackPane.setAlignment(ratingBadge, Pos.TOP_RIGHT);
+        StackPane.setMargin(ratingBadge, new Insets(8));
+
+        thumb.getChildren().addAll(iconLbl, typeBadge, ratingBadge);
+
+        // ── Body ──────────────────────────────────────────────────────────────
+        VBox body = new VBox(8);
+        body.setPadding(new Insets(12, 14, 14, 14));
+
+        Label title = new Label(c.getTitle());
+        title.setStyle("-fx-text-fill:" + N_TEXT + ";-fx-font-size:13px;-fx-font-weight:bold;");
+        title.setMaxWidth(182);
+
+        Label meta = new Label(c.getGenre().getName() + "  •  " + c.getReleaseDate().getYear());
+        meta.setStyle("-fx-text-fill:" + N_MUTED + ";-fx-font-size:11px;");
+
+        // ── Estrelas ──────────────────────────────────────────────────────────
+        final int[] starVal = {(int) Math.round(c.getRating())};
         Button[] stars = new Button[5];
-        HBox starRow = new HBox(2); starRow.setAlignment(Pos.CENTER_LEFT);
-        Runnable paint = () -> { for(int i=0;i<5;i++) stars[i].setStyle("-fx-background-color:transparent;-fx-font-size:24px;-fx-cursor:hand;-fx-text-fill:"+(i<cr[0]?"#E50914":N_BORDER)+";"); };
-        for (int i=0;i<5;i++) {
-            final int v=i+1;
+        HBox starRow = new HBox(2);
+        starRow.setAlignment(Pos.CENTER_LEFT);
+
+        Runnable paintStars = () -> {
+            for (int i = 0; i < 5; i++)
+                stars[i].setStyle(
+                        "-fx-background-color:transparent;-fx-font-size:16px;-fx-cursor:hand;" +
+                                "-fx-text-fill:" + (i < starVal[0] ? N_RED : N_BORDER) + ";-fx-padding:0;"
+                );
+        };
+
+        for (int i = 0; i < 5; i++) {
+            final int v = i + 1;
             stars[i] = new Button("★");
-            stars[i].setStyle("-fx-background-color:transparent;-fx-font-size:24px;-fx-cursor:hand;-fx-text-fill:"+N_BORDER+";");
-            stars[i].setOnMouseEntered(e->{ for(int j=0;j<5;j++) stars[j].setStyle("-fx-background-color:transparent;-fx-font-size:24px;-fx-cursor:hand;-fx-text-fill:"+(j<v?N_RED:N_BORDER)+";"); });
-            stars[i].setOnMouseExited(e->paint.run());
-            stars[i].setOnAction(e->{cr[0]=v;paint.run();});
+            stars[i].setOnMouseEntered(e -> {
+                for (int j = 0; j < 5; j++)
+                    stars[j].setStyle(
+                            "-fx-background-color:transparent;-fx-font-size:16px;-fx-cursor:hand;" +
+                                    "-fx-text-fill:" + (j < v ? N_RED : N_BORDER) + ";-fx-padding:0;"
+                    );
+            });
+            stars[i].setOnMouseExited(e -> paintStars.run());
+            stars[i].setOnAction(e -> {
+                starVal[0] = v;
+                paintStars.run();
+                String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
+                db.addInteraction(new Interation(loggedUser, c, LocalDateTime.now(), v, 0.0, InterationType.RATE, iId));
+                double soma = 0; int cnt = 0;
+                for (User u : db.users().listAll())
+                    for (Interation it : u.getInteractions())
+                        if (it.getType() == InterationType.RATE && it.getContent().getId().equals(c.getId())) {
+                            soma += it.getRating(); cnt++;
+                        }
+                if (cnt > 0) c.setRating(soma / cnt);
+                ratingBadge.setText(String.format("%.1f ★", c.getRating()));
+                snack("✓ Avaliado: " + v + "/5 ★", true);
+            });
             starRow.getChildren().add(stars[i]);
         }
-        Label rLbl = new Label("Seleciona um conteúdo");
-        rLbl.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");
-        table.getSelectionModel().selectedItemProperty().addListener((obs,old,s)->{
-            if(s!=null){int e=(int)Math.round(s.getRating());cr[0]=e;paint.run();rLbl.setText("\""+s.getTitle()+"\"  "+(e==0?"sem avaliação":e+"/5 ★"));rLbl.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");}
-            else{cr[0]=0;paint.run();rLbl.setText("Seleciona um conteúdo");}
-        });
-        Button bRate = btn("Submeter Avaliação", BTN_R); bRate.setMaxWidth(Double.MAX_VALUE);
-        bRate.setOnAction(e->{
-            Content c=table.getSelectionModel().getSelectedItem();
-            if(c==null){showAlert(Alert.AlertType.ERROR,"Erro","Seleciona um conteúdo.");return;}
-            if(cr[0]==0){showAlert(Alert.AlertType.ERROR,"Erro","Escolhe uma nota.");return;}
-            String iId="i_"+loggedUser.getId()+"_"+c.getId()+"_"+System.currentTimeMillis();
-            db.addInteraction(new Interation(loggedUser,c,LocalDateTime.now(),cr[0],0.0,InterationType.RATE,iId));
-            double soma=0;int cnt=0;
-            for(User u:db.users().listAll()) for(Interation it:u.getInteractions()) if(it.getType()==InterationType.RATE&&it.getContent().getId().equals(c.getId())){soma+=it.getRating();cnt++;}
-            if(cnt>0) c.setRating(soma/cnt);
-            refresh.run();
-            Content up=db.contents().get(c.getId());
-            if(up!=null) table.getSelectionModel().select(up);
-            rLbl.setText("Avaliado: "+cr[0]+"/5 ★  (média: "+String.format("%.1f",c.getRating())+")");
-            rLbl.setStyle("-fx-text-fill:"+N_GREEN+";-fx-font-size:12px;");
-        });
-        rCard.getChildren().addAll(starRow, rLbl, bRate);
+        paintStars.run();
 
-        sidebar.getChildren().addAll(sCard, iCard, rCard);
-        pane.setCenter(table); pane.setRight(scroll(sidebar));
-        tab.setContent(pane); return tab;
+        // ── Botões de ação ────────────────────────────────────────────────────
+        Button bBk = actionBtn("+ SAVE",  "#2A2A2A",     N_MUTED, N_BORDER);
+        Button bWt = actionBtn("WATCHED", N_RED,          "white",  N_RED);
+        Button bSk = actionBtn("SKIP",    "transparent",  N_MUTED, N_BORDER);
+
+        bBk.setOnAction(e -> {
+            boolean on = "✓ SAVED".equals(bBk.getText());
+            if (!on) {
+                String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
+                db.addInteraction(new Interation(loggedUser, c, LocalDateTime.now(), 0, 0.0, InterationType.BOOKMARK, iId));
+                bBk.setText("✓ SAVED");
+                bBk.setStyle(actionStyle("#1a2a1a", N_GREEN, N_GREEN));
+                snack("✓ \"" + c.getTitle() + "\" guardado", true);
+            } else {
+                bBk.setText("+ SAVE");
+                bBk.setStyle(actionStyle("#2A2A2A", N_MUTED, N_BORDER));
+            }
+        });
+
+        bWt.setOnAction(e -> {
+            boolean on = "✓ VISTO".equals(bWt.getText());
+            if (!on) {
+                String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
+                db.addInteraction(new Interation(loggedUser, c, LocalDateTime.now(), 0, 1.0, InterationType.WATCH, iId));
+                bWt.setText("✓ VISTO");
+                bWt.setStyle(actionStyle("#831010", "white", "#831010"));
+                bSk.setText("SKIP");
+                bSk.setStyle(actionStyle("transparent", N_MUTED, N_BORDER));
+                snack("✓ \"" + c.getTitle() + "\" marcado como visto", true);
+            } else {
+                bWt.setText("WATCHED");
+                bWt.setStyle(actionStyle(N_RED, "white", N_RED));
+            }
+        });
+
+        bSk.setOnAction(e -> {
+            boolean on = "✓ SKIP".equals(bSk.getText());
+            if (!on) {
+                String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
+                db.addInteraction(new Interation(loggedUser, c, LocalDateTime.now(), 0, 0.0, InterationType.SKIP, iId));
+                bSk.setText("✓ SKIP");
+                bSk.setStyle(actionStyle("#1a1a2a", "#8888FF", "#555555"));
+                bWt.setText("WATCHED");
+                bWt.setStyle(actionStyle(N_RED, "white", N_RED));
+                snack("\"" + c.getTitle() + "\" marcado para skip", true);
+            } else {
+                bSk.setText("SKIP");
+                bSk.setStyle(actionStyle("transparent", N_MUTED, N_BORDER));
+            }
+        });
+
+        HBox actions = new HBox(6, bBk, bWt, bSk);
+
+        body.getChildren().addAll(title, meta, starRow, actions);
+        card.getChildren().addAll(thumb, body);
+
+        card.setOnMouseEntered(e -> card.setStyle(
+                "-fx-background-color:" + N_CARD2 + ";-fx-background-radius:8;" +
+                        "-fx-border-color:#555;-fx-border-radius:8;-fx-cursor:default;"
+        ));
+        card.setOnMouseExited(e -> card.setStyle(
+                "-fx-background-color:" + N_CARD + ";-fx-background-radius:8;" +
+                        "-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;"
+        ));
+
+        return card;
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    private Button actionBtn(String text, String bg, String fg, String border) {
+        Button b = new Button(text);
+        b.setStyle(actionStyle(bg, fg, border));
+        b.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(b, Priority.ALWAYS);
+        return b;
+    }
+
+    private String actionStyle(String bg, String fg, String border) {
+        return "-fx-background-color:" + bg + ";-fx-text-fill:" + fg + ";" +
+                "-fx-border-color:" + border + ";-fx-border-radius:20;-fx-background-radius:20;" +
+                "-fx-font-size:9px;-fx-font-weight:bold;-fx-padding:5 4;-fx-cursor:hand;";
+    }
+
+    private ToggleButton typeToggle(String text, ToggleGroup tg, boolean selected) {
+        ToggleButton tb = new ToggleButton(text);
+        tb.setToggleGroup(tg);
+        tb.setSelected(selected);
+        tb.setStyle(selected ? BTN_R : BTN_S);
+        tb.selectedProperty().addListener((o, old, nv) -> tb.setStyle(nv ? BTN_R : BTN_S));
+        return tb;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -451,48 +602,218 @@ public class StreamingDashboardFX {
     private Tab buildArtistsTab() {
         Tab tab = new Tab("Artistas");
         BorderPane pane = new BorderPane();
-        pane.setStyle("-fx-background-color:"+N_BG+";"); pane.setPadding(new Insets(20));
+        pane.setStyle("-fx-background-color:" + N_BG + ";");
+        pane.setPadding(new Insets(20));
 
-        TableView<Artist> table = new TableView<>();
-        table.getColumns().addAll(
-                col("ID",d->d.getValue().getId()), col("Nome",d->d.getValue().getName()),
-                col("Nacionalidade",d->d.getValue().getNationality()), col("Género",d->d.getValue().getGender()),
-                col("Data Nasc.",d->d.getValue().getBirthDate().toString()), col("Papel",d->d.getValue().getRole().toString())
+        TextField fSearch = field("Pesquisar nome...");
+        ToggleGroup tgRole = new ToggleGroup();
+        ToggleButton tbAll = typeToggle("Todos",    tgRole, true);
+        ToggleButton tbAct = typeToggle("Actor",    tgRole, false);
+        ToggleButton tbDir = typeToggle("Director", tgRole, false);
+        ToggleButton tbPro = typeToggle("Producer", tgRole, false);
+
+        HBox topBar = new HBox(10, fSearch, tbAll, tbAct, tbDir, tbPro);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+        topBar.setPadding(new Insets(0, 0, 16, 0));
+        HBox.setHgrow(fSearch, Priority.ALWAYS);
+
+        FlowPane grid = new FlowPane(14, 14);
+        grid.setPadding(new Insets(4));
+        ScrollPane scrollPane = new ScrollPane(grid);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color:" + N_BG + ";-fx-background:" + N_BG + ";");
+
+        Runnable[] rl = {null};
+        rl[0] = () -> {
+            String q = fSearch.getText().trim().toLowerCase();
+            String roleFilter = ((ToggleButton) tgRole.getSelectedToggle()).getText();
+            grid.getChildren().clear();
+            db.artists().listAll().stream()
+                    .filter(a -> a.getName().toLowerCase().contains(q))
+                    .filter(a -> "Todos".equals(roleFilter) || a.getRole().toString().equalsIgnoreCase(roleFilter))
+                    .forEach(a -> grid.getChildren().add(buildArtistCard(a)));
+        };
+        rl[0].run();
+
+        fSearch.textProperty().addListener((o, old, nv) -> rl[0].run());
+        tgRole.selectedToggleProperty().addListener((o, old, nv) -> { if (nv != null) rl[0].run(); });
+
+        VBox main = new VBox(0, topBar, scrollPane);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        main.setStyle("-fx-background-color:" + N_BG + ";");
+
+        pane.setCenter(main);
+        tab.setContent(pane);
+        return tab;
+    }
+
+    private javafx.scene.Node buildArtistCard(Artist a) {
+        String roleColor = switch (a.getRole().toString()) {
+            case "DIRECTOR" -> "#185FA5";
+            case "PRODUCER" -> "#3B6D11";
+            default         -> N_RED;
+        };
+        String roleBg = switch (a.getRole().toString()) {
+            case "DIRECTOR" -> "#05051a";
+            case "PRODUCER" -> "#051a05";
+            default         -> "#1a0505";
+        };
+
+        VBox card = new VBox(0);
+        card.setPrefWidth(210);
+        card.setMaxWidth(210);
+        card.setStyle(
+                "-fx-background-color:" + N_CARD + ";-fx-background-radius:8;" +
+                        "-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;"
         );
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        Runnable refresh = () -> table.setItems(FXCollections.observableArrayList(db.artists().listAll()));
-        refresh.run();
 
-        VBox sidebar = new VBox(16); sidebar.setPrefWidth(340); sidebar.setPadding(new Insets(0,0,0,20));
+        // ── Thumbnail com iniciais ────────────────────────────────────────────
+        StackPane thumb = new StackPane();
+        thumb.setPrefHeight(110);
+        thumb.setStyle("-fx-background-color:" + roleBg + ";");
 
-        VBox sCard = nCard("Pesquisar Artistas");
-        TextField fN=field("Nome...");
-        Button bSN=btn("Por Nome",BTN_R); bSN.setOnAction(e->table.setItems(FXCollections.observableArrayList(db.artists().searchByNameSubstring(fN.getText().trim()))));
-        HBox sr1=new HBox(8,fN,bSN); sr1.setAlignment(Pos.CENTER_LEFT); HBox.setHgrow(fN,Priority.ALWAYS);
-        ComboBox<ArtistRole> cbR=new ComboBox<>(FXCollections.observableArrayList(ArtistRole.values())); cbR.setStyle(FIELD);
-        Button bSR=btn("Por Papel",BTN_S), bA=btn("Todos",BTN_S);
-        TextField fD=field("yyyy-MM-dd"); Button bSD=btn("Por Data",BTN_S);
-        bSR.setOnAction(e->{if(cbR.getValue()!=null)table.setItems(FXCollections.observableArrayList(db.artists().searchByRole(cbR.getValue())));});
-        bSD.setOnAction(e->{try{table.setItems(FXCollections.observableArrayList(db.artists().searchByBirthDate(LocalDate.parse(fD.getText().trim()))));}catch(Exception ex){showAlert(Alert.AlertType.ERROR,"Erro","Data inválida.");}});
-        bA.setOnAction(e->refresh.run());
-        sCard.getChildren().addAll(sr1, new HBox(8,cbR,bSR), new HBox(8,fD,bSD,bA));
+        Label av = new Label(initials(a.getName()));
+        av.setStyle(
+                "-fx-background-color:" + roleColor + ";-fx-text-fill:white;" +
+                        "-fx-font-size:26px;-fx-font-weight:bold;" +
+                        "-fx-min-width:64;-fx-min-height:64;-fx-max-width:64;-fx-max-height:64;" +
+                        "-fx-alignment:center;-fx-background-radius:6;"
+        );
 
-        VBox iCard = nCard("Inserir / Editar Artista");
-        GridPane form=grid();
-        TextField fId=field("ID"),fNm=field("Nome"),fNc=field("PT"),fGn=field("M"),fDt=field("1980-01-01");
-        ComboBox<ArtistRole> cbRole=new ComboBox<>(FXCollections.observableArrayList(ArtistRole.values())); cbRole.setValue(ArtistRole.ACTOR); cbRole.setStyle(FIELD);
-        form.addRow(0,lbl("ID:"),fId,lbl("Nome:"),fNm);
-        form.addRow(1,lbl("Nac.:"),fNc,lbl("Género:"),fGn);
-        form.addRow(2,lbl("Data Nasc.:"),fDt,lbl("Papel:"),cbRole);
-        Button bAdd=btn("Adicionar",BTN_R),bRem=btn("Remover",BTN_G),bEN=btn("Editar Nac.",BTN_S);
-        bAdd.setOnAction(e->{try{Artist a=new Artist(fId.getText().trim(),fNm.getText().trim(),fNc.getText().trim(),fGn.getText().trim(),LocalDate.parse(fDt.getText().trim()),cbRole.getValue());if(db.addArtist(a)){refresh.run();fId.clear();fNm.clear();snack("✓ Artista adicionado",true);}else showAlert(Alert.AlertType.ERROR,"Erro","ID já existe.");}catch(Exception ex){showAlert(Alert.AlertType.ERROR,"Erro","Verifica a data!");}});
-        bRem.setOnAction(e->{Artist a=table.getSelectionModel().getSelectedItem();if(a!=null){db.removeArtist(a.getId());refresh.run();}});
-        bEN.setOnAction(e->{Artist a=table.getSelectionModel().getSelectedItem();if(a==null)return;String nv=askInput("Nova Nacionalidade:",a.getNationality());if(nv!=null&&!nv.trim().isEmpty()){db.artists().editNationality(a.getId(),nv);refresh.run();}});
-        iCard.getChildren().addAll(form, row(bAdd,bRem,bEN));
+        Label roleBadge = new Label(a.getRole().toString());
+        roleBadge.setStyle(
+                "-fx-background-color:" + roleColor + ";-fx-text-fill:white;" +
+                        "-fx-font-size:9px;-fx-font-weight:bold;-fx-padding:3 8;-fx-background-radius:4;"
+        );
+        StackPane.setAlignment(roleBadge, Pos.TOP_LEFT);
+        StackPane.setMargin(roleBadge, new Insets(8));
 
-        sidebar.getChildren().addAll(sCard, iCard);
-        pane.setCenter(table); pane.setRight(scroll(sidebar));
-        tab.setContent(pane); return tab;
+        String genderIcon = "M".equalsIgnoreCase(a.getGender()) ? "♂" : "♀";
+        Label genderLbl = new Label(genderIcon);
+        genderLbl.setStyle("-fx-text-fill:" + N_MUTED + ";-fx-font-size:14px;");
+        StackPane.setAlignment(genderLbl, Pos.TOP_RIGHT);
+        StackPane.setMargin(genderLbl, new Insets(10));
+
+        thumb.getChildren().addAll(av, roleBadge, genderLbl);
+
+        // ── Body ──────────────────────────────────────────────────────────────
+        VBox body = new VBox(6);
+        body.setPadding(new Insets(12, 14, 14, 14));
+
+        Label name = new Label(a.getName());
+        name.setStyle("-fx-text-fill:" + N_TEXT + ";-fx-font-size:13px;-fx-font-weight:bold;");
+        name.setMaxWidth(182);
+
+        HBox metaRow = new HBox(8);
+        metaRow.setAlignment(Pos.CENTER_LEFT);
+        Label natLbl = new Label("🌍 " + a.getNationality());
+        natLbl.setStyle("-fx-text-fill:" + N_MUTED + ";-fx-font-size:11px;");
+        Label dateLbl = new Label("🎂 " + a.getBirthDate().toString());
+        dateLbl.setStyle("-fx-text-fill:" + N_MUTED + ";-fx-font-size:11px;");
+        metaRow.getChildren().addAll(natLbl, dateLbl);
+
+        body.getChildren().addAll(name, metaRow);
+        card.getChildren().addAll(thumb, body);
+
+        card.setOnMouseEntered(e -> card.setStyle(
+                "-fx-background-color:" + N_CARD2 + ";-fx-background-radius:8;" +
+                        "-fx-border-color:#555;-fx-border-radius:8;-fx-cursor:default;"
+        ));
+        card.setOnMouseExited(e -> card.setStyle(
+                "-fx-background-color:" + N_CARD + ";-fx-background-radius:8;" +
+                        "-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;"
+        ));
+
+        return card;
+    }
+
+    private javafx.scene.Node buildArtistCard(Artist a, Runnable[] rl) {
+        // cores por papel
+        String roleColor = switch (a.getRole().toString()) {
+            case "DIRECTOR" -> "#185FA5";
+            case "PRODUCER" -> "#3B6D11";
+            default         -> N_RED;
+        };
+        String roleBg = switch (a.getRole().toString()) {
+            case "DIRECTOR" -> "#05051a";
+            case "PRODUCER" -> "#051a05";
+            default         -> "#1a0505";
+        };
+
+        VBox card = new VBox(0);
+        card.setPrefWidth(210);
+        card.setMaxWidth(210);
+        card.setStyle(
+                "-fx-background-color:" + N_CARD + ";-fx-background-radius:8;" +
+                        "-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;"
+        );
+
+        // ── Thumbnail com iniciais ────────────────────────────────────────────
+        StackPane thumb = new StackPane();
+        thumb.setPrefHeight(110);
+        thumb.setStyle("-fx-background-color:" + roleBg + ";");
+
+        Label av = new Label(initials(a.getName()));
+        av.setStyle(
+                "-fx-background-color:" + roleColor + ";-fx-text-fill:white;" +
+                        "-fx-font-size:26px;-fx-font-weight:bold;" +
+                        "-fx-min-width:64;-fx-min-height:64;-fx-max-width:64;-fx-max-height:64;" +
+                        "-fx-alignment:center;-fx-background-radius:6;"
+        );
+
+        Label roleBadge = new Label(a.getRole().toString());
+        roleBadge.setStyle(
+                "-fx-background-color:" + roleColor + ";-fx-text-fill:white;" +
+                        "-fx-font-size:9px;-fx-font-weight:bold;-fx-padding:3 8;-fx-background-radius:4;"
+        );
+        StackPane.setAlignment(roleBadge, Pos.TOP_LEFT);
+        StackPane.setMargin(roleBadge, new Insets(8));
+
+        String genderIcon = "M".equalsIgnoreCase(a.getGender()) ? "♂" : "♀";
+        Label genderLbl = new Label(genderIcon);
+        genderLbl.setStyle("-fx-text-fill:" + N_MUTED + ";-fx-font-size:14px;");
+        StackPane.setAlignment(genderLbl, Pos.TOP_RIGHT);
+        StackPane.setMargin(genderLbl, new Insets(10));
+
+        thumb.getChildren().addAll(av, roleBadge, genderLbl);
+
+        // ── Body ──────────────────────────────────────────────────────────────
+
+
+        // Separador
+        Separator sep = new Separator();
+        sep.setStyle("-fx-background-color:" + N_BORDER + ";-fx-padding:0;");
+
+        // Botões: Editar Nac. + Remover
+        Button bEN  = actionBtn("✏ Nac.",   "#2A2A2A",    N_MUTED,  N_BORDER);
+        Button bRem = actionBtn("Remover",  "transparent", "#FF5252", "#FF5252");
+
+        bEN.setOnAction(e -> {
+            String nv = askInput("Nova Nacionalidade:", a.getNationality());
+            if (nv != null && !nv.trim().isEmpty()) {
+                db.artists().editNationality(a.getId(), nv.trim());
+                rl[0].run();
+                snack("✓ Nacionalidade atualizada", true);
+            }
+        });
+        bRem.setOnAction(e -> {
+            db.removeArtist(a.getId());
+            rl[0].run();
+            snack("✓ Artista removido", true);
+        });
+
+        HBox actions = new HBox(6, bEN, bRem);
+
+        card.setOnMouseEntered(e -> card.setStyle(
+                "-fx-background-color:" + N_CARD2 + ";-fx-background-radius:8;" +
+                        "-fx-border-color:#555;-fx-border-radius:8;-fx-cursor:default;"
+        ));
+        card.setOnMouseExited(e -> card.setStyle(
+                "-fx-background-color:" + N_CARD + ";-fx-background-radius:8;" +
+                        "-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;"
+        ));
+
+        return card;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
