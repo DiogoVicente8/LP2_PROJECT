@@ -45,6 +45,10 @@ public class Interation implements Serializable {
    * @param id        identificador único da interação
    */
   public Interation(User user, Content content, LocalDateTime watchDate, double rating, double progress, InterationType type, String id) {
+    if (progress < 0.0 || progress > 1.0)
+      throw new IllegalArgumentException("progress deve estar em [0.0, 1.0], recebido: " + progress);
+    if (rating < 0.0 || rating > 5.0)
+      throw new IllegalArgumentException("rating deve estar em [0.0, 5.0], recebido: " + rating);
     this.user = user;
     this.content = content;
     this.watchDate = watchDate;
@@ -129,18 +133,22 @@ public class Interation implements Serializable {
   /**
    * Define a avaliação atribuída ao conteúdo.
    *
-   * @param rating nova avaliação
+   * @param rating nova avaliação (deve estar em [0.0, 5.0])
    */
   public void setRating(double rating) {
+    if (rating < 0.0 || rating > 5.0)
+      throw new IllegalArgumentException("rating deve estar em [0.0, 5.0], recebido: " + rating);
     this.rating = rating;
   }
 
   /**
    * Define o progresso de visualização do conteúdo.
    *
-   * @param progress novo progresso
+   * @param progress novo progresso (deve estar em [0.0, 1.0])
    */
   public void setProgress(double progress) {
+    if (progress < 0.0 || progress > 1.0)
+      throw new IllegalArgumentException("progress deve estar em [0.0, 1.0], recebido: " + progress);
     this.progress = progress;
   }
 

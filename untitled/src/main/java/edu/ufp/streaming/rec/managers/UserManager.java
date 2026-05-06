@@ -270,7 +270,7 @@ public class UserManager {
         List<User> result = new ArrayList<>();
         for (String key : userST.keys()) {
             User u = userST.get(key);
-            if (u.getRegion().equalsIgnoreCase(region)) result.add(u);
+            if (u.getRegion() != null && region.equalsIgnoreCase(u.getRegion())) result.add(u);
         }
         return result;
     }
@@ -289,7 +289,7 @@ public class UserManager {
             List<User> bucket = byDateBST.get(d);
             if (bucket == null) continue;
             for (User u : bucket)
-                if (u.getRegion().equalsIgnoreCase(region)) result.add(u);
+                if (u.getRegion() != null && region.equalsIgnoreCase(u.getRegion())) result.add(u);
         }
         return result;
     }
@@ -307,7 +307,7 @@ public class UserManager {
         for (String key : byNameBST.keys()) {
             if (!key.contains(lower)) continue;
             for (User u : byNameBST.get(key))
-                if (u.getRegion().equalsIgnoreCase(region)) result.add(u);
+                if (u.getRegion() != null && region.equalsIgnoreCase(u.getRegion())) result.add(u);
         }
         return result;
     }

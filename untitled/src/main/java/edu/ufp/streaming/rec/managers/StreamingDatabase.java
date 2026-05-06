@@ -203,6 +203,25 @@ public class StreamingDatabase {
     }
 
     /**
+     * Regista uma relação de follow entre dois utilizadores com data explícita
+     * (usado na desserialização para restaurar a data original).
+     *
+     * @param followerId ID do seguidor (deve já existir)
+     * @param followedId ID do utilizador a seguir (deve já existir)
+     * @param followDate data e hora originais do follow
+     * @return o {@link UserFollow} criado, ou {@code null} em caso de falha
+     */
+    public UserFollow addFollowWithDate(String followerId, String followedId,
+                                        java.time.LocalDateTime followDate) {
+        User follower = userManager.get(followerId);
+        User followed = userManager.get(followedId);
+        if (follower == null || followed == null) return null;
+        UserFollow uf = followManager.followWithDate(follower, followed, followDate);
+        if (uf != null) graph.addFollowEdge(uf);
+        return uf;
+    }
+
+    /**
      * Regista uma relação de follow entre dois utilizadores e adiciona a aresta ao grafo.
      *
      * @param followerId ID do seguidor (deve já existir)
@@ -273,16 +292,23 @@ public class StreamingDatabase {
     public Content removeContent(String contentId) {
         if (contentManager.get(contentId) == null) return null;
         artistContentManager.removeAllByContent(contentId);
+        graph.removeContentEdges(contentId);   // R4: limpar arestas do grafo
         return contentManager.remove(contentId);
     }
 
     /**
      * Remove um {@link Genre} do sistema.
-     *
      * @param genreId o ID do género a remover
      * @return o {@link Genre} removido, ou {@code null} se não for encontrado
+     * @throws IllegalStateException se existirem conteúdos que ainda usam este género
      */
     public Genre removeGenre(String genreId) {
+        for (var c : contentManager.listAll()) {
+            if (c.getGenre() != null && c.getGenre().getId().equals(genreId))
+                throw new IllegalStateException(
+                        "Não é possível remover o género '" + genreId +
+                                "': o conteúdo '" + c.getId() + "' ainda o utiliza.");
+        }
         return genreManager.remove(genreId);
     }
 }

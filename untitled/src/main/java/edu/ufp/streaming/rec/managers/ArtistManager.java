@@ -188,7 +188,7 @@ public class ArtistManager {
         List<Artist> result = new ArrayList<>();
         for (String key : artistST.keys()) {
             Artist a = artistST.get(key);
-            if (a.getNationality().equalsIgnoreCase(nationality)) result.add(a);
+            if (nationality.equalsIgnoreCase(a.getNationality())) result.add(a);
         }
         return result;
     }
@@ -203,7 +203,7 @@ public class ArtistManager {
         List<Artist> result = new ArrayList<>();
         for (String key : artistST.keys()) {
             Artist a = artistST.get(key);
-            if (a.getGender().equalsIgnoreCase(gender)) result.add(a);
+            if (gender.equalsIgnoreCase(a.getGender())) result.add(a);
         }
         return result;
     }
@@ -224,7 +224,7 @@ public class ArtistManager {
             List<Artist> bucket = byBirthDateBST.get(d);
             if (bucket == null) continue;
             for (Artist a : bucket) {
-                if (a.getNationality().equalsIgnoreCase(nationality)) result.add(a);
+                if (nationality.equalsIgnoreCase(a.getNationality())) result.add(a);
             }
         }
         return result;
@@ -246,8 +246,8 @@ public class ArtistManager {
         for (String key : byNameBST.keys()) {
             if (!key.contains(lower)) continue;
             for (Artist a : byNameBST.get(key)) {
-                if (a.getNationality().equalsIgnoreCase(nationality)
-                        && a.getGender().equalsIgnoreCase(gender)) {
+                if (nationality.equalsIgnoreCase(a.getNationality())
+                        && gender.equalsIgnoreCase(a.getGender())) {
                     result.add(a);
                 }
             }

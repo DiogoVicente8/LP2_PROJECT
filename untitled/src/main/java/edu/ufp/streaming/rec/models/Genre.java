@@ -23,6 +23,16 @@ public class Genre implements Serializable {
   public void setName(String name) { this.name = name; }
 
   @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Genre)) return false;
+    return id.equals(((Genre) o).id);
+  }
+
+  @Override
+  public int hashCode() { return id.hashCode(); }
+
+  @Override
   public String toString() {
     return "Genre{id='" + id + "', name='" + name + "'}";
   }

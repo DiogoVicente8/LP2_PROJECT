@@ -52,6 +52,8 @@ public class Series extends Content implements Serializable {
    * @param seasons novo número de temporadas
    */
   public void setSeasons(int seasons) {
+    if (seasons <= 0)
+      throw new IllegalArgumentException("seasons deve ser positivo, recebido: " + seasons);
     this.seasons = seasons;
   }
 

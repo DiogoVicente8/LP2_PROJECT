@@ -114,12 +114,28 @@ public class StreamingGraph {
     }
 
     /**
-     * Remove todas as arestas de follow envolvendo um dado utilizador.
+     * Remove apenas as arestas de follow que envolvem um dado utilizador,
+     * mantendo o vértice e as arestas de interação User→Content.
      *
      * @param userId o ID do utilizador cujas arestas de follow devem ser removidas
      */
     public void removeFollowEdges(String userId) {
-        reconstruirGrafoExcluindo(userId, null);
+        if (!idParaIndice.contains(userId)) return;
+        int idxUser = idParaIndice.get(userId);
+
+        EdgeWeightedDigraph novoGrafo = new EdgeWeightedDigraph(capacidade);
+        for (int v = 0; v < grafo.V(); v++) {
+            for (DirectedEdge e : grafo.adj(v)) {
+                // Manter arestas de interação (User→Content) do utilizador,
+                // mas remover arestas de follow (User→User) que o envolvam
+                String tipoDestino = indiceParaTipo.get(e.to());
+                boolean isFollowEdge = "USER".equals(indiceParaTipo.get(e.from()))
+                        && "USER".equals(tipoDestino);
+                if (isFollowEdge && (e.from() == idxUser || e.to() == idxUser)) continue;
+                novoGrafo.addEdge(e);
+            }
+        }
+        grafo = novoGrafo;
     }
 
     /**
@@ -173,6 +189,8 @@ public class StreamingGraph {
 
     /**
      * Calcula o caminho mais curto entre dois utilizadores via Dijkstra.
+     * Opera num subgrafo apenas com vértices e arestas User→User para evitar
+     * que nós de conteúdo sejam usados como atalhos.
      *
      * @param idOrigem  ID do utilizador de origem
      * @param idDestino ID do utilizador de destino
@@ -182,15 +200,34 @@ public class StreamingGraph {
         List<String> caminho = new ArrayList<>();
         if (!idParaIndice.contains(idOrigem) || !idParaIndice.contains(idDestino)) return caminho;
 
-        int src  = idParaIndice.get(idOrigem);
-        int dest = idParaIndice.get(idDestino);
+        // Construir subgrafo apenas com utilizadores e arestas User→User
+        List<Integer> verticesUser = getVerticesUtilizadores();
+        java.util.Set<Integer> userSet = new java.util.HashSet<>(verticesUser);
 
-        DijkstraSP sp = new DijkstraSP(grafo, src);
+        // Remapear para índices contíguos
+        java.util.Map<Integer, Integer> remap    = new java.util.HashMap<>();
+        java.util.Map<Integer, Integer> remapInv = new java.util.HashMap<>();
+        int k = 0;
+        for (int v : verticesUser) { remap.put(v, k); remapInv.put(k, v); k++; }
+
+        EdgeWeightedDigraph subUser = new EdgeWeightedDigraph(k);
+        for (int v : verticesUser) {
+            for (DirectedEdge e : grafo.adj(v)) {
+                if (userSet.contains(e.to())) {
+                    subUser.addEdge(new DirectedEdge(remap.get(e.from()), remap.get(e.to()), e.weight()));
+                }
+            }
+        }
+
+        int src  = remap.get(idParaIndice.get(idOrigem));
+        int dest = remap.get(idParaIndice.get(idDestino));
+
+        DijkstraSP sp = new DijkstraSP(subUser, src);
         if (!sp.hasPathTo(dest)) return caminho;
 
         for (DirectedEdge e : sp.pathTo(dest)) {
-            if (caminho.isEmpty()) caminho.add(indiceParaId.get(e.from()));
-            caminho.add(indiceParaId.get(e.to()));
+            if (caminho.isEmpty()) caminho.add(indiceParaId.get(remapInv.get(e.from())));
+            caminho.add(indiceParaId.get(remapInv.get(e.to())));
         }
         return caminho;
     }
@@ -206,10 +243,25 @@ public class StreamingGraph {
         if (!idParaIndice.contains(idOrigem) || !idParaIndice.contains(idDestino))
             return Double.POSITIVE_INFINITY;
 
-        int src  = idParaIndice.get(idOrigem);
-        int dest = idParaIndice.get(idDestino);
+        List<Integer> verticesUser = getVerticesUtilizadores();
+        java.util.Set<Integer> userSet = new java.util.HashSet<>(verticesUser);
+        java.util.Map<Integer, Integer> remap = new java.util.HashMap<>();
+        int k = 0;
+        for (int v : verticesUser) remap.put(v, k++);
 
-        DijkstraSP sp = new DijkstraSP(grafo, src);
+        EdgeWeightedDigraph subUser = new EdgeWeightedDigraph(k);
+        for (int v : verticesUser) {
+            for (DirectedEdge e : grafo.adj(v)) {
+                if (userSet.contains(e.to())) {
+                    subUser.addEdge(new DirectedEdge(remap.get(e.from()), remap.get(e.to()), e.weight()));
+                }
+            }
+        }
+
+        int src  = remap.get(idParaIndice.get(idOrigem));
+        int dest = remap.get(idParaIndice.get(idDestino));
+
+        DijkstraSP sp = new DijkstraSP(subUser, src);
         return sp.hasPathTo(dest) ? sp.distTo(dest) : Double.POSITIVE_INFINITY;
     }
 
@@ -397,25 +449,29 @@ public class StreamingGraph {
         List<Integer> verticesUtilizadores = getVerticesUtilizadores();
         if (verticesUtilizadores.size() <= 1) return true;
 
-        // Construir um Digraph (não pesado) apenas com os vértices de utilizadores
-        // KosarajuSharirSCC da algs4 opera sobre Digraph, não EdgeWeightedDigraph
-        int n = capacidade;
-        Digraph digraphUtilizadores = new Digraph(n);
+        // Remapear os índices de utilizadores para 0..k-1 (contíguos)
+        // evitando que vértices de conteúdo ou "vazios" interfiram no Kosaraju
+        java.util.Map<Integer, Integer> remap = new java.util.HashMap<>();
+        int k = 0;
+        for (int v : verticesUtilizadores) remap.put(v, k++);
+
+        java.util.Set<Integer> userSet = new java.util.HashSet<>(verticesUtilizadores);
+        Digraph digraphUtilizadores = new Digraph(k);
 
         for (int v : verticesUtilizadores) {
             for (DirectedEdge e : grafo.adj(v)) {
-                if (verticesUtilizadores.contains(e.to())) {
-                    digraphUtilizadores.addEdge(e.from(), e.to());
+                if (userSet.contains(e.to())) {
+                    digraphUtilizadores.addEdge(remap.get(e.from()), remap.get(e.to()));
                 }
             }
         }
 
         KosarajuSharirSCC scc = new KosarajuSharirSCC(digraphUtilizadores);
 
-        // Verificar que todos os vértices de utilizadores pertencem à mesma SCC
-        int componenteReferencia = scc.id(verticesUtilizadores.get(0));
+        // Verificar que todos os vértices remapeados pertencem à mesma SCC
+        int componenteReferencia = scc.id(remap.get(verticesUtilizadores.get(0)));
         for (int v : verticesUtilizadores) {
-            if (scc.id(v) != componenteReferencia) return false;
+            if (scc.id(remap.get(v)) != componenteReferencia) return false;
         }
         return true;
     }

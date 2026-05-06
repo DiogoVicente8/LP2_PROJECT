@@ -193,6 +193,16 @@ public class Artist implements Serializable {
   }
 
   @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Artist)) return false;
+    return id.equals(((Artist) o).id);
+  }
+
+  @Override
+  public int hashCode() { return id.hashCode(); }
+
+  @Override
   public String toString() {
     return "Artist{id='" + id + "', name='" + name + "', nationality='" + nationality
             + "', gender='" + gender + "', birthDate=" + birthDate + ", role=" + role + "}";

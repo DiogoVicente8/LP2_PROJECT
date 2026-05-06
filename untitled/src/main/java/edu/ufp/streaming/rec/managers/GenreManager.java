@@ -15,7 +15,7 @@ import java.util.List;
 public class GenreManager {
 
     /** Symbol Table principal: chave = id do género. */
-    private ST<String, Genre> genreSt;
+    private final ST<String, Genre> genreSt;
 
     /**
      * Constrói um novo gestor de géneros com a ST vazia.

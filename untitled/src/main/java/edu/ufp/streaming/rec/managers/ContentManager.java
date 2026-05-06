@@ -150,7 +150,7 @@ public class ContentManager {
         List<Content> result = new ArrayList<>();
         for (String key : contentSt.keys()) {
             Content c = contentSt.get(key);
-            if (c.getRegion().equalsIgnoreCase(region)) result.add(c);
+            if (c.getRegion() != null && region.equalsIgnoreCase(c.getRegion())) result.add(c);
         }
         return result;
     }
