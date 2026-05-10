@@ -2,6 +2,7 @@ package edu.ufp.streaming.rec.models;
 
 import edu.ufp.streaming.rec.enums.ArtistRole;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 
 /**
@@ -14,7 +15,9 @@ import java.time.LocalDate;
  * pesada direcionada {@code Artista → Conteúdo} no grafo da plataforma.
  * @author  Diogo Vicente
  */
-public class ArtistContent {
+public class ArtistContent implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   /** O artista que participou no conteúdo. */
   private Artist artist;

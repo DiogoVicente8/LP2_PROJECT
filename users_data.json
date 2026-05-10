@@ -1,0 +1,26 @@
+[
+  {
+    "id": "u1",
+    "name": "Alice Silva",
+    "email": "alice@mail.com",
+    "region": "PT",
+    "registerDate": "2020-01-10",
+    "passwordHash": "zQ6swARSXQQpC1G+xsmgOA==:c9f4fabf8eae13731c7ce5699f31dabf736aff928236f7688187198f27135b81"
+  },
+  {
+    "id": "u2",
+    "name": "Bruno Costa",
+    "email": "bruno@mail.com",
+    "region": "PT",
+    "registerDate": "2020-03-15",
+    "passwordHash": "4vScQpkEJpxtuz72jkTkWg==:b09ffc58490e17dc1cc6d657020c479564c4bbe0c92e889920f1cffdff098edd"
+  },
+  {
+    "id": "u7",
+    "name": "Pedro",
+    "email": "pedro@gmail.com",
+    "region": "PT",
+    "registerDate": "2026-05-02",
+    "passwordHash": "WYE1kRcg8QpA6+115uoORw==:e3095c9a8273eb7383f1152a5d33ba7dd9b89f2396ffad575b7b499cfaac7528"
+  }
+]

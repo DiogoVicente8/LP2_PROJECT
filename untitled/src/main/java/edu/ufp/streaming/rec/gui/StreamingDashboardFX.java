@@ -6,9 +6,11 @@ import edu.ufp.streaming.rec.managers.AppStateSerializer;
 import edu.ufp.streaming.rec.managers.ContentFileManager;
 import edu.ufp.streaming.rec.managers.ContentSerializer;
 import edu.ufp.streaming.rec.managers.StreamingDatabase;
+import edu.ufp.streaming.rec.managers.UserPersistenceManager;
 import edu.ufp.streaming.rec.models.*;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -58,17 +60,39 @@ public class StreamingDashboardFX {
     private final StreamingDatabase db;
     private final User loggedUser;
     private double xOff, yOff;
-    private Runnable refreshUsersTab;
-    private Runnable refreshContentsTab;
-    private Runnable refreshArtistsTab;
-    private Runnable refreshHeroProfile;
 
     private final Label snackLabel = new Label();
     private javafx.animation.PauseTransition snackTimer;
 
+    // --- REPOSTO: Variáveis para atualizar a interface ao importar ---
+    private Runnable refreshUsersTab;
+    private Runnable refreshContentsTab;
+    private Runnable refreshArtistsTab;
+    private Runnable refreshHeroProfile;
+    private Runnable refreshStats;
+
+    private final ObservableList<Interation> interactionsList = FXCollections.observableArrayList();
+
     public StreamingDashboardFX(StreamingDatabase db, User loggedUser) {
         this.db = db;
         this.loggedUser = loggedUser;
+        interactionsList.setAll(loggedUser.getInteractions());
+    }
+
+    private void addInteractionAndRefresh(Interation interaction) {
+        db.addInteraction(interaction);
+        interactionsList.setAll(loggedUser.getInteractions());
+        AppStateSerializer.save(db);
+        if (refreshStats != null) refreshStats.run();
+    }
+
+    // --- REPOSTO: O nosso método mágico para atualizar tudo ---
+    private void refreshAllData() {
+        if (refreshUsersTab != null) refreshUsersTab.run();
+        if (refreshContentsTab != null) refreshContentsTab.run();
+        if (refreshArtistsTab != null) refreshArtistsTab.run();
+        if (refreshHeroProfile != null) refreshHeroProfile.run();
+        if (refreshStats != null) refreshStats.run();
     }
 
     public void start(Stage oldStage) {
@@ -98,7 +122,6 @@ public class StreamingDashboardFX {
         root.setOnMousePressed(ev -> { xOff = ev.getSceneX(); yOff = ev.getSceneY(); });
         root.setOnMouseDragged(ev -> { stage.setX(ev.getScreenX()-xOff); stage.setY(ev.getScreenY()-yOff); });
 
-        // CSS Netflix — tabs flat, tabelas escuras
         String css =
                 ".tab-pane .tab-header-area .tab-header-background{-fx-background-color:" + N_BG + ";}" +
                         ".tab-pane .tab{-fx-background-color:" + N_BG + ";-fx-padding:10 20;-fx-background-radius:0;}" +
@@ -143,63 +166,44 @@ public class StreamingDashboardFX {
         bar.setStyle("-fx-background-color:" + N_BG + ";-fx-border-color:" + N_BORDER + ";-fx-border-width:0 0 1 0;");
 
         Label logo = new Label("STREAMINGAPP");
-        logo.setStyle(
-                "-fx-text-fill:" + N_RED + ";" +
-                        "-fx-font-size:22px;" +
-                        "-fx-font-weight:bold;" +
-                        "-fx-font-family:'Georgia';"
-        );
+        logo.setStyle("-fx-text-fill:" + N_RED + ";-fx-font-size:22px;-fx-font-weight:bold;-fx-font-family:'Georgia';");
 
         Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // Menu ficheiro
         Menu mFich = new Menu("Ficheiro");
         MenuItem expTxt = new MenuItem("Exportar TXT (R10)");
         MenuItem impTxt = new MenuItem("Importar TXT (R10)");
         MenuItem expBin = new MenuItem("Exportar Binario (R11)");
         MenuItem impBin = new MenuItem("Importar Binario (R11)");
-        expTxt.setOnAction(e -> { ContentFileManager.exportGenres(db.genres(),"genres.txt"); ContentFileManager.exportContents(db.contents(),"contents.txt"); snack("Sucesso: Exportado para TXT",true); });
+
+        expTxt.setOnAction(e -> { ContentFileManager.exportGenres(db.genres(),"genres.txt"); ContentFileManager.exportContents(db.contents(),"contents.txt"); snack("Exportado para TXT",true); });
         impTxt.setOnAction(e -> {
             ContentFileManager.importGenres(db.genres(),"genres.txt");
             ContentFileManager.importContents(db.contents(),db.genres(),"contents.txt");
-            refreshAllData();
-            snack("Sucesso: Importado de TXT",true);
+            refreshAllData(); // REPOSTO: O Refresh automático
+            snack("Importado de TXT",true);
         });
-        expBin.setOnAction(e -> { ContentSerializer.exportGenres(db.genres(),"genres.bin"); ContentSerializer.exportContents(db.contents(),"contents.bin"); snack("Sucesso: Serializado",true); });
+        expBin.setOnAction(e -> { ContentSerializer.exportGenres(db.genres(),"genres.bin"); ContentSerializer.exportContents(db.contents(),"contents.bin"); snack("Serializado",true); });
         impBin.setOnAction(e -> {
             ContentSerializer.importGenres(db.genres(),"genres.bin");
             ContentSerializer.importContents(db.contents(),"contents.bin");
-            refreshAllData();
-            snack("Sucesso: Importado de binario",true);
+            refreshAllData(); // REPOSTO: O Refresh automático
+            snack("Importado de binario",true);
         });
+
         mFich.getItems().addAll(expTxt, impTxt, new SeparatorMenuItem(), expBin, impBin);
         MenuBar menuBar = new MenuBar(mFich);
         menuBar.setStyle("-fx-background-color:transparent;-fx-padding:0;");
 
-        // Avatar + nome
         Label avatar = new Label(initials(loggedUser.getName()));
-        avatar.setStyle(
-                "-fx-background-color:" + N_RED + ";-fx-text-fill:white;" +
-                        "-fx-font-size:13px;-fx-font-weight:bold;" +
-                        "-fx-min-width:34;-fx-min-height:34;-fx-max-width:34;-fx-max-height:34;" +
-                        "-fx-alignment:center;-fx-background-radius:4;"
-        );
+        avatar.setStyle("-fx-background-color:" + N_RED + ";-fx-text-fill:white;-fx-font-size:13px;-fx-font-weight:bold;-fx-min-width:34;-fx-min-height:34;-fx-max-width:34;-fx-max-height:34;-fx-alignment:center;-fx-background-radius:4;");
         Label userName = new Label(loggedUser.getName());
         userName.setStyle("-fx-text-fill:" + N_TEXT + ";-fx-font-size:13px;");
 
         Button btnLogout = new Button("Sair");
-        btnLogout.setStyle(
-                "-fx-background-color:transparent;-fx-text-fill:" + N_MUTED + ";" +
-                        "-fx-font-size:13px;-fx-cursor:hand;-fx-underline:false;"
-        );
-        btnLogout.setOnMouseEntered(e -> btnLogout.setStyle(
-                "-fx-background-color:transparent;-fx-text-fill:" + N_TEXT + ";" +
-                        "-fx-font-size:13px;-fx-cursor:hand;"
-        ));
-        btnLogout.setOnMouseExited(e -> btnLogout.setStyle(
-                "-fx-background-color:transparent;-fx-text-fill:" + N_MUTED + ";" +
-                        "-fx-font-size:13px;-fx-cursor:hand;"
-        ));
+        btnLogout.setStyle("-fx-background-color:transparent;-fx-text-fill:" + N_MUTED + ";-fx-font-size:13px;-fx-cursor:hand;-fx-underline:false;");
+        btnLogout.setOnMouseEntered(e -> btnLogout.setStyle("-fx-background-color:transparent;-fx-text-fill:" + N_TEXT + ";-fx-font-size:13px;-fx-cursor:hand;"));
+        btnLogout.setOnMouseExited(e -> btnLogout.setStyle("-fx-background-color:transparent;-fx-text-fill:" + N_MUTED + ";-fx-font-size:13px;-fx-cursor:hand;"));
         btnLogout.setOnAction(e -> {
             AppStateSerializer.save(db);
             stage.close();
@@ -243,13 +247,6 @@ public class StreamingDashboardFX {
         snackTimer.play();
     }
 
-    private void refreshAllData() {
-        if (refreshUsersTab != null) refreshUsersTab.run();
-        if (refreshContentsTab != null) refreshContentsTab.run();
-        if (refreshArtistsTab != null) refreshArtistsTab.run();
-        if (refreshHeroProfile != null) refreshHeroProfile.run();
-    }
-
     private Tab buildUsersTab() {
         Tab tab = new Tab("Utilizadores");
         BorderPane pane = new BorderPane();
@@ -263,14 +260,16 @@ public class StreamingDashboardFX {
         listScroll.setStyle("-fx-background-color:" + N_BG + ";-fx-background:" + N_BG + ";");
 
         final User[] sel = {null};
-        refreshUsersTab = () -> {
+        Runnable[] rl = {null};
+        rl[0] = () -> {
             userList.getChildren().clear();
             for (User u : db.users().listAll())
-                userList.getChildren().add(buildUserCard(u, sel));
+                userList.getChildren().add(buildUserCard(u, sel, rl));
         };
-        refreshUsersTab.run();
 
-        // Sidebar
+        this.refreshUsersTab = rl[0]; // REPOSTO
+        rl[0].run();
+
         VBox sidebar = new VBox(16);
         sidebar.setPrefWidth(340);
         sidebar.setPadding(new Insets(0, 0, 0, 20));
@@ -278,8 +277,8 @@ public class StreamingDashboardFX {
         VBox sCard = nCard("Pesquisar");
         TextField fSearch = field("Nome...");
         Button bS = btn("Pesquisar", BTN_R), bA = btn("Todos", BTN_S);
-        bS.setOnAction(e -> { userList.getChildren().clear(); for (User u : db.users().searchByNameSubstring(fSearch.getText().trim())) userList.getChildren().add(buildUserCard(u,sel)); });
-        bA.setOnAction(e -> refreshUsersTab.run());
+        bS.setOnAction(e -> { userList.getChildren().clear(); for (User u : db.users().searchByNameSubstring(fSearch.getText().trim())) userList.getChildren().add(buildUserCard(u,sel,rl)); });
+        bA.setOnAction(e -> rl[0].run());
         HBox sr = new HBox(8, fSearch, bS, bA); sr.setAlignment(Pos.CENTER_LEFT); HBox.setHgrow(fSearch, Priority.ALWAYS);
         sCard.getChildren().add(sr);
 
@@ -290,27 +289,18 @@ public class StreamingDashboardFX {
         return tab;
     }
 
-    private javafx.scene.Node buildUserCard(User u, User[] sel) {
+    private javafx.scene.Node buildUserCard(User u, User[] sel, Runnable[] rl) {
         HBox card = new HBox(16);
         card.setAlignment(Pos.CENTER_LEFT);
         card.setPadding(new Insets(16, 20, 16, 20));
 
-        Runnable styleNormal = () -> card.setStyle(
-                "-fx-background-color:" + N_CARD + ";-fx-background-radius:6;-fx-cursor:hand;");
-        Runnable styleHover = () -> card.setStyle(
-                "-fx-background-color:" + N_CARD2 + ";-fx-background-radius:6;-fx-cursor:hand;");
-        Runnable styleSelected = () -> card.setStyle(
-                "-fx-background-color:#2a0a0a;-fx-border-color:"+N_RED+";-fx-border-width:0 0 0 3;-fx-background-radius:6;-fx-cursor:hand;");
-
+        Runnable styleNormal   = () -> card.setStyle("-fx-background-color:" + N_CARD + ";-fx-background-radius:6;-fx-cursor:hand;");
+        Runnable styleHover    = () -> card.setStyle("-fx-background-color:" + N_CARD2 + ";-fx-background-radius:6;-fx-cursor:hand;");
+        Runnable styleSelected = () -> card.setStyle("-fx-background-color:#2a0a0a;-fx-border-color:"+N_RED+";-fx-border-width:0 0 0 3;-fx-background-radius:6;-fx-cursor:hand;");
         styleNormal.run();
 
         Label av = new Label(initials(u.getName()));
-        av.setStyle(
-                "-fx-background-color:" + avatarColor(u.getId()) + ";-fx-text-fill:white;" +
-                        "-fx-font-size:16px;-fx-font-weight:bold;" +
-                        "-fx-min-width:48;-fx-min-height:48;-fx-max-width:48;-fx-max-height:48;" +
-                        "-fx-alignment:center;-fx-background-radius:4;"
-        );
+        av.setStyle("-fx-background-color:" + avatarColor(u.getId()) + ";-fx-text-fill:white;-fx-font-size:16px;-fx-font-weight:bold;-fx-min-width:48;-fx-min-height:48;-fx-max-width:48;-fx-max-height:48;-fx-alignment:center;-fx-background-radius:4;");
 
         VBox info = new VBox(4); HBox.setHgrow(info, Priority.ALWAYS);
         Label lName = new Label(u.getName());
@@ -333,7 +323,7 @@ public class StreamingDashboardFX {
         statsRow.setAlignment(Pos.CENTER_LEFT);
         statsRow.getChildren().addAll(
                 mstat("Seguidores", followers, ""),
-                mstat("A seguir",  following, ""),
+                mstat("Seguindo",  following, ""),
                 mstat("Vistos",  watched,   "")
         );
 
@@ -341,7 +331,7 @@ public class StreamingDashboardFX {
 
         boolean isMe    = u.getId().equals(loggedUser.getId());
         boolean jaSegue = db.follows().getFollowing(loggedUser.getId()).stream().anyMatch(x->x.getId().equals(u.getId()));
-        Button bFollow  = new Button(isMe ? "O Meu Perfil" : jaSegue ? "A Seguir" : "Seguir");
+        Button bFollow  = new Button(isMe ? "-" : jaSegue ? "A seguir" : "Seguir");
         bFollow.setStyle(followStyle(isMe, jaSegue));
 
         if (!isMe) {
@@ -349,7 +339,8 @@ public class StreamingDashboardFX {
                 boolean segueAgora = db.follows().getFollowing(loggedUser.getId()).stream().anyMatch(x->x.getId().equals(u.getId()));
                 if (segueAgora) { db.follows().unfollow(loggedUser.getId(),u.getId()); snack("Deixaste de seguir "+u.getName(),true); }
                 else { db.addFollow(loggedUser.getId(),u.getId()); snack("Passaste a seguir "+u.getName(),true); }
-                refreshAllData();
+                if (refreshStats != null) refreshStats.run();
+                refreshAllData(); // REPOSTO: atualiza followers cards
             });
         }
 
@@ -362,137 +353,350 @@ public class StreamingDashboardFX {
     }
 
     private Tab buildContentsTab() {
-        Tab tab = new Tab("Conteúdos");
+        Tab tab = new Tab("Conteudos");
         BorderPane pane = new BorderPane();
-        pane.setStyle("-fx-background-color:" + N_BG + ";"); pane.setPadding(new Insets(20));
+        pane.setStyle("-fx-background-color:" + N_BG + ";");
+        pane.setPadding(new Insets(20));
 
-        TableView<Content> table = new TableView<>();
-        table.getColumns().addAll(
-                col("ID",              d->d.getValue().getId()),
-                col("Tipo",            d->d.getValue() instanceof Movie?"Filme":d.getValue() instanceof Series?"Serie":"Documentario"),
-                col("Titulo",          d->d.getValue().getTitle()),
-                col("Genero",          d->d.getValue().getGenre().getName()),
-                col("Data Lancamento", d->d.getValue().getReleaseDate().toString()),
-                col("Duracao (min)",   d->String.valueOf(d.getValue().getDuration())),
-                col("Rating",          d->String.format("%.1f/5",d.getValue().getRating()))
-        );
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        refreshContentsTab = () -> table.setItems(FXCollections.observableArrayList(db.contents().listAll()));
-        refreshContentsTab.run();
+        TextField fSearch = field("Pesquisar titulo...");
+        ToggleGroup tgType = new ToggleGroup();
+        ToggleButton tbAll = typeToggle("Todos",  tgType, true);
+        ToggleButton tbMov = typeToggle("Filmes", tgType, false);
+        ToggleButton tbSer = typeToggle("Series", tgType, false);
+        ToggleButton tbDoc = typeToggle("Docs",   tgType, false);
 
-        VBox sidebar = new VBox(16); sidebar.setPrefWidth(340); sidebar.setPadding(new Insets(0,0,0,20));
+        HBox topBar = new HBox(10, fSearch, tbAll, tbMov, tbSer, tbDoc);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+        topBar.setPadding(new Insets(0, 0, 16, 0));
+        HBox.setHgrow(fSearch, Priority.ALWAYS);
 
-        VBox sCard = nCard("Pesquisar Conteudos");
-        TextField fTit = field("Titulo...");
-        Button bST = btn("Por Titulo",BTN_R); bST.setOnAction(e->table.setItems(FXCollections.observableArrayList(db.contents().searchByTitleSubstring(fTit.getText().trim()))));
-        HBox sr1 = new HBox(8,fTit,bST); sr1.setAlignment(Pos.CENTER_LEFT); HBox.setHgrow(fTit,Priority.ALWAYS);
-        ComboBox<String> cbT = new ComboBox<>(FXCollections.observableArrayList("-- Todos --","Filme","Serie","Documentario")); cbT.setValue("-- Todos --"); cbT.setStyle(FIELD);
-        Button bSType=btn("Por Tipo",BTN_S), bAll=btn("Todos",BTN_S);
-        bSType.setOnAction(e->{ String s=cbT.getValue(); if(s.startsWith("--")){refreshContentsTab.run();return;} table.setItems(FXCollections.observableArrayList(db.contents().listAll().stream().filter(c->(s.equals("Filme")&&c instanceof Movie)||(s.equals("Serie")&&c instanceof Series)||(s.equals("Documentario")&&c instanceof Documentary)).toList())); });
-        bAll.setOnAction(e->refreshContentsTab.run());
-        sCard.getChildren().addAll(sr1, new HBox(8,cbT,bSType,bAll));
+        FlowPane grid = new FlowPane(14, 14);
+        grid.setPadding(new Insets(4));
+        ScrollPane scrollPane = new ScrollPane(grid);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color:" + N_BG + ";-fx-background:" + N_BG + ";");
 
-        VBox iCard = nCard("Inserir Conteudo");
-        GridPane form = grid();
-        ComboBox<String> cbType = new ComboBox<>(FXCollections.observableArrayList("Filme","Serie","Documentario")); cbType.setValue("Filme"); cbType.setStyle(FIELD);
-        TextField fId=field("ID"), fTitF=field("Titulo"), fGId=field("ID Genero"), fData=field("2024-01-01"), fDur=field("120"), fReg=field("PT");
-        form.addRow(0, lbl("Tipo:"),cbType, lbl("ID:"),fId);
-        form.addRow(1, lbl("Titulo:"),fTitF, lbl("ID Genero:"),fGId);
-        form.addRow(2, lbl("Data:"),fData, lbl("Duracao(m):"),fDur);
-        form.addRow(3, lbl("Regiao:"),fReg);
-        Button bAdd=btn("Adicionar",BTN_R), bRem=btn("Remover Sel.",BTN_G);
-        bAdd.setOnAction(e->{ try{ Genre g=db.genres().get(fGId.getText().trim()); if(g==null){showAlert(Alert.AlertType.ERROR,"Erro","Genero nao existe!");return;} LocalDate d=LocalDate.parse(fData.getText().trim()); int dur=Integer.parseInt(fDur.getText().trim()); Content c=switch(cbType.getValue()){ case"Serie"->new Series(fId.getText().trim(),fTitF.getText(),g,d,dur,fReg.getText(),1); case"Documentario"->new Documentary(fId.getText().trim(),fTitF.getText(),g,d,dur,fReg.getText(),"",""); default->new Movie(fId.getText().trim(),fTitF.getText(),g,d,dur,fReg.getText(),null); }; if(db.addContent(c)){refreshContentsTab.run();fId.clear();fTitF.clear();snack("Conteudo adicionado",true);}else showAlert(Alert.AlertType.ERROR,"Erro","ID ja existe."); }catch(Exception ex){showAlert(Alert.AlertType.ERROR,"Erro","Verifique datas/numeros.");} });
-        bRem.setOnAction(e->{ Content c=table.getSelectionModel().getSelectedItem(); if(c!=null){db.removeContent(c.getId());refreshContentsTab.run();snack("Conteudo removido",true);} });
-        iCard.getChildren().addAll(form, row(bAdd,bRem));
+        Runnable[] rl = {null};
+        rl[0] = () -> {
+            String q = fSearch.getText().trim().toLowerCase();
+            String typeFilter = ((ToggleButton) tgType.getSelectedToggle()).getText();
+            grid.getChildren().clear();
+            db.contents().listAll().stream()
+                    .filter(c -> c.getTitle().toLowerCase().contains(q))
+                    .filter(c -> {
+                        if ("Todos".equals(typeFilter))  return true;
+                        if ("Filmes".equals(typeFilter)) return c instanceof Movie;
+                        if ("Series".equals(typeFilter)) return c instanceof Series;
+                        if ("Docs".equals(typeFilter))   return c instanceof Documentary;
+                        return true;
+                    })
+                    .forEach(c -> grid.getChildren().add(buildContentCard(c, rl)));
+        };
 
-        VBox rCard = nCard("Avaliar Conteudo Selecionado");
-        final int[] cr = {0};
+        this.refreshContentsTab = rl[0]; // REPOSTO
+        rl[0].run();
+
+        fSearch.textProperty().addListener((o, old, nv) -> rl[0].run());
+        tgType.selectedToggleProperty().addListener((o, old, nv) -> { if (nv != null) rl[0].run(); });
+
+        VBox main = new VBox(0, topBar, scrollPane);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        main.setStyle("-fx-background-color:" + N_BG + ";");
+
+        pane.setCenter(main);
+        tab.setContent(pane);
+        return tab;
+    }
+
+    private javafx.scene.Node buildContentCard(Content c, Runnable[] rl) {
+        String typeLabel = c instanceof Movie ? "FILME" : c instanceof Series ? "SERIE" : "DOC";
+        String typeColor = c instanceof Movie ? N_RED   : c instanceof Series ? "#185FA5" : "#3B6D11";
+        String icon      = c instanceof Movie ? "[F]"   : c instanceof Series ? "[S]"     : "[D]";
+        String thumbBg   = c instanceof Movie ? "#1a0505" : c instanceof Series ? "#05051a" : "#051a05";
+
+        VBox card = new VBox(0);
+        card.setPrefWidth(210);
+        card.setMaxWidth(210);
+        card.setStyle("-fx-background-color:" + N_CARD + ";-fx-background-radius:8;-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;");
+
+        StackPane thumb = new StackPane();
+        thumb.setPrefHeight(120);
+        thumb.setStyle("-fx-background-color:" + thumbBg + ";");
+
+        Label iconLbl = new Label(icon);
+        iconLbl.setStyle("-fx-text-fill:white;-fx-font-size:38px;-fx-font-weight:bold;");
+
+        Label typeBadge = new Label(typeLabel);
+        typeBadge.setStyle("-fx-background-color:" + typeColor + ";-fx-text-fill:white;-fx-font-size:9px;-fx-font-weight:bold;-fx-padding:3 8;-fx-background-radius:4;");
+        StackPane.setAlignment(typeBadge, Pos.TOP_LEFT);
+        StackPane.setMargin(typeBadge, new Insets(8));
+
+        Label ratingBadge = new Label(String.format("%.1f *", c.getRating()));
+        ratingBadge.setStyle("-fx-background-color:#0d0d0d;-fx-text-fill:" + N_RED + ";-fx-font-size:10px;-fx-font-weight:bold;-fx-padding:3 7;-fx-background-radius:4;");
+        StackPane.setAlignment(ratingBadge, Pos.TOP_RIGHT);
+        StackPane.setMargin(ratingBadge, new Insets(8));
+
+        thumb.getChildren().addAll(iconLbl, typeBadge, ratingBadge);
+
+        VBox body = new VBox(8);
+        body.setPadding(new Insets(12, 14, 14, 14));
+
+        Label title = new Label(c.getTitle());
+        title.setStyle("-fx-text-fill:" + N_TEXT + ";-fx-font-size:13px;-fx-font-weight:bold;");
+        title.setMaxWidth(182);
+
+        Label meta = new Label(c.getGenre().getName() + " | " + c.getReleaseDate().getYear());
+        meta.setStyle("-fx-text-fill:" + N_MUTED + ";-fx-font-size:11px;");
+
+        final int[] starVal = {(int) Math.round(c.getRating())};
         Button[] stars = new Button[5];
-        HBox starRow = new HBox(2); starRow.setAlignment(Pos.CENTER_LEFT);
-        Runnable paint = () -> { for(int i=0;i<5;i++) stars[i].setStyle("-fx-background-color:transparent;-fx-font-size:24px;-fx-cursor:hand;-fx-text-fill:"+(i<cr[0]?"#E50914":N_BORDER)+";"); };
-        for (int i=0;i<5;i++) {
-            final int v=i+1;
+        HBox starRow = new HBox(2);
+        starRow.setAlignment(Pos.CENTER_LEFT);
+
+        Runnable paintStars = () -> {
+            for (int i = 0; i < 5; i++)
+                stars[i].setStyle("-fx-background-color:transparent;-fx-font-size:16px;-fx-cursor:hand;-fx-text-fill:" + (i < starVal[0] ? N_RED : N_BORDER) + ";-fx-padding:0;");
+        };
+
+        for (int i = 0; i < 5; i++) {
+            final int v = i + 1;
             stars[i] = new Button("*");
-            stars[i].setStyle("-fx-background-color:transparent;-fx-font-size:24px;-fx-cursor:hand;-fx-text-fill:"+N_BORDER+";");
-            stars[i].setOnMouseEntered(e->{ for(int j=0;j<5;j++) stars[j].setStyle("-fx-background-color:transparent;-fx-font-size:24px;-fx-cursor:hand;-fx-text-fill:"+(j<v?N_RED:N_BORDER)+";"); });
-            stars[i].setOnMouseExited(e->paint.run());
-            stars[i].setOnAction(e->{cr[0]=v;paint.run();});
+            stars[i].setOnMouseEntered(e -> {
+                for (int j = 0; j < 5; j++) stars[j].setStyle("-fx-background-color:transparent;-fx-font-size:16px;-fx-cursor:hand;-fx-text-fill:" + (j < v ? N_RED : N_BORDER) + ";-fx-padding:0;");
+            });
+            stars[i].setOnMouseExited(e -> paintStars.run());
+            stars[i].setOnAction(e -> {
+                starVal[0] = v;
+                paintStars.run();
+                String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
+                addInteractionAndRefresh(new Interation(loggedUser, c, LocalDateTime.now(), v, 0.0, InterationType.RATE, iId));
+                double soma = 0; int cnt = 0;
+                for (User u : db.users().listAll())
+                    for (Interation it : u.getInteractions())
+                        if (it.getType() == InterationType.RATE && it.getContent().getId().equals(c.getId())) {
+                            soma += it.getRating(); cnt++;
+                        }
+                if (cnt > 0) c.setRating(soma / cnt);
+                ratingBadge.setText(String.format("%.1f *", c.getRating()));
+                snack("Avaliado: " + v + "/5", true);
+            });
             starRow.getChildren().add(stars[i]);
         }
-        Label rLbl = new Label("Selecionar um conteudo");
-        rLbl.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");
-        table.getSelectionModel().selectedItemProperty().addListener((obs,old,s)->{
-            if(s!=null){int e=(int)Math.round(s.getRating());cr[0]=e;paint.run();rLbl.setText("\""+s.getTitle()+"\"  "+(e==0?"sem avaliacao":e+"/5"));rLbl.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");}
-            else{cr[0]=0;paint.run();rLbl.setText("Selecionar um conteudo");}
-        });
-        Button bRate = btn("Submeter Avaliacao", BTN_R); bRate.setMaxWidth(Double.MAX_VALUE);
-        bRate.setOnAction(e->{
-            Content c=table.getSelectionModel().getSelectedItem();
-            if(c==null){showAlert(Alert.AlertType.ERROR,"Erro","Selecione um conteudo.");return;}
-            if(cr[0]==0){showAlert(Alert.AlertType.ERROR,"Erro","Escolha uma nota.");return;}
-            String iId="i_"+loggedUser.getId()+"_"+c.getId()+"_"+System.currentTimeMillis();
-            db.addInteraction(new Interation(loggedUser,c,LocalDateTime.now(),cr[0],0.0,InterationType.RATE,iId));
-            double soma=0;int cnt=0;
-            for(User u:db.users().listAll()) for(Interation it:u.getInteractions()) if(it.getType()==InterationType.RATE&&it.getContent().getId().equals(c.getId())){soma+=it.getRating();cnt++;}
-            if(cnt>0) c.setRating(soma/cnt);
-            refreshAllData();
-            Content up=db.contents().get(c.getId());
-            if(up!=null) table.getSelectionModel().select(up);
-            rLbl.setText("Avaliado: "+cr[0]+"/5  (media: "+String.format("%.1f",c.getRating())+")");
-            rLbl.setStyle("-fx-text-fill:"+N_GREEN+";-fx-font-size:12px;");
-        });
-        rCard.getChildren().addAll(starRow, rLbl, bRate);
+        paintStars.run();
 
-        sidebar.getChildren().addAll(sCard, iCard, rCard);
-        pane.setCenter(table); pane.setRight(scroll(sidebar));
-        tab.setContent(pane); return tab;
+        Button bBk = actionBtn("+ SAVE",  "#2A2A2A",     N_MUTED, N_BORDER);
+        Button bWt = actionBtn("WATCHED", N_RED,          "white",  N_RED);
+        Button bSk = actionBtn("SKIP",    "transparent",  N_MUTED, N_BORDER);
+
+        bBk.setOnAction(e -> {
+            boolean on = "SAVED".equals(bBk.getText());
+            if (!on) {
+                String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
+                addInteractionAndRefresh(new Interation(loggedUser, c, LocalDateTime.now(), 0, 0.0, InterationType.BOOKMARK, iId));
+                bBk.setText("SAVED");
+                bBk.setStyle(actionStyle("#1a2a1a", N_GREEN, N_GREEN));
+                snack("\"" + c.getTitle() + "\" guardado", true);
+            } else {
+                bBk.setText("+ SAVE");
+                bBk.setStyle(actionStyle("#2A2A2A", N_MUTED, N_BORDER));
+            }
+        });
+
+        bWt.setOnAction(e -> {
+            boolean on = "VISTO".equals(bWt.getText());
+            if (!on) {
+                String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
+                addInteractionAndRefresh(new Interation(loggedUser, c, LocalDateTime.now(), 0, 1.0, InterationType.WATCH, iId));
+                bWt.setText("VISTO");
+                bWt.setStyle(actionStyle("#831010", "white", "#831010"));
+                bSk.setText("SKIP");
+                bSk.setStyle(actionStyle("transparent", N_MUTED, N_BORDER));
+                snack("\"" + c.getTitle() + "\" marcado como visto", true);
+            } else {
+                bWt.setText("WATCHED");
+                bWt.setStyle(actionStyle(N_RED, "white", N_RED));
+            }
+        });
+
+        bSk.setOnAction(e -> {
+            boolean on = "SKIPPED".equals(bSk.getText());
+            if (!on) {
+                String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
+                addInteractionAndRefresh(new Interation(loggedUser, c, LocalDateTime.now(), 0, 0.0, InterationType.SKIP, iId));
+                bSk.setText("SKIPPED");
+                bSk.setStyle(actionStyle("#1a1a2a", "#8888FF", "#555555"));
+                bWt.setText("WATCHED");
+                bWt.setStyle(actionStyle(N_RED, "white", N_RED));
+                snack("\"" + c.getTitle() + "\" marcado para skip", true);
+            } else {
+                bSk.setText("SKIP");
+                bSk.setStyle(actionStyle("transparent", N_MUTED, N_BORDER));
+            }
+        });
+
+        HBox actions = new HBox(6, bBk, bWt, bSk);
+
+        body.getChildren().addAll(title, meta, starRow, actions);
+        card.getChildren().addAll(thumb, body);
+
+        card.setOnMouseEntered(e -> card.setStyle("-fx-background-color:" + N_CARD2 + ";-fx-background-radius:8;-fx-border-color:#555;-fx-border-radius:8;-fx-cursor:default;"));
+        card.setOnMouseExited(e -> card.setStyle("-fx-background-color:" + N_CARD + ";-fx-background-radius:8;-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;"));
+
+        return card;
+    }
+
+    private Button actionBtn(String text, String bg, String fg, String border) {
+        Button b = new Button(text);
+        b.setStyle(actionStyle(bg, fg, border));
+        b.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(b, Priority.ALWAYS);
+        return b;
+    }
+
+    private String actionStyle(String bg, String fg, String border) {
+        return "-fx-background-color:" + bg + ";-fx-text-fill:" + fg + ";-fx-border-color:" + border + ";-fx-border-radius:20;-fx-background-radius:20;-fx-font-size:9px;-fx-font-weight:bold;-fx-padding:5 4;-fx-cursor:hand;";
+    }
+
+    private ToggleButton typeToggle(String text, ToggleGroup tg, boolean selected) {
+        ToggleButton tb = new ToggleButton(text);
+        tb.setToggleGroup(tg);
+        tb.setSelected(selected);
+        tb.setStyle(selected ? BTN_R : BTN_S);
+        tb.selectedProperty().addListener((o, old, nv) -> tb.setStyle(nv ? BTN_R : BTN_S));
+        return tb;
     }
 
     private Tab buildArtistsTab() {
         Tab tab = new Tab("Artistas");
         BorderPane pane = new BorderPane();
-        pane.setStyle("-fx-background-color:"+N_BG+";"); pane.setPadding(new Insets(20));
+        pane.setStyle("-fx-background-color:" + N_BG + ";");
+        pane.setPadding(new Insets(20));
 
-        TableView<Artist> table = new TableView<>();
-        table.getColumns().addAll(
-                col("ID",d->d.getValue().getId()), col("Nome",d->d.getValue().getName()),
-                col("Nacionalidade",d->d.getValue().getNationality()), col("Genero",d->d.getValue().getGender()),
-                col("Data Nasc.",d->d.getValue().getBirthDate().toString()), col("Papel",d->d.getValue().getRole().toString())
-        );
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        refreshArtistsTab = () -> table.setItems(FXCollections.observableArrayList(db.artists().listAll()));
-        refreshArtistsTab.run();
+        TextField fSearch = field("Pesquisar nome...");
+        ToggleGroup tgRole = new ToggleGroup();
+        ToggleButton tbAll = typeToggle("Todos",    tgRole, true);
+        ToggleButton tbAct = typeToggle("Actor",    tgRole, false);
+        ToggleButton tbDir = typeToggle("Director", tgRole, false);
+        ToggleButton tbPro = typeToggle("Producer", tgRole, false);
 
-        VBox sidebar = new VBox(16); sidebar.setPrefWidth(340); sidebar.setPadding(new Insets(0,0,0,20));
+        HBox topBar = new HBox(10, fSearch, tbAll, tbAct, tbDir, tbPro);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+        topBar.setPadding(new Insets(0, 0, 16, 0));
+        HBox.setHgrow(fSearch, Priority.ALWAYS);
 
-        VBox sCard = nCard("Pesquisar Artistas");
-        TextField fN=field("Nome...");
-        Button bSN=btn("Por Nome",BTN_R); bSN.setOnAction(e->table.setItems(FXCollections.observableArrayList(db.artists().searchByNameSubstring(fN.getText().trim()))));
-        HBox sr1=new HBox(8,fN,bSN); sr1.setAlignment(Pos.CENTER_LEFT); HBox.setHgrow(fN,Priority.ALWAYS);
-        ComboBox<ArtistRole> cbR=new ComboBox<>(FXCollections.observableArrayList(ArtistRole.values())); cbR.setStyle(FIELD);
-        Button bSR=btn("Por Papel",BTN_S), bA=btn("Todos",BTN_S);
-        TextField fD=field("yyyy-MM-dd"); Button bSD=btn("Por Data",BTN_S);
-        bSR.setOnAction(e->{if(cbR.getValue()!=null)table.setItems(FXCollections.observableArrayList(db.artists().searchByRole(cbR.getValue())));});
-        bSD.setOnAction(e->{try{table.setItems(FXCollections.observableArrayList(db.artists().searchByBirthDate(LocalDate.parse(fD.getText().trim()))));}catch(Exception ex){showAlert(Alert.AlertType.ERROR,"Erro","Data invalida.");}});
-        bA.setOnAction(e->refreshArtistsTab.run());
-        sCard.getChildren().addAll(sr1, new HBox(8,cbR,bSR), new HBox(8,fD,bSD,bA));
+        FlowPane grid = new FlowPane(14, 14);
+        grid.setPadding(new Insets(4));
+        ScrollPane scrollPane = new ScrollPane(grid);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color:" + N_BG + ";-fx-background:" + N_BG + ";");
 
-        VBox iCard = nCard("Inserir / Editar Artista");
-        GridPane form=grid();
-        TextField fId=field("ID"),fNm=field("Nome"),fNc=field("PT"),fGn=field("M"),fDt=field("1980-01-01");
-        ComboBox<ArtistRole> cbRole=new ComboBox<>(FXCollections.observableArrayList(ArtistRole.values())); cbRole.setValue(ArtistRole.ACTOR); cbRole.setStyle(FIELD);
-        form.addRow(0,lbl("ID:"),fId,lbl("Nome:"),fNm);
-        form.addRow(1,lbl("Nac.:"),fNc,lbl("Genero:"),fGn);
-        form.addRow(2,lbl("Data Nasc.:"),fDt,lbl("Papel:"),cbRole);
-        Button bAdd=btn("Adicionar",BTN_R),bRem=btn("Remover",BTN_G),bEN=btn("Editar Nac.",BTN_S);
-        bAdd.setOnAction(e->{try{Artist a=new Artist(fId.getText().trim(),fNm.getText().trim(),fNc.getText().trim(),fGn.getText().trim(),LocalDate.parse(fDt.getText().trim()),cbRole.getValue());if(db.addArtist(a)){refreshArtistsTab.run();fId.clear();fNm.clear();snack("Artista adicionado",true);}else showAlert(Alert.AlertType.ERROR,"Erro","ID ja existe.");}catch(Exception ex){showAlert(Alert.AlertType.ERROR,"Erro","Verifique a data!");}});
-        bRem.setOnAction(e->{Artist a=table.getSelectionModel().getSelectedItem();if(a!=null){db.removeArtist(a.getId());refreshArtistsTab.run();}});
-        bEN.setOnAction(e->{Artist a=table.getSelectionModel().getSelectedItem();if(a==null)return;String nv=askInput("Nova Nacionalidade:",a.getNationality());if(nv!=null&&!nv.trim().isEmpty()){db.artists().editNationality(a.getId(),nv);refreshArtistsTab.run();}});
-        iCard.getChildren().addAll(form, row(bAdd,bRem,bEN));
+        Runnable[] rl = {null};
+        rl[0] = () -> {
+            String q = fSearch.getText().trim().toLowerCase();
+            String roleFilter = ((ToggleButton) tgRole.getSelectedToggle()).getText();
+            grid.getChildren().clear();
+            db.artists().listAll().stream()
+                    .filter(a -> a.getName().toLowerCase().contains(q))
+                    .filter(a -> "Todos".equals(roleFilter) || a.getRole().toString().equalsIgnoreCase(roleFilter))
+                    .forEach(a -> grid.getChildren().add(buildArtistCard(a, rl)));
+        };
 
-        sidebar.getChildren().addAll(sCard, iCard);
-        pane.setCenter(table); pane.setRight(scroll(sidebar));
-        tab.setContent(pane); return tab;
+        this.refreshArtistsTab = rl[0]; // REPOSTO
+        rl[0].run();
+
+        fSearch.textProperty().addListener((o, old, nv) -> rl[0].run());
+        tgRole.selectedToggleProperty().addListener((o, old, nv) -> { if (nv != null) rl[0].run(); });
+
+        VBox main = new VBox(0, topBar, scrollPane);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        main.setStyle("-fx-background-color:" + N_BG + ";");
+
+        pane.setCenter(main);
+        tab.setContent(pane);
+        return tab;
+    }
+
+    private javafx.scene.Node buildArtistCard(Artist a, Runnable[] rl) {
+        String roleColor = switch (a.getRole().toString()) {
+            case "DIRECTOR" -> "#185FA5";
+            case "PRODUCER" -> "#3B6D11";
+            default         -> N_RED;
+        };
+        String roleBg = switch (a.getRole().toString()) {
+            case "DIRECTOR" -> "#05051a";
+            case "PRODUCER" -> "#051a05";
+            default         -> "#1a0505";
+        };
+
+        VBox card = new VBox(0);
+        card.setPrefWidth(210);
+        card.setMaxWidth(210);
+        card.setStyle("-fx-background-color:" + N_CARD + ";-fx-background-radius:8;-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;");
+
+        StackPane thumb = new StackPane();
+        thumb.setPrefHeight(110);
+        thumb.setStyle("-fx-background-color:" + roleBg + ";");
+
+        Label av = new Label(initials(a.getName()));
+        av.setStyle("-fx-background-color:" + roleColor + ";-fx-text-fill:white;-fx-font-size:26px;-fx-font-weight:bold;-fx-min-width:64;-fx-min-height:64;-fx-max-width:64;-fx-max-height:64;-fx-alignment:center;-fx-background-radius:6;");
+
+        Label roleBadge = new Label(a.getRole().toString());
+        roleBadge.setStyle("-fx-background-color:" + roleColor + ";-fx-text-fill:white;-fx-font-size:9px;-fx-font-weight:bold;-fx-padding:3 8;-fx-background-radius:4;");
+        StackPane.setAlignment(roleBadge, Pos.TOP_LEFT);
+        StackPane.setMargin(roleBadge, new Insets(8));
+
+        String genderIcon = "M".equalsIgnoreCase(a.getGender()) ? "(M)" : "(F)";
+        Label genderLbl = new Label(genderIcon);
+        genderLbl.setStyle("-fx-text-fill:" + N_MUTED + ";-fx-font-size:12px;-fx-font-weight:bold;");
+        StackPane.setAlignment(genderLbl, Pos.TOP_RIGHT);
+        StackPane.setMargin(genderLbl, new Insets(10));
+
+        thumb.getChildren().addAll(av, roleBadge, genderLbl);
+
+        VBox body = new VBox(6);
+        body.setPadding(new Insets(12, 14, 14, 14));
+
+        Label name = new Label(a.getName());
+        name.setStyle("-fx-text-fill:" + N_TEXT + ";-fx-font-size:13px;-fx-font-weight:bold;");
+        name.setMaxWidth(182);
+
+        HBox metaRow = new HBox(8);
+        metaRow.setAlignment(Pos.CENTER_LEFT);
+        Label natLbl = new Label("Pais: " + a.getNationality());
+        natLbl.setStyle("-fx-text-fill:" + N_MUTED + ";-fx-font-size:11px;");
+        Label dateLbl = new Label("Data: " + a.getBirthDate().toString());
+        dateLbl.setStyle("-fx-text-fill:" + N_MUTED + ";-fx-font-size:11px;");
+        metaRow.getChildren().addAll(natLbl, dateLbl);
+
+        Separator sep = new Separator();
+        sep.setStyle("-fx-background-color:" + N_BORDER + ";-fx-padding:0;");
+
+        Button bEN  = actionBtn("Nac.",   "#2A2A2A",    N_MUTED,  N_BORDER);
+        Button bRem = actionBtn("Remover",  "transparent", "#FF5252", "#FF5252");
+
+        bEN.setOnAction(e -> {
+            String nv = askInput("Nova Nacionalidade:", a.getNationality());
+            if (nv != null && !nv.trim().isEmpty()) {
+                db.artists().editNationality(a.getId(), nv.trim());
+                rl[0].run();
+                snack("Nacionalidade atualizada", true);
+            }
+        });
+        bRem.setOnAction(e -> {
+            db.removeArtist(a.getId());
+            rl[0].run();
+            snack("Artista removido", true);
+        });
+
+        HBox actions = new HBox(6, bEN, bRem);
+
+        body.getChildren().addAll(name, metaRow, sep, actions);
+        card.getChildren().addAll(thumb, body);
+
+        card.setOnMouseEntered(e -> card.setStyle("-fx-background-color:" + N_CARD2 + ";-fx-background-radius:8;-fx-border-color:#555;-fx-border-radius:8;-fx-cursor:default;"));
+        card.setOnMouseExited(e -> card.setStyle("-fx-background-color:" + N_CARD + ";-fx-background-radius:8;-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;"));
+
+        return card;
     }
 
     private Tab buildGraphTab() {
@@ -517,10 +721,23 @@ public class StreamingDashboardFX {
         bConexo.setOnAction(e->output.setText("[R8c] Fortemente conexo: "+(db.getGraph().isGrafoUtilizadoresConexo()?"SIM":"NAO")));
         r8c.getChildren().add(bConexo);
 
-        VBox r8g = nCard("R8g - Seguidores que viram conteudo (2024)");
+        VBox r8g = nCard("R8g - Seguidores que viram conteudo");
         TextField fUId=field("User ID"), fCId=field("Content ID");
         Button bG=btn("Pesquisar",BTN_R);
-        bG.setOnAction(e->{String u=fUId.getText().trim(),c=fCId.getText().trim();List<User> l=db.getGraph().seguidoresQueViramConteudo(u,c,LocalDateTime.of(2024,1,1,0,0),LocalDateTime.of(2024,12,31,23,59),db.follows(),db.users());if(l.isEmpty())output.setText("[R8g] Nenhum resultado.");else{StringBuilder sb=new StringBuilder("[R8g] Seguidores de "+u+" que viram "+c+":\n");l.forEach(x->sb.append("  * ").append(x.getName()).append("\n"));output.setText(sb.toString());}});
+        bG.setOnAction(e->{
+            String u = fUId.getText().trim();
+            String c = fCId.getText().trim();
+            LocalDateTime de = LocalDateTime.of(2000, 1, 1, 0, 0);
+            LocalDateTime ate = LocalDateTime.of(2100, 12, 31, 23, 59);
+            List<User> l = db.getGraph().seguidoresQueViramConteudo(u, c, de, ate, db.follows(), db.users());
+            if(l.isEmpty()) {
+                output.setText("[R8g] Nenhum resultado. \n(Verifica se o user tem mesmo seguidores e se viram)");
+            } else {
+                StringBuilder sb = new StringBuilder("[R8g] Seguidores de " + u + " que viram " + c + ":\n");
+                l.forEach(x -> sb.append("  * ").append(x.getName()).append("\n"));
+                output.setText(sb.toString());
+            }
+        });
         r8g.getChildren().addAll(new HBox(8,lbl("User ID:"),fUId), new HBox(8,lbl("Content ID:"),fCId), bG);
 
         Button bInfo=btn("Info do Grafo",BTN_S);
@@ -557,67 +774,42 @@ public class StreamingDashboardFX {
         Label heroDate = new Label("Membro desde "+loggedUser.getRegisterDate());
         heroDate.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");
 
+        VBox chipVistos     = statChip("Vistos", 0, "");
+        VBox chipAvaliados  = statChip("Avaliacoes", 0, "");
+        VBox chipSeguindo   = statChip("A Seguir", 0, "");
+        VBox chipSeguidores = statChip("Seguidores", 0, "");
+
         HBox stats = new HBox(16);
         stats.setPadding(new Insets(10,0,0,0));
-
-        VBox interCard = nCard("Historico de Interacoes");
-        TableView<Interation> tI = new TableView<>();
-        tI.setStyle("-fx-background-color:"+N_CARD+";");
-        tI.getColumns().addAll(
-                col("Conteudo", d->d.getValue().getContent().getTitle()),
-                col("Tipo",     d->d.getValue().getType().toString()),
-                col("Rating",   d->d.getValue().getType()==InterationType.RATE?String.format("%.0f / 5",d.getValue().getRating()):"-"),
-                col("Progresso",d->d.getValue().getType()==InterationType.WATCH?String.format("%.0f%%",d.getValue().getProgress()*100):"-"),
-                col("Data",     d->d.getValue().getWatchDate().toLocalDate().toString())
-        );
-        tI.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        stats.getChildren().addAll(chipVistos, chipAvaliados, chipSeguindo, chipSeguidores);
 
         VBox recomCard = nCard("Recomendacoes (R8d)");
         recomCard.setPrefWidth(260);
 
         VBox fCard=nCard("A Seguir"); HBox.setHgrow(fCard,Priority.ALWAYS);
         VBox fCard2=nCard("Seguidores"); HBox.setHgrow(fCard2,Priority.ALWAYS);
-        VBox prefCard=nCard("Generos Preferidos"); prefCard.setPrefWidth(200);
 
-        ComboBox<String> cbC = new ComboBox<>();
-
-        refreshHeroProfile = () -> {
-            User u = db.users().get(loggedUser.getId());
-            if(u==null)return;
-
-            heroName.setText(u.getName());
-            avatar.setText(initials(u.getName()));
+        Runnable refreshHero = () -> {
+            User u = db.users().get(loggedUser.getId()); if(u==null)return;
+            heroName.setText(u.getName()); avatar.setText(initials(u.getName()));
             heroSub.setText(u.getId()+" | "+u.getEmail()+" | "+u.getRegion());
-
-            int watched = (int) u.getInteractions().stream().filter(i->i.getType()==InterationType.WATCH).count();
-            int rated = (int) u.getInteractions().stream().filter(i->i.getType()==InterationType.RATE).count();
-            int following = db.follows().getFollowing(u.getId()).size();
-            int followers = db.follows().getFollowers(u.getId()).size();
-            stats.getChildren().setAll(
-                    statChip("Visualizacoes",watched,""),
-                    statChip("Avaliacoes",rated,""),
-                    statChip("A Seguir",following,""),
-                    statChip("Seguidores",followers,"")
-            );
-
-            tI.setItems(FXCollections.observableArrayList(u.getInteractions()));
 
             recomCard.getChildren().clear();
             recomCard.getChildren().add(lbl("RECOMENDACOES (R8d)"));
-            List<Content> updatedRecs = db.getGraph().recomendarConteudosPorProximidade(u.getId(),db.follows(),db.users());
-            if (updatedRecs.isEmpty()) {
+            List<Content> recs = db.getGraph().recomendarConteudosPorProximidade(loggedUser.getId(),db.follows(),db.users());
+            if (recs.isEmpty()) {
                 Label el=new Label("Segue utilizadores\npara receber recomendacoes.");
                 el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");
                 recomCard.getChildren().add(el);
             } else {
-                for (Content content : updatedRecs) {
+                for (Content c : recs) {
                     HBox chip = new HBox(10); chip.setAlignment(Pos.CENTER_LEFT); chip.setPadding(new Insets(10,12,10,12));
                     chip.setStyle("-fx-background-color:#0d0d0d;-fx-background-radius:6;");
-                    String tp = content instanceof Movie?"[F]":content instanceof Series?"[S]":"[D]";
-                    Label ti = new Label(tp);
+                    String tp = c instanceof Movie?"[F]":c instanceof Series?"[S]":"[D]";
+                    Label ti = new Label(tp); ti.setStyle("-fx-text-fill:white;-font-weight:bold;");
                     VBox li = new VBox(2);
-                    Label lt = new Label(content.getTitle()); lt.setStyle("-fx-text-fill:"+N_TEXT+";-fx-font-size:13px;-fx-font-weight:bold;");
-                    Label lg = new Label(content.getGenre().getName()+" | "+String.format("%.1f / 5",content.getRating())); lg.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:11px;");
+                    Label lt = new Label(c.getTitle()); lt.setStyle("-fx-text-fill:"+N_TEXT+";-fx-font-size:13px;-fx-font-weight:bold;");
+                    Label lg = new Label(c.getGenre().getName()+" | "+String.format("%.1f *",c.getRating())); lg.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:11px;");
                     li.getChildren().addAll(lt,lg); chip.getChildren().addAll(ti,li);
                     recomCard.getChildren().add(chip);
                 }
@@ -625,85 +817,86 @@ public class StreamingDashboardFX {
 
             fCard.getChildren().clear();
             fCard.getChildren().add(lbl("A SEGUIR"));
-            List<User> followingUsers=db.follows().getFollowing(u.getId());
-            if(followingUsers.isEmpty()){Label el=new Label("Nao segues ninguem.");el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");fCard.getChildren().add(el);}
-            else for(User followedUser:followingUsers) fCard.getChildren().add(userChip(followedUser));
+            List<User> segu=db.follows().getFollowing(loggedUser.getId());
+            if(segu.isEmpty()){Label el=new Label("Nao segues ninguem.");el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");fCard.getChildren().add(el);}
+            else for(User u1:segu) fCard.getChildren().add(userChip(u1));
 
             fCard2.getChildren().clear();
             fCard2.getChildren().add(lbl("SEGUIDORES"));
-            List<User> followerUsers=db.follows().getFollowers(u.getId());
-            if(followerUsers.isEmpty()){Label el=new Label("Sem seguidores ainda.");el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");fCard2.getChildren().add(el);}
-            else for(User followerUser:followerUsers) fCard2.getChildren().add(userChip(followerUser));
-
-            prefCard.getChildren().clear();
-            prefCard.getChildren().add(lbl("GENEROS PREFERIDOS"));
-
-            // CORREÇÃO APLICADA AQUI: renomeada de 'prefs' para 'currentPrefs' para não duplicar com a variável do construtor/método.
-            List<Genre> currentPrefs=u.getPreferences();
-            if(currentPrefs.isEmpty()){Label el=new Label("Sem generos preferidos.");el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");prefCard.getChildren().add(el);}
-            else{ FlowPane fp=new FlowPane(8,8); for(Genre g:currentPrefs){Label chip=new Label("  "+g.getName()+"  ");chip.setStyle("-fx-background-color:#2a0505;-fx-text-fill:"+N_RED+";-fx-border-color:"+N_RED+";-fx-border-radius:20;-fx-background-radius:20;-fx-font-size:11px;-fx-padding:4 8;");fp.getChildren().add(chip);} prefCard.getChildren().add(fp); }
-
-            String selectedContent = cbC.getValue();
-            cbC.getItems().setAll(db.contents().listAll().stream().map(content -> content.getId()+" - "+content.getTitle()).toList());
-            if (selectedContent != null && cbC.getItems().contains(selectedContent)) {
-                cbC.setValue(selectedContent);
-            }
+            List<User> segs=db.follows().getFollowers(loggedUser.getId());
+            if(segs.isEmpty()){Label el=new Label("Sem seguidores ainda.");el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");fCard2.getChildren().add(el);}
+            else for(User u1:segs) fCard2.getChildren().add(userChip(u1));
         };
-        refreshHeroProfile.run();
+        this.refreshHeroProfile = refreshHero; // REPOSTO
+
+        refreshStats = () -> {
+            int tw  = (int) loggedUser.getInteractions().stream().filter(i->i.getType()==InterationType.WATCH).count();
+            int tr  = (int) loggedUser.getInteractions().stream().filter(i->i.getType()==InterationType.RATE).count();
+            int tfo = db.follows().getFollowing(loggedUser.getId()).size();
+            int tfi = db.follows().getFollowers(loggedUser.getId()).size();
+            ((Label) chipVistos.getChildren().get(0)).setText("Vistos: " + tw);
+            ((Label) chipAvaliados.getChildren().get(0)).setText("Avaliacoes: " + tr);
+            ((Label) chipSeguindo.getChildren().get(0)).setText("A seguir: " + tfo);
+            ((Label) chipSeguidores.getChildren().get(0)).setText("Seguidores: " + tfi);
+        };
+
+        refreshStats.run();
+        refreshHero.run();
 
         heroInfo.getChildren().addAll(heroName, heroSub, heroDate, stats);
 
-        VBox editBtns = new VBox(8); editBtns.setAlignment(Pos.CENTER_RIGHT);
+        VBox editBtns = new VBox(8);
+        editBtns.setAlignment(Pos.CENTER_RIGHT);
         Button bN=btn("Editar Nome",BTN_S), bE=btn("Editar Email",BTN_S), bR=btn("Editar Regiao",BTN_S), bP=btn("Alterar Password",BTN_G);
         bN.setMaxWidth(160); bE.setMaxWidth(160); bR.setMaxWidth(160); bP.setMaxWidth(160);
-        bN.setOnAction(e->{ String nv=askInput("Novo nome:",loggedUser.getName());if(nv==null||nv.trim().isEmpty())return;if(db.users().editName(loggedUser.getId(),nv.trim())){refreshHeroProfile.run();AppStateSerializer.save(db);snack("Nome atualizado",true);} });
-        bE.setOnAction(e->{ String nv=askInput("Novo email:",loggedUser.getEmail());if(nv==null||nv.trim().isEmpty())return;for(User u:db.users().listAll())if(!u.getId().equals(loggedUser.getId())&&u.getEmail().equalsIgnoreCase(nv.trim())){snack("Erro: Email em uso",false);return;}if(db.users().editEmail(loggedUser.getId(),nv.trim())){refreshHeroProfile.run();AppStateSerializer.save(db);snack("Email atualizado",true);} });
-        bR.setOnAction(e->{ String nv=askInput("Nova regiao:",loggedUser.getRegion());if(nv==null||nv.trim().isEmpty())return;if(db.users().editRegion(loggedUser.getId(),nv.trim())){refreshHeroProfile.run();AppStateSerializer.save(db);snack("Regiao atualizada",true);} });
+        bN.setOnAction(e->{ String nv=askInput("Novo nome:",loggedUser.getName());if(nv==null||nv.trim().isEmpty())return;if(db.users().editName(loggedUser.getId(),nv.trim())){refreshHero.run();AppStateSerializer.save(db);snack("Nome atualizado",true);} });
+        bE.setOnAction(e->{ String nv=askInput("Novo email:",loggedUser.getEmail());if(nv==null||nv.trim().isEmpty())return;for(User u:db.users().listAll())if(!u.getId().equals(loggedUser.getId())&&u.getEmail().equalsIgnoreCase(nv.trim())){snack("Email em uso",false);return;}if(db.users().editEmail(loggedUser.getId(),nv.trim())){refreshHero.run();AppStateSerializer.save(db);snack("Email atualizado",true);} });
+        bR.setOnAction(e->{ String nv=askInput("Nova regiao:",loggedUser.getRegion());if(nv==null||nv.trim().isEmpty())return;if(db.users().editRegion(loggedUser.getId(),nv.trim())){refreshHero.run();AppStateSerializer.save(db);snack("Regiao atualizada",true);} });
         bP.setOnAction(e->{
             PasswordField pa=new PasswordField();pa.setPromptText("Password atual");pa.setStyle(FIELD);
             PasswordField pn=new PasswordField();pn.setPromptText("Nova password");pn.setStyle(FIELD);
-            PasswordField pc=new PasswordField();pc.setPromptText("Confirmar nova");pc.setStyle(FIELD);
+            PasswordField pc=new PasswordField();pc.setPromptText("Confirmar");pc.setStyle(FIELD);
             VBox vc=new VBox(8,new Label("Atual:"),pa,new Label("Nova:"),pn,new Label("Confirmar:"),pc);vc.setPadding(new Insets(10));
             Dialog<ButtonType> dlg=new Dialog<>();dlg.setTitle("Alterar Password");dlg.getDialogPane().setContent(vc);dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK,ButtonType.CANCEL);
             if(dlg.showAndWait().orElse(ButtonType.CANCEL)!=ButtonType.OK)return;
-            if(db.authenticate(loggedUser.getId(),pa.getText())==null){snack("Erro: Password atual incorreta",false);return;}
-            if(pn.getText().isEmpty()){snack("Erro: Password vazia",false);return;}
-            if(!pn.getText().equals(pc.getText())){snack("Erro: Nao coincidem",false);return;}
+            if(db.authenticate(loggedUser.getId(),pa.getText())==null){snack("Password atual incorreta",false);return;}
+            if(pn.getText().isEmpty()){snack("Password vazia",false);return;}
+            if(!pn.getText().equals(pc.getText())){snack("Nao coincidem",false);return;}
             db.changePassword(loggedUser.getId(),pn.getText());AppStateSerializer.save(db);snack("Password alterada",true);
         });
         editBtns.getChildren().addAll(bN, bE, bR, bP);
         hero.getChildren().addAll(avatar, heroInfo, editBtns);
 
         HBox row1 = new HBox(16); row1.setPrefHeight(260);
+
+        VBox interCard = nCard("Historico de Interacoes");
         VBox.setVgrow(interCard,Priority.ALWAYS); HBox.setHgrow(interCard,Priority.ALWAYS);
+        TableView<Interation> tI = new TableView<>();
+        tI.setStyle("-fx-background-color:"+N_CARD+";");
+        tI.getColumns().addAll(
+                col("Conteudo", d->d.getValue().getContent().getTitle()),
+                col("Tipo",     d->d.getValue().getType().toString()),
+                col("Rating",   d->d.getValue().getType()==InterationType.RATE?String.format("%.0f *",d.getValue().getRating()):"-"),
+                col("Progresso",d->d.getValue().getType()==InterationType.WATCH?String.format("%.0f%%",d.getValue().getProgress()*100):"-"),
+                col("Data",     d->d.getValue().getWatchDate().toLocalDate().toString())
+        );
+        tI.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tI.setItems(interactionsList);
         tI.setPlaceholder(new Label("Sem interacoes."));
         VBox.setVgrow(tI,Priority.ALWAYS);
         interCard.getChildren().add(tI);
+
         row1.getChildren().addAll(interCard, recomCard);
 
         HBox row2 = new HBox(16);
+        VBox prefCard=nCard("Generos Preferidos"); prefCard.setPrefWidth(200);
+        List<Genre> prefs=loggedUser.getPreferences();
+        if(prefs.isEmpty()){Label el=new Label("Sem generos preferidos.");el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");prefCard.getChildren().add(el);}
+        else{ FlowPane fp=new FlowPane(8,8); for(Genre g:prefs){Label chip=new Label("  "+g.getName()+"  ");chip.setStyle("-fx-background-color:#2a0505;-fx-text-fill:"+N_RED+";-fx-border-color:"+N_RED+";-fx-border-radius:20;-fx-background-radius:20;-fx-font-size:11px;-fx-padding:4 8;");fp.getChildren().add(chip);} prefCard.getChildren().add(fp); }
+
         row2.getChildren().addAll(fCard, fCard2, prefCard);
 
-        VBox watchCard = nCard("Registar Interacao");
-        GridPane wForm = grid();
-        cbC.setStyle(FIELD+"-fx-pref-width:200px;"); cbC.setPromptText("Selecionar conteudo...");
-        ComboBox<InterationType> cbT = new ComboBox<>(FXCollections.observableArrayList(InterationType.WATCH,InterationType.BOOKMARK,InterationType.SKIP));
-        cbT.setValue(InterationType.WATCH); cbT.setStyle(FIELD);
-        TextField fPrg = field("Progresso 0.0-1.0"); fPrg.setText("1.0");
-        wForm.addRow(0,lbl("Conteudo:"),cbC,lbl("Tipo:"),cbT);
-        wForm.addRow(1,lbl("Progresso:"),fPrg);
-        Button bW = btn("Registar", BTN_R);
-        bW.setOnAction(e->{
-            String sel=cbC.getValue(); if(sel==null){showAlert(Alert.AlertType.ERROR,"Erro","Selecione um conteudo.");return;}
-            String cid=sel.split(" - ")[0].trim(); Content c=db.contents().get(cid); if(c==null){showAlert(Alert.AlertType.ERROR,"Erro","Conteudo nao encontrado.");return;}
-            double prg=1.0; try{prg=Double.parseDouble(fPrg.getText().trim());}catch(Exception ignored){} prg=Math.max(0.0,Math.min(1.0,prg));
-            String iId="i_"+loggedUser.getId()+"_"+cid+"_"+System.currentTimeMillis();
-            db.addInteraction(new Interation(loggedUser,c,LocalDateTime.now(), 0.0, prg,cbT.getValue(),iId));            refreshAllData();
-            snack(cbT.getValue()+" registado para \""+c.getTitle()+"\"",true);
-        });
-        watchCard.getChildren().addAll(wForm, row(bW));
-
-        main.getChildren().addAll(hero, row1, row2, watchCard);
+        main.getChildren().addAll(hero, row1, row2);
         rootScroll.setContent(main);
         tab.setContent(rootScroll);
         return tab;
@@ -771,13 +964,13 @@ public class StreamingDashboardFX {
         c.setCellValueFactory(d->new SimpleStringProperty(fn.apply(d))); return c;
     }
 
-    private TextField    field(String p)     { TextField f=new TextField(); f.setPromptText(p); f.setStyle(FIELD); return f; }
-    private PasswordField  pwd(String p)     { PasswordField f=new PasswordField(); f.setPromptText(p); f.setStyle(FIELD); return f; }
+    private TextField    field(String p)          { TextField f=new TextField(); f.setPromptText(p); f.setStyle(FIELD); return f; }
+    private PasswordField  pwd(String p)          { PasswordField f=new PasswordField(); f.setPromptText(p); f.setStyle(FIELD); return f; }
     private Button         btn(String t,String s) { Button b=new Button(t); b.setStyle(s); return b; }
-    private Label          lbl(String t)     { Label l=new Label(t); l.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;"); return l; }
-    private GridPane      grid()             { GridPane g=new GridPane(); g.setHgap(10); g.setVgap(10); return g; }
+    private Label          lbl(String t)          { Label l=new Label(t); l.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;"); return l; }
+    private GridPane      grid()                  { GridPane g=new GridPane(); g.setHgap(10); g.setVgap(10); return g; }
     private HBox           row(javafx.scene.Node... n) { HBox h=new HBox(8,n); h.setAlignment(Pos.CENTER_LEFT); return h; }
-    private ScrollPane    scroll(javafx.scene.Node n) { ScrollPane s=new ScrollPane(n); s.setFitToWidth(true); s.setStyle("-fx-background-color:"+N_BG+";-fx-background:"+N_BG+";"); return s; }
+    private ScrollPane    scroll(javafx.scene.Node n)  { ScrollPane s=new ScrollPane(n); s.setFitToWidth(true); s.setStyle("-fx-background-color:"+N_BG+";-fx-background:"+N_BG+";"); return s; }
     private void    showAlert(Alert.AlertType t, String title, String msg) { Alert a=new Alert(t); a.setTitle(title); a.setHeaderText(null); a.setContentText(msg); a.showAndWait(); }
-    private String  askInput(String h, String d) { TextInputDialog td=new TextInputDialog(d); td.setTitle("Editar"); td.setHeaderText(h); return td.showAndWait().orElse(null); }
+    private String  askInput(String h, String d)  { TextInputDialog td=new TextInputDialog(d); td.setTitle("Editar"); td.setHeaderText(h); return td.showAndWait().orElse(null); }
 }

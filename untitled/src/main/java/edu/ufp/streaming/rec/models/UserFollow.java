@@ -1,5 +1,6 @@
 package edu.ufp.streaming.rec.models;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 /**
  * Representa uma relação de seguimento (follow) entre duas entidades {@link User}.
@@ -11,7 +12,9 @@ import java.time.LocalDateTime;
  * direcionada {@code seguidor → seguido} no grafo da plataforma.
  ** @author  Diogo Vicente
  **/
-public class UserFollow {
+public class UserFollow implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   /** O utilizador que iniciou o seguimento (seguidor). */
   private final User follower;
@@ -33,6 +36,19 @@ public class UserFollow {
     this.follower = follower;
     this.followed = followed;
     this.followDate = LocalDateTime.now();
+  }
+
+  /**
+   * Constrói uma relação UserFollow com data explícita (usado na desserialização).
+   *
+   * @param follower   o {@link User} que está a seguir
+   * @param followed   o {@link User} que está a ser seguido
+   * @param followDate data e hora originais do follow
+   */
+  public UserFollow(User follower, User followed, LocalDateTime followDate) {
+    this.follower   = follower;
+    this.followed   = followed;
+    this.followDate = followDate != null ? followDate : LocalDateTime.now();
   }
 
   /**

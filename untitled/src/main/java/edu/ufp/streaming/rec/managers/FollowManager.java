@@ -192,11 +192,43 @@ public class FollowManager {
     }
 
     /**
+     * Regista que o {@code follower} agora segue o {@code followed} com uma data específica.
+     * Usado na desserialização para restaurar a data original do follow.
+     *
+     * @param follower   o utilizador que inicia o seguimento
+     * @param followed   o utilizador que passa a ser seguido
+     * @param followDate data e hora originais do follow
+     * @return o {@link UserFollow} criado, ou {@code null} se já existia ou inválido
+     */
+    public UserFollow followWithDate(User follower, User followed, LocalDateTime followDate) {
+        if (follower == null || followed == null) return null;
+        String key = compositeKey(follower.getId(), followed.getId());
+        if (followST.contains(key)) return null;
+
+        UserFollow uf = new UserFollow(follower, followed, followDate);
+        followST.put(key, uf);
+        indexByFollower(uf);
+        indexByFollowed(uf);
+        indexByDate(uf);
+        return uf;
+    }
+
+    /**
+     * Retorna todas as relações de seguimento como lista.
+     *
+     * @return lista com todos os objetos {@link UserFollow}
+     */
+    public List<UserFollow> listAll() {
+        List<UserFollow> result = new ArrayList<>();
+        for (String key : followST.keys()) result.add(followST.get(key));
+        return result;
+    }
+
+    /**
      * Retorna o número total de relações de seguimento armazenadas.
      *
      * @return contagem total de follows
      */
-
     public int size() {
         return followST.size();
     }

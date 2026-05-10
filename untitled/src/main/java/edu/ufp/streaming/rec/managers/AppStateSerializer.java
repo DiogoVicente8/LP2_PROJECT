@@ -91,14 +91,8 @@ public class AppStateSerializer {
                 writeStr(out, u.getPasswordHash() != null ? u.getPasswordHash() : "");
             }
 
-            // Follows (recolhidos iterando pelos utilizadores)
-            List<UserFollow> follows = new java.util.ArrayList<>();
-            for (User u : users) {
-                for (User followed : db.follows().getFollowing(u.getId())) {
-                    // Reconstituir um UserFollow temporário para obter a data
-                    follows.add(new UserFollow(u, followed));
-                }
-            }
+            // Follows — usar listAll() para preservar as datas originais
+            List<UserFollow> follows = db.follows().listAll();
             out.writeInt(follows.size());
             for (UserFollow f : follows) {
                 writeStr(out, f.getFollower().getId());
@@ -214,12 +208,12 @@ public class AppStateSerializer {
             for (int i = 0; i < fCount; i++) {
                 String followerId  = readStr(in);
                 String followedId  = readStr(in);
-                readStr(in); // date — não usada na reconstituição
+                LocalDateTime followDate = LocalDateTime.parse(readStr(in));
                 User follower = db.users().get(followerId);
                 User followed = db.users().get(followedId);
                 if (follower != null && followed != null
                         && !db.follows().isFollowing(followerId, followedId)) {
-                    db.addFollow(followerId, followedId);
+                    db.addFollowWithDate(followerId, followedId, followDate);
                 }
             }
 
@@ -266,7 +260,8 @@ public class AppStateSerializer {
 
     private static String readStr(DataInputStream in) throws IOException {
         int len = in.readInt();
-        if (len < 0 || len > 10_000) return "";
+        if (len < 0 || len > 100_000)
+            throw new IOException("Comprimento de string inválido: " + len + " — ficheiro possivelmente corrompido");
         byte[] bytes = new byte[len];
         in.readFully(bytes);
         return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);

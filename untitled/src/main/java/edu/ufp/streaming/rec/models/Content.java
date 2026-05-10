@@ -130,6 +130,8 @@ public class Content implements Serializable {
    * @param duration nova duração em minutos
    */
   public void setDuration(int duration) {
+    if (duration <= 0)
+      throw new IllegalArgumentException("duration deve ser positiva, recebido: " + duration);
     this.duration = duration;
   }
 
@@ -166,8 +168,20 @@ public class Content implements Serializable {
    * @param rating novo rating (0.0 a 5.0)
    */
   public void setRating(double rating) {
+    if (rating < 0.0 || rating > 5.0)
+      throw new IllegalArgumentException("rating deve estar em [0.0, 5.0], recebido: " + rating);
     this.rating = rating;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Content)) return false;
+    return id.equals(((Content) o).id);
+  }
+
+  @Override
+  public int hashCode() { return id.hashCode(); }
 
   /**
    * Devolve uma representação textual do conteúdo.

@@ -69,16 +69,17 @@ public class ContentFileManager {
                 if (c instanceof Movie) {
                     pw.println("MOVIE;" + c.getId() + ";" + c.getTitle() + ";"
                             + c.getGenre().getId() + ";" + c.getReleaseDate() + ";"
-                            + c.getDuration() + ";" + c.getRegion());
+                            + c.getDuration() + ";" + c.getRegion() + ";" + c.getRating());
                 } else if (c instanceof Series s) {
                     pw.println("SERIES;" + c.getId() + ";" + c.getTitle() + ";"
                             + c.getGenre().getId() + ";" + c.getReleaseDate() + ";"
-                            + c.getDuration() + ";" + c.getRegion() + ";" + s.getSeasons());
+                            + c.getDuration() + ";" + c.getRegion() + ";" + s.getSeasons()
+                            + ";" + c.getRating());
                 } else if (c instanceof Documentary d) {
                     pw.println("DOCUMENTARY;" + c.getId() + ";" + c.getTitle() + ";"
                             + c.getGenre().getId() + ";" + c.getReleaseDate() + ";"
                             + c.getDuration() + ";" + c.getRegion() + ";"
-                            + d.getTopic() + ";" + d.getNarrator());
+                            + d.getTopic() + ";" + d.getNarrator() + ";" + c.getRating());
                 }
             }
             System.out.println("Conteúdos exportados para " + filePath);
@@ -99,29 +100,40 @@ public class ContentFileManager {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] p = line.split(";");
-                if (p.length < 7) continue;
-                String type = p[0].trim();
-                String id = p[1].trim();
-                String title = p[2].trim();
-                Genre genre = gm.get(p[3].trim());
-                LocalDate date = LocalDate.parse(p[4].trim());
-                int duration = Integer.parseInt(p[5].trim());
-                String region = p[6].trim();
+                // limit=-1 preserves trailing empty strings; fields 0-6 are always fixed
+                String[] p = line.split(";", -1);
+                if (p.length < 8) continue;
+                String type     = p[0].trim();
+                String id       = p[1].trim();
+                String title    = p[2].trim();
+                Genre genre     = gm.get(p[3].trim());
+                LocalDate date  = LocalDate.parse(p[4].trim());
+                int duration    = Integer.parseInt(p[5].trim());
+                String region   = p[6].trim();
 
                 if (genre == null) continue;
 
                 switch (type) {
-                    case "MOVIE" ->
-                            cm.insert(new Movie(id, title, genre, date, duration, region, null));
+                    case "MOVIE" -> {
+                        double rating = p.length > 7 ? Double.parseDouble(p[7].trim()) : 0.0;
+                        Movie mv = new Movie(id, title, genre, date, duration, region, null);
+                        mv.setRating(rating);
+                        cm.insert(mv);
+                    }
                     case "SERIES" -> {
-                        int seasons = p.length > 7 ? Integer.parseInt(p[7].trim()) : 1;
-                        cm.insert(new Series(id, title, genre, date, duration, region, seasons));
+                        int seasons   = p.length > 7 ? Integer.parseInt(p[7].trim()) : 1;
+                        double rating = p.length > 8 ? Double.parseDouble(p[8].trim()) : 0.0;
+                        Series s = new Series(id, title, genre, date, duration, region, seasons);
+                        s.setRating(rating);
+                        cm.insert(s);
                     }
                     case "DOCUMENTARY" -> {
-                        String topic = p.length > 7 ? p[7].trim() : "";
+                        String topic    = p.length > 7 ? p[7].trim() : "";
                         String narrator = p.length > 8 ? p[8].trim() : "";
-                        cm.insert(new Documentary(id, title, genre, date, duration, region, topic, narrator));
+                        double rating   = p.length > 9 ? Double.parseDouble(p[9].trim()) : 0.0;
+                        Documentary d = new Documentary(id, title, genre, date, duration, region, topic, narrator);
+                        d.setRating(rating);
+                        cm.insert(d);
                     }
                     default -> System.err.println("Tipo desconhecido: " + type);
                 }

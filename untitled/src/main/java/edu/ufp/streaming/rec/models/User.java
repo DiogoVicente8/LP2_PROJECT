@@ -295,7 +295,7 @@ public class User implements Serializable {
   public void setWatchHistory(List<Content> watchHistory) { this.watchHistory = watchHistory; }
 
   /** @param interactions nova lista de objetos {@link Interation} */
-  public void setInteractions(List<Interation> interactions) { this.interations = interations; }
+  public void setInteractions(List<Interation> interactions) { this.interations = interactions; }
 
   public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
   // -------------------------------------------------------------------------
@@ -331,4 +331,4 @@ public class User implements Serializable {
             + "', region='" + region + "', registerDate=" + registerDate
             + ", passwordDefined=" + hasPassword() + "}";
   }
-} 
+}
