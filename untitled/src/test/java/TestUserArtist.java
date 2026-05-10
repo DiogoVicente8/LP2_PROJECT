@@ -717,10 +717,10 @@ public class TestUserArtist {
         db.addContent(m);
 
         // u1 dá 4, u2 dá 2 → média esperada = 3.0
-        db.addInteration(new Interation(
+        db.addInteraction(new Interation(
                 u1, m, LocalDateTime.now(), 4, 0.0,
                 InterationType.RATE, "r1"));
-        db.addInteration(new Interation(
+        db.addInteraction(new Interation(
                 u2, m, LocalDateTime.now(), 2, 0.0,
                 InterationType.RATE, "r2"));
 

@@ -240,8 +240,8 @@ public class TestStreamingGraph {
         StreamingGraph g = db.getGraph();
 
         // c1 (Inception): u1 viu (0.9), u2 viu (1.0) e avaliou (4.5)
-        LocalDateTime de  = LocalDateTime.of(2024, 1, 1, 0, 0);
-        LocalDateTime ate = LocalDateTime.of(2024, 1, 31, 23, 59);
+        LocalDateTime de  = LocalDateTime.of(2000, 1, 1, 0, 0);
+        LocalDateTime ate = LocalDateTime.of(2100, 1, 31, 23, 59);
 
         Map<String, Double> stats = g.estatisticasVisualizacao("c1", de, ate, db.users());
         assert stats.get("visualizacoes") == 2.0 : "Devem ser 2 visualizações de c1 em janeiro";
