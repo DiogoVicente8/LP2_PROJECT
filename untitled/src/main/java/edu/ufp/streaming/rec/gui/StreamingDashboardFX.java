@@ -208,7 +208,10 @@ public class StreamingDashboardFX {
             AppStateSerializer.save(db);
             stage.close();
             Stage ls = new Stage();
-            new LoginScreenFX(db, ls, u -> new StreamingDashboardFX(db, u).start(ls));
+            new LoginScreenFX(db, ls, u -> {
+                if (u.isAdmin()) new AdminDashboardFX(db, u).start(ls);
+                else             new StreamingDashboardFX(db, u).start(ls);
+            });
         });
 
         Button btnX = new Button("X");
@@ -264,7 +267,8 @@ public class StreamingDashboardFX {
         rl[0] = () -> {
             userList.getChildren().clear();
             for (User u : db.users().listAll())
-                userList.getChildren().add(buildUserCard(u, sel, rl));
+                if (!u.isAdmin())
+                    userList.getChildren().add(buildUserCard(u, sel, rl));
         };
 
         this.refreshUsersTab = rl[0]; // REPOSTO
@@ -277,7 +281,7 @@ public class StreamingDashboardFX {
         VBox sCard = nCard("Pesquisar");
         TextField fSearch = field("Nome...");
         Button bS = btn("Pesquisar", BTN_R), bA = btn("Todos", BTN_S);
-        bS.setOnAction(e -> { userList.getChildren().clear(); for (User u : db.users().searchByNameSubstring(fSearch.getText().trim())) userList.getChildren().add(buildUserCard(u,sel,rl)); });
+        bS.setOnAction(e -> { userList.getChildren().clear(); for (User u : db.users().searchByNameSubstring(fSearch.getText().trim())) if (!u.isAdmin()) userList.getChildren().add(buildUserCard(u,sel,rl)); });
         bA.setOnAction(e -> rl[0].run());
         HBox sr = new HBox(8, fSearch, bS, bA); sr.setAlignment(Pos.CENTER_LEFT); HBox.setHgrow(fSearch, Priority.ALWAYS);
         sCard.getChildren().add(sr);
@@ -671,26 +675,7 @@ public class StreamingDashboardFX {
         Separator sep = new Separator();
         sep.setStyle("-fx-background-color:" + N_BORDER + ";-fx-padding:0;");
 
-        Button bEN  = actionBtn("Nac.",   "#2A2A2A",    N_MUTED,  N_BORDER);
-        Button bRem = actionBtn("Remover",  "transparent", "#FF5252", "#FF5252");
-
-        bEN.setOnAction(e -> {
-            String nv = askInput("Nova Nacionalidade:", a.getNationality());
-            if (nv != null && !nv.trim().isEmpty()) {
-                db.artists().editNationality(a.getId(), nv.trim());
-                rl[0].run();
-                snack("Nacionalidade atualizada", true);
-            }
-        });
-        bRem.setOnAction(e -> {
-            db.removeArtist(a.getId());
-            rl[0].run();
-            snack("Artista removido", true);
-        });
-
-        HBox actions = new HBox(6, bEN, bRem);
-
-        body.getChildren().addAll(name, metaRow, sep, actions);
+        body.getChildren().addAll(name, metaRow, sep);
         card.getChildren().addAll(thumb, body);
 
         card.setOnMouseEntered(e -> card.setStyle("-fx-background-color:" + N_CARD2 + ";-fx-background-radius:8;-fx-border-color:#555;-fx-border-radius:8;-fx-cursor:default;"));

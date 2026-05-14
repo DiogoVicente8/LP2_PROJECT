@@ -24,12 +24,21 @@ public class StreamingAppFX extends Application {
         // Dados de exemplo com o mesmo ID não são duplicados.
         AppStateSerializer.load(db);
 
+        // Garantir que o utilizador admin mantém privilégios mesmo após desserialização
+        // (ficheiros .dat gravados antes do campo 'admin' existir não o restauram)
+        User adminUser = db.users().get("admin");
+        if (adminUser != null) adminUser.setAdmin(true);
+
         // Guarda estado ao fechar a janela principal
         primaryStage.setOnCloseRequest(e -> AppStateSerializer.save(db));
 
-        new LoginScreenFX(db, primaryStage, loggedUser ->
-                new StreamingDashboardFX(db, loggedUser).start(primaryStage)
-        );
+        new LoginScreenFX(db, primaryStage, loggedUser -> {
+            if (loggedUser.isAdmin()) {
+                new AdminDashboardFX(db, loggedUser).start(primaryStage);
+            } else {
+                new StreamingDashboardFX(db, loggedUser).start(primaryStage);
+            }
+        });
     }
 
     /** Ponto de entrada JavaFX. */
@@ -47,7 +56,9 @@ public class StreamingAppFX extends Application {
 
         User u1 = new User("u1", "Alice Silva", "alice@mail.com", "PT", LocalDate.of(2020, 1, 10), "alice123");
         User u2 = new User("u2", "Bruno Costa", "bruno@mail.com", "PT", LocalDate.of(2020, 3, 15), "bruno123");
-        sdb.addUser(u1); sdb.addUser(u2);
+        User admin = new User("admin", "Administrador", "admin@streaming.com", "PT", LocalDate.of(2020, 1, 1), "admin123");
+        admin.setAdmin(true);
+        sdb.addUser(u1); sdb.addUser(u2); sdb.addUser(admin);
 
         sdb.addFollow("u1", "u2");
 

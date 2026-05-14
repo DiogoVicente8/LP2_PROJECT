@@ -46,6 +46,9 @@ public class User implements Serializable {
    */
   private String passwordHash;
 
+  /** Indica se este utilizador tem privilégios de administrador. */
+  private boolean admin = false;
+
   /** Lista de géneros que o utilizador marcou como preferidos. */
   private List<Genre> preferences;
 
@@ -298,6 +301,12 @@ public class User implements Serializable {
   public void setInteractions(List<Interation> interactions) { this.interations = interactions; }
 
   public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+  /** @return {@code true} se este utilizador for administrador */
+  public boolean isAdmin() { return admin; }
+
+  /** @param admin {@code true} para conceder privilégios de administrador */
+  public void setAdmin(boolean admin) { this.admin = admin; }
   // -------------------------------------------------------------------------
   // Métodos de negócio
   // -------------------------------------------------------------------------
@@ -329,6 +338,6 @@ public class User implements Serializable {
   public String toString() {
     return "User{id='" + id + "', name='" + name + "', email='" + email
             + "', region='" + region + "', registerDate=" + registerDate
-            + ", passwordDefined=" + hasPassword() + "}";
+            + ", passwordDefined=" + hasPassword() + ", admin=" + admin + "}";
   }
 }
