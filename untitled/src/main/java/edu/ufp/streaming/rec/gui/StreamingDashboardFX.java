@@ -6,7 +6,6 @@ import edu.ufp.streaming.rec.managers.AppStateSerializer;
 import edu.ufp.streaming.rec.managers.ContentFileManager;
 import edu.ufp.streaming.rec.managers.ContentSerializer;
 import edu.ufp.streaming.rec.managers.StreamingDatabase;
-import edu.ufp.streaming.rec.managers.UserPersistenceManager;
 import edu.ufp.streaming.rec.models.*;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;

@@ -20,9 +20,24 @@ public class SeedData {
 
     public static void populate(StreamingDatabase db) {
         addGenres(db);
+        addUsers(db);
         addArtists(db);
         addContents(db);
         addParticipations(db);
+    }
+
+    // =========================================================================
+    // UTILIZADORES  (2 normais + 1 admin)
+    // =========================================================================
+    private static void addUsers(StreamingDatabase db) {
+        User u1 = new User("u1", "Alice Silva",    "alice@mail.com",        "PT", java.time.LocalDate.of(2020, 1, 10), "alice123");
+        User u2 = new User("u2", "Bruno Costa",    "bruno@mail.com",        "PT", java.time.LocalDate.of(2020, 3, 15), "bruno123");
+        User adm = new User("admin", "Administrador", "admin@streaming.com", "PT", java.time.LocalDate.of(2020, 1,  1), "admin123");
+        adm.setAdmin(true);
+        db.addUser(u1);
+        db.addUser(u2);
+        db.addUser(adm);
+        db.addFollow("u1", "u2");
     }
 
     // =========================================================================
@@ -134,22 +149,22 @@ public class SeedData {
 
     // ── Helpers de criação ────────────────────────────────────────────────────
     private static void addMovie(StreamingDatabase db, String id, String title,
-                                  Genre genre, int y, int m, int d, int dur, double rating) {
+                                 Genre genre, int y, int m, int d, int dur, double rating) {
         Movie mv = new Movie(id, title, genre, LocalDate.of(y, m, d), dur, "PT", null);
         mv.setRating(rating);
         db.addContent(mv);
     }
 
     private static void addSeries(StreamingDatabase db, String id, String title,
-                                   Genre genre, int y, int m, int d, int dur, int seasons, double rating) {
+                                  Genre genre, int y, int m, int d, int dur, int seasons, double rating) {
         Series s = new Series(id, title, genre, LocalDate.of(y, m, d), dur, "PT", seasons);
         s.setRating(rating);
         db.addContent(s);
     }
 
     private static void addDoc(StreamingDatabase db, String id, String title,
-                                Genre genre, int y, int m, int d, int dur,
-                                String topic, String narrator, double rating) {
+                               Genre genre, int y, int m, int d, int dur,
+                               String topic, String narrator, double rating) {
         Documentary doc = new Documentary(id, title, genre, LocalDate.of(y, m, d), dur, "PT", topic, narrator);
         doc.setRating(rating);
         db.addContent(doc);

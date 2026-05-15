@@ -89,6 +89,7 @@ public class AppStateSerializer {
                 writeStr(out, u.getRegion() != null ? u.getRegion() : "");
                 writeStr(out, u.getRegisterDate().toString());
                 writeStr(out, u.getPasswordHash() != null ? u.getPasswordHash() : "");
+                out.writeBoolean(u.isAdmin());
             }
 
             // Follows — usar listAll() para preservar as datas originais
@@ -196,9 +197,11 @@ public class AppStateSerializer {
                 String region  = readStr(in);
                 LocalDate date = LocalDate.parse(readStr(in));
                 String hash    = readStr(in);
+                boolean isAdmin = in.readBoolean();
                 if (!db.users().contains(id)) {
                     User u = new User(id, name, email, region, date, null);
                     u.setPasswordHash(hash);
+                    u.setAdmin(isAdmin);
                     db.addUser(u);
                 }
             }

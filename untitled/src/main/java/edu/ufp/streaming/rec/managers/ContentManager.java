@@ -19,7 +19,7 @@ import java.util.List;
 public class ContentManager {
 
     /** Symbol Table principal: chave = id do conteúdo. */
-    private ST<String, Content> contentSt;
+    private final ST<String, Content> contentSt;
 
     /** BST de conteúdos ordenados por data de lançamento. */
     private ContentBST contentBst;

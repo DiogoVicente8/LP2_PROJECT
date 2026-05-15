@@ -140,6 +140,7 @@ public class AdminDashboardFX {
 
         stage.setScene(scene);
         stage.centerOnScreen();
+        stage.setOnCloseRequest(e -> AppStateSerializer.save(db));
         stage.show();
     }
 
