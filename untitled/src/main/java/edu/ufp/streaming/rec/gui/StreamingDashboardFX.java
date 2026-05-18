@@ -3,8 +3,6 @@ package edu.ufp.streaming.rec.gui;
 import edu.ufp.streaming.rec.enums.ArtistRole;
 import edu.ufp.streaming.rec.enums.InterationType;
 import edu.ufp.streaming.rec.managers.AppStateSerializer;
-import edu.ufp.streaming.rec.managers.ContentFileManager;
-import edu.ufp.streaming.rec.managers.ContentSerializer;
 import edu.ufp.streaming.rec.managers.StreamingDatabase;
 import edu.ufp.streaming.rec.models.*;
 import javafx.beans.property.SimpleStringProperty;
@@ -168,32 +166,6 @@ public class StreamingDashboardFX {
         logo.setStyle("-fx-text-fill:" + N_RED + ";-fx-font-size:22px;-fx-font-weight:bold;-fx-font-family:'Georgia';");
 
         Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        Menu mFich = new Menu("Ficheiro");
-        MenuItem expTxt = new MenuItem("Exportar TXT (R10)");
-        MenuItem impTxt = new MenuItem("Importar TXT (R10)");
-        MenuItem expBin = new MenuItem("Exportar Binario (R11)");
-        MenuItem impBin = new MenuItem("Importar Binario (R11)");
-
-        expTxt.setOnAction(e -> { ContentFileManager.exportGenres(db.genres(),"genres.txt"); ContentFileManager.exportContents(db.contents(),"contents.txt"); snack("Exportado para TXT",true); });
-        impTxt.setOnAction(e -> {
-            ContentFileManager.importGenres(db.genres(),"genres.txt");
-            ContentFileManager.importContents(db.contents(),db.genres(),"contents.txt");
-            refreshAllData(); // REPOSTO: O Refresh automático
-            snack("Importado de TXT",true);
-        });
-        expBin.setOnAction(e -> { ContentSerializer.exportGenres(db.genres(),"genres.bin"); ContentSerializer.exportContents(db.contents(),"contents.bin"); snack("Serializado",true); });
-        impBin.setOnAction(e -> {
-            ContentSerializer.importGenres(db.genres(),"genres.bin");
-            ContentSerializer.importContents(db.contents(),"contents.bin");
-            refreshAllData(); // REPOSTO: O Refresh automático
-            snack("Importado de binario",true);
-        });
-
-        mFich.getItems().addAll(expTxt, impTxt, new SeparatorMenuItem(), expBin, impBin);
-        MenuBar menuBar = new MenuBar(mFich);
-        menuBar.setStyle("-fx-background-color:transparent;-fx-padding:0;");
-
         Label avatar = new Label(initials(loggedUser.getName()));
         avatar.setStyle("-fx-background-color:" + N_RED + ";-fx-text-fill:white;-fx-font-size:13px;-fx-font-weight:bold;-fx-min-width:34;-fx-min-height:34;-fx-max-width:34;-fx-max-height:34;-fx-alignment:center;-fx-background-radius:4;");
         Label userName = new Label(loggedUser.getName());
@@ -217,7 +189,7 @@ public class StreamingDashboardFX {
         btnX.setStyle("-fx-background-color:transparent;-fx-text-fill:"+N_MUTED+";-fx-font-size:14px;-fx-cursor:hand;");
         btnX.setOnAction(e -> System.exit(0));
 
-        bar.getChildren().addAll(logo, spacer, menuBar, avatar, userName, btnLogout, btnX);
+        bar.getChildren().addAll(logo, spacer, avatar, userName, btnLogout, btnX);
         return bar;
     }
 
@@ -958,3 +930,4 @@ public class StreamingDashboardFX {
     private void    showAlert(Alert.AlertType t, String title, String msg) { Alert a=new Alert(t); a.setTitle(title); a.setHeaderText(null); a.setContentText(msg); a.showAndWait(); }
     private String  askInput(String h, String d)  { TextInputDialog td=new TextInputDialog(d); td.setTitle("Editar"); td.setHeaderText(h); return td.showAndWait().orElse(null); }
 }
+

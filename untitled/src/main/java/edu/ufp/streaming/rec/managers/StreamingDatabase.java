@@ -311,4 +311,33 @@ public class StreamingDatabase {
         }
         return genreManager.remove(genreId);
     }
+
+    public UserManager getUserManager() {
+        return userManager;
+    }
+
+    public ArtistManager getArtistManager() {
+        return artistManager;
+    }
+
+    public ContentBST getContentBST() {
+        return contentBST;
+    }
+
+
+    public ContentManager getContentManager() {
+        return contentManager;
+    }
+
+    public GenreManager getGenreManager() {
+        return genreManager;
+    }
+
+    public ArtistContentManager getArtistContentManager() {
+        return artistContentManager;
+    }
+
+    public FollowManager getFollowManager() {
+        return followManager;
+    }
 }

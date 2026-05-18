@@ -182,9 +182,15 @@ public class LoginScreenFX {
         btnLogin.setOnAction(e -> {
             String id = fId.getText().trim(), pwd = fPwd.getText();
             if (id.isEmpty() || pwd.isEmpty()) { msg(msgLabel, "Preenche o ID e Password.", false); return; }
+
             User u = db.authenticate(id, pwd);
-            if (u != null) { msg(msgLabel, "Bem-vindo, " + u.getName() + "!", true); onSuccess.accept(u); }
-            else msg(msgLabel, "ID ou password incorretos.", false);
+            if (u == null) {
+                msg(msgLabel, "ID ou password incorretos.", false);
+                return;
+            }
+
+            msg(msgLabel, "Bem-vindo, " + u.getName() + "!", true);
+            redirectAfterLogin(stage, db, u, onSuccess);
         });
 
         // Enter no campo de password faz login
@@ -202,7 +208,7 @@ public class LoginScreenFX {
             User novo = new User(id, nome, email, regiao.isEmpty() ? "PT" : regiao.toUpperCase(), LocalDate.now(), pwd);
             db.addUser(novo);
             msg(msgLabel, "Conta criada! A entrar...", true);
-            onSuccess.accept(novo);
+            redirectAfterLogin(stage, db, novo, onSuccess);
         });
 
         // ── Montar ────────────────────────────────────────────────────────
@@ -228,4 +234,14 @@ public class LoginScreenFX {
     private TextField    field(String s, String p) { TextField f = new TextField(); f.setPromptText(p); f.setStyle(s); f.setMaxWidth(Double.MAX_VALUE); return f; }
     private PasswordField  pwd(String s, String p) { PasswordField f = new PasswordField(); f.setPromptText(p); f.setStyle(s); f.setMaxWidth(Double.MAX_VALUE); return f; }
     private void           msg(Label l, String t, boolean ok) { l.setText(t); l.setStyle("-fx-text-fill:" + (ok ? "#46D369" : "#FF5252") + ";-fx-font-size:13px;"); }
+
+    private void redirectAfterLogin(Stage currentStage, StreamingDatabase db, User user, Consumer<User> onSuccess) {
+        if (onSuccess != null) {
+            onSuccess.accept(user);
+            return;
+        }
+
+        if (user.isAdmin()) new AdminDashboardFX(db, user).start(currentStage);
+        else                new StreamingDashboardFX(db, user).start(currentStage);
+    }
 }

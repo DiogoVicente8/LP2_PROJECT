@@ -2,6 +2,8 @@ package edu.ufp.streaming.rec.gui;
 
 import edu.ufp.streaming.rec.enums.ArtistRole;
 import edu.ufp.streaming.rec.managers.AppStateSerializer;
+import edu.ufp.streaming.rec.managers.ContentFileManager;
+import edu.ufp.streaming.rec.managers.ContentSerializer;
 import edu.ufp.streaming.rec.managers.StreamingDatabase;
 import edu.ufp.streaming.rec.models.*;
 import javafx.geometry.Insets;
@@ -22,10 +24,10 @@ import java.util.List;
  * Só acessível a utilizadores com {@code isAdmin() == true}.
  *
  * Funcionalidades:
- *  - Gerir Utilizadores (listar, criar, editar, remover, promover a admin)
- *  - Gerir Conteúdos (listar, criar, editar título/rating/duração, remover)
- *  - Gerir Artistas (listar, criar, editar, remover)
- *  - Gerir Géneros (listar, criar, remover)
+ * - Gerir Utilizadores (listar, criar, editar, remover, promover a admin)
+ * - Gerir Conteúdos (listar, criar, editar título/rating/duração, remover)
+ * - Gerir Artistas (listar, criar, editar, remover)
+ * - Gerir Géneros (listar, criar, remover)
  *
  * @author Diogo Vicente
  */
@@ -79,6 +81,10 @@ public class AdminDashboardFX {
 
     private final Label snackLabel = new Label();
     private javafx.animation.PauseTransition snackTimer;
+    private Runnable refreshUsersTab;
+    private Runnable refreshContentsTab;
+    private Runnable refreshArtistsTab;
+    private Runnable refreshGenresTab;
 
     public AdminDashboardFX(StreamingDatabase db, User adminUser) {
         this.db        = db;
@@ -86,6 +92,12 @@ public class AdminDashboardFX {
     }
 
     public void start(Stage oldStage) {
+        if (adminUser == null) return;
+        if (!adminUser.isAdmin()) {
+            new StreamingDashboardFX(db, adminUser).start(oldStage);
+            return;
+        }
+
         oldStage.close();
         Stage stage = new Stage();
         stage.initStyle(StageStyle.TRANSPARENT);
@@ -144,9 +156,9 @@ public class AdminDashboardFX {
         stage.show();
     }
 
-    // =========================================================================
-    // NAVBAR
-    // =========================================================================
+// =========================================================================
+// NAVBAR
+// =========================================================================
 
     private HBox buildNavBar(Stage stage) {
         HBox bar = new HBox(24);
@@ -220,6 +232,13 @@ public class AdminDashboardFX {
         snackTimer.play();
     }
 
+    private void refreshAllData() {
+        if (refreshUsersTab != null) refreshUsersTab.run();
+        if (refreshContentsTab != null) refreshContentsTab.run();
+        if (refreshArtistsTab != null) refreshArtistsTab.run();
+        if (refreshGenresTab != null) refreshGenresTab.run();
+    }
+
     // =========================================================================
     // ABA: UTILIZADORES
     // =========================================================================
@@ -247,6 +266,7 @@ public class AdminDashboardFX {
         Runnable refresh = () -> {
             table.getItems().setAll(db.users().listAll());
         };
+        refreshUsersTab = refresh;
         refresh.run();
 
         // Sidebar
@@ -387,6 +407,7 @@ public class AdminDashboardFX {
         table.getColumns().addAll(cId, cTitle, cType, cGenre, cYear, cDur, cRat, cReg);
 
         Runnable refresh = () -> table.getItems().setAll(db.contents().listAll());
+        refreshContentsTab = refresh;
         refresh.run();
 
         // Sidebar
@@ -449,6 +470,56 @@ public class AdminDashboardFX {
         });
         createCard.getChildren().addAll(cCId, cCTitle, cCType, cCGenre, cCDate, cCDur, cCReg, bCreate);
 
+        // Ações Import/Export
+        VBox syncCard = card("Sincronização de Dados");
+        Button bImportTxt = btn("Importar TXT", BTN_S);
+        Button bExportTxt = btn("Exportar TXT", BTN_S); // <-- Botão Novo!
+        Button bExportBin = btn("Exportar Binário", BTN_S);
+        Button bImportBin = btn("Importar Binário", BTN_S);
+
+        bImportTxt.setMaxWidth(Double.MAX_VALUE);
+        bExportTxt.setMaxWidth(Double.MAX_VALUE); // <-- Nova linha
+        bExportBin.setMaxWidth(Double.MAX_VALUE);
+        bImportBin.setMaxWidth(Double.MAX_VALUE);
+
+        bImportTxt.setOnAction(e -> {
+            if (!adminUser.isAdmin()) { snack("Apenas administradores podem importar", false); return; }
+            TextInputDialog dialog = new TextInputDialog("conteudos_compativeis.txt");
+            dialog.setTitle("Importar Conteúdos");
+            dialog.setHeaderText("Indica o caminho do ficheiro TXT");
+            dialog.setGraphic(null);
+            dialog.showAndWait().map(String::trim).filter(path -> !path.isEmpty()).ifPresent(path -> {
+                ContentFileManager.importContents(db.contents(), db.genres(), path);
+                AppStateSerializer.save(db); refreshAllData();
+                snack("Conteúdos TXT importados com sucesso", true);
+            });
+        });
+
+        // <-- NOVA LÓGICA DE EXPORTAR TXT -->
+        bExportTxt.setOnAction(e -> {
+            ContentFileManager.exportGenres(db.genres(), "generos_exportados.txt");
+            ContentFileManager.exportContents(db.contents(), "conteudos_exportados.txt");
+            snack("Dados exportados para TXT com sucesso!", true);
+        });
+        // <--------------------------------->
+
+        bExportBin.setOnAction(e -> {
+            ContentSerializer.exportGenres(db.genres(), "generos.bin");
+            ContentSerializer.exportContents(db.contents(), "conteudos.bin");
+            snack("Dados exportados para BINÁRIO com sucesso!", true);
+        });
+
+        bImportBin.setOnAction(e -> {
+            if (!adminUser.isAdmin()) { snack("Apenas administradores podem importar", false); return; }
+            ContentSerializer.importGenres(db.genres(), "generos.bin");
+            ContentSerializer.importContents(db.contents(), "conteudos.bin");
+            AppStateSerializer.save(db);
+            refreshAllData();
+            snack("Dados importados do BINÁRIO com sucesso!", true);
+        });
+
+        syncCard.getChildren().addAll(bImportTxt, bExportTxt, bExportBin, bImportBin);
+
         // Ações
         VBox actCard = card("Ações sobre Selecionado");
         Button bEditTitle  = btn("Editar Título",    BTN_S);
@@ -497,7 +568,7 @@ public class AdminDashboardFX {
         });
         actCard.getChildren().addAll(bEditTitle, bEditDur, bEditRegion, bRemove);
 
-        sidebar.getChildren().addAll(searchCard, createCard, actCard);
+        sidebar.getChildren().addAll(searchCard, createCard, syncCard, actCard);
         pane.setCenter(table);
         pane.setRight(scroll(sidebar));
         tab.setContent(pane);
@@ -528,6 +599,7 @@ public class AdminDashboardFX {
         table.getColumns().addAll(cId, cName, cRole, cNat, cGen, cDate);
 
         Runnable refresh = () -> table.getItems().setAll(db.artists().listAll());
+        refreshArtistsTab = refresh;
         refresh.run();
 
         // Sidebar
@@ -637,6 +709,7 @@ public class AdminDashboardFX {
         table.getColumns().addAll(cId, cName, cUse);
 
         Runnable refresh = () -> table.getItems().setAll(db.genres().listAll());
+        refreshGenresTab = refresh;
         refresh.run();
 
         VBox sidebar = new VBox(16);
