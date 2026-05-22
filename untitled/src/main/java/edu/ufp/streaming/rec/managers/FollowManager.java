@@ -9,11 +9,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+
 /**
  * Gere as relações de seguimento (follow) entre entidades {@link User} na plataforma.
- * @author  Diogo Vicente
+ * @author Diogo Vicente
  */
-
 public class FollowManager {
 
     /** ST Primária: "followerId:followedId" → UserFollow. */
@@ -28,9 +28,6 @@ public class FollowManager {
     /** BST Ordenada: data em segundos (Long) → lista de UserFollow. */
     private final RedBlackBST<Long, List<UserFollow>> byDateBST;
 
-    /**
-     * Constrói um FollowManager vazio.
-     */
     public FollowManager() {
         this.followST       = new ST<>();
         this.followingIndex = new ST<>();
@@ -38,16 +35,13 @@ public class FollowManager {
         this.byDateBST      = new RedBlackBST<>();
     }
 
-    /**
-     * Regista que o {@code follower} agora segue o {@code followed}.
-     * Não faz nada se a relação já existir.
-     *
-     * @param follower o utilizador que inicia o seguimento
-     * @param followed o utilizador que passa a ser seguido
-     * @return o novo objeto {@link UserFollow}, ou {@code null} se já o seguia ou se for inválido
-     */
+    // -------------------------------------------------------------------------
+    // Ações de Seguimento
+    // -------------------------------------------------------------------------
+
     public UserFollow follow(User follower, User followed) {
         if (follower == null || followed == null) return null;
+
         String key = compositeKey(follower.getId(), followed.getId());
         if (followST.contains(key)) return null;
 
@@ -56,16 +50,25 @@ public class FollowManager {
         indexByFollower(uf);
         indexByFollowed(uf);
         indexByDate(uf);
+
         return uf;
     }
 
-    /**
-     * Remove a relação de seguimento de {@code followerId} para {@code followedId}.
-     *
-     * @param followerId o ID do utilizador que segue
-     * @param followedId o ID do utilizador seguido
-     * @return o {@link UserFollow} removido, ou {@code null} se não for encontrado
-     */
+    public UserFollow followWithDate(User follower, User followed, LocalDateTime followDate) {
+        if (follower == null || followed == null) return null;
+
+        String key = compositeKey(follower.getId(), followed.getId());
+        if (followST.contains(key)) return null;
+
+        UserFollow uf = new UserFollow(follower, followed, followDate);
+        followST.put(key, uf);
+        indexByFollower(uf);
+        indexByFollowed(uf);
+        indexByDate(uf);
+
+        return uf;
+    }
+
     public UserFollow unfollow(String followerId, String followedId) {
         String key = compositeKey(followerId, followedId);
         if (!followST.contains(key)) return null;
@@ -75,102 +78,93 @@ public class FollowManager {
         removeFromFollowerIndex(uf);
         removeFromFollowedIndex(uf);
         removeFromDateIndex(uf);
+
         return uf;
     }
 
-    /**
-     * Retorna {@code true} se o {@code followerId} segue atualmente o {@code followedId}.
-     *
-     * @param followerId ID do potencial seguidor
-     * @param followedId ID do utilizador potencialmente seguido
-     * @return {@code true} se a relação de seguimento existir
-     */
+    // -------------------------------------------------------------------------
+    // Consultas Rápidas
+    // -------------------------------------------------------------------------
+
     public boolean isFollowing(String followerId, String followedId) {
         return followST.contains(compositeKey(followerId, followedId));
     }
 
-    /**
-     * Retorna a lista de utilizadores que um determinado utilizador está a seguir.
-     *
-     * @param userId o ID do utilizador (seguidor)
-     * @return lista de objetos {@link User} seguidos; vazia se nenhum
-     */
     public List<User> getFollowing(String userId) {
         List<User> result = new ArrayList<>();
-        List<UserFollow> list = followingIndex.get(userId);
-        if (list != null) {
-            for (UserFollow uf : list) result.add(uf.getFollowed());
+        List<UserFollow> relacoesDeQuemEuSigo = followingIndex.get(userId);
+
+        if (relacoesDeQuemEuSigo != null) {
+            for (UserFollow uf : relacoesDeQuemEuSigo) {
+                result.add(uf.getFollowed());
+            }
         }
         return result;
     }
 
-    /**
-     * Retorna a lista de utilizadores que seguem um determinado utilizador.
-     *
-     * @param userId o ID do utilizador seguido
-     * @return lista de seguidores ({@link User}); vazia se nenhum
-     */
     public List<User> getFollowers(String userId) {
         List<User> result = new ArrayList<>();
-        List<UserFollow> list = followerIndex.get(userId);
-        if (list != null) {
-            for (UserFollow uf : list) result.add(uf.getFollower());
+        List<UserFollow> relacoesDeQuemMeSegue = followerIndex.get(userId);
+
+        if (relacoesDeQuemMeSegue != null) {
+            for (UserFollow uf : relacoesDeQuemMeSegue) {
+                result.add(uf.getFollower());
+            }
         }
         return result;
     }
 
-    /**
-     * Retorna o número de seguidores de um utilizador.
-     *
-     * @param userId o ID do utilizador seguido
-     * @return contagem de seguidores
-     */
-    public int followerCount(String userId) {
-        List<UserFollow> list = followerIndex.get(userId);
-        return list != null ? list.size() : 0;
-    }
-
-    /**
-     * Retorna o número de utilizadores que um determinado utilizador segue.
-     *
-     * @param userId o ID do utilizador (seguidor)
-     * @return contagem de quem ele segue
-     */
     public int followingCount(String userId) {
         List<UserFollow> list = followingIndex.get(userId);
         return list != null ? list.size() : 0;
     }
 
-    /**
-     * Retorna todas as relações de seguimento criadas num intervalo de data/hora [de, até].
-     *
-     * @param from início do intervalo (inclusive)
-     * @param to   fim do intervalo (inclusive)
-     * @return lista de objetos {@link UserFollow} no intervalo
-     */
+    public int followerCount(String userId) {
+        List<UserFollow> list = followerIndex.get(userId);
+        return list != null ? list.size() : 0;
+    }
+
     public List<UserFollow> searchByDateRange(LocalDateTime from, LocalDateTime to) {
         List<UserFollow> result = new ArrayList<>();
         Long fromEpoch = from.toEpochSecond(ZoneOffset.UTC);
         Long toEpoch = to.toEpochSecond(ZoneOffset.UTC);
 
-        for (Long dt : byDateBST.keys(fromEpoch, toEpoch)) {
-            List<UserFollow> bucket = byDateBST.get(dt);
-            if (bucket != null) result.addAll(bucket);
+        //Usa os limites da RedBlackBST para não ter de iterar todos os registos
+        for (Long dataNaArvore : byDateBST.keys(fromEpoch, toEpoch)) {
+            List<UserFollow> followersNestaData = byDateBST.get(dataNaArvore);
+            if (followersNestaData != null) {
+                result.addAll(followersNestaData);
+            }
         }
         return result;
     }
 
+    public List<UserFollow> listAll() {
+        List<UserFollow> result = new ArrayList<>();
+        for (String key : followST.keys()) {
+            result.add(followST.get(key));
+        }
+        return result;
+    }
+
+    public int size() {
+        return followST.size();
+    }
+
+    // -------------------------------------------------------------------------
+    // Consistência R4
+    // -------------------------------------------------------------------------
+
     /**
      * Remove todas as relações de seguimento que envolvam um determinado utilizador.
      * Deve ser chamado quando um utilizador é apagado do sistema (consistência R4).
-     *
-     * @param userId o ID do utilizador removido
      */
     public void removeAllRelationships(String userId) {
-        // Remove all outgoing follows (userId → someone)
-        List<UserFollow> following = followingIndex.get(userId);
-        if (following != null) {
-            for (UserFollow uf : new ArrayList<>(following)) {
+
+        // Limpar todas as pessoas que este utilizador estava a seguir
+        List<UserFollow> quemEleSegue = followingIndex.get(userId);
+        if (quemEleSegue != null) {
+            for (UserFollow uf : new ArrayList<>(quemEleSegue)) {
                 String key = compositeKey(userId, uf.getFollowed().getId());
                 followST.delete(key);
                 removeFromFollowedIndex(uf);
@@ -179,9 +173,10 @@ public class FollowManager {
             followingIndex.delete(userId);
         }
 
-        List<UserFollow> followers = followerIndex.get(userId);
-        if (followers != null) {
-            for (UserFollow uf : new ArrayList<>(followers)) {
+        // Limpar todas as pessoas que seguiam este utilizador
+        List<UserFollow> osSeusSeguidores = followerIndex.get(userId);
+        if (osSeusSeguidores != null) {
+            for (UserFollow uf : new ArrayList<>(osSeusSeguidores)) {
                 String key = compositeKey(uf.getFollower().getId(), userId);
                 followST.delete(key);
                 removeFromFollowerIndex(uf);
@@ -191,49 +186,9 @@ public class FollowManager {
         }
     }
 
-    /**
-     * Regista que o {@code follower} agora segue o {@code followed} com uma data específica.
-     * Usado na desserialização para restaurar a data original do follow.
-     *
-     * @param follower   o utilizador que inicia o seguimento
-     * @param followed   o utilizador que passa a ser seguido
-     * @param followDate data e hora originais do follow
-     * @return o {@link UserFollow} criado, ou {@code null} se já existia ou inválido
-     */
-    public UserFollow followWithDate(User follower, User followed, LocalDateTime followDate) {
-        if (follower == null || followed == null) return null;
-        String key = compositeKey(follower.getId(), followed.getId());
-        if (followST.contains(key)) return null;
-
-        UserFollow uf = new UserFollow(follower, followed, followDate);
-        followST.put(key, uf);
-        indexByFollower(uf);
-        indexByFollowed(uf);
-        indexByDate(uf);
-        return uf;
-    }
-
-    /**
-     * Retorna todas as relações de seguimento como lista.
-     *
-     * @return lista com todos os objetos {@link UserFollow}
-     */
-    public List<UserFollow> listAll() {
-        List<UserFollow> result = new ArrayList<>();
-        for (String key : followST.keys()) result.add(followST.get(key));
-        return result;
-    }
-
-    /**
-     * Retorna o número total de relações de seguimento armazenadas.
-     *
-     * @return contagem total de follows
-     */
-    public int size() {
-        return followST.size();
-    }
-
-    // --- Métodos Auxiliares Privados ---
+    // -------------------------------------------------------------------------
+    // Métodos Auxiliares de Indexação
+    // -------------------------------------------------------------------------
 
     private String compositeKey(String followerId, String followedId) {
         return followerId + ":" + followedId;

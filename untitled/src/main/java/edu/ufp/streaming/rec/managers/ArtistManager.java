@@ -8,10 +8,11 @@ import edu.ufp.streaming.rec.enums.ArtistRole;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Gerenciador de Artistas: organiza artistas por ID, Nome e Data de Nascimento.
- * @author  Diogo Vicente
+ * @author Diogo Vicente
  */
 public class ArtistManager {
 
@@ -24,21 +25,16 @@ public class ArtistManager {
     /** BST Ordenada: nome em minúsculas → lista de Artistas com esse nome. */
     private final RedBlackBST<String, List<Artist>> byNameBST;
 
-    /**
-     * Constrói um ArtistManager vazio.
-     */
     public ArtistManager() {
         this.artistST       = new ST<>();
         this.byBirthDateBST = new RedBlackBST<>();
         this.byNameBST      = new RedBlackBST<>();
     }
 
-    /**
-     * Insere um novo artista em todas as estruturas.
-     *
-     * @param artist o {@link Artist} a inserir; não deve ser {@code null}
-     * @return {@code true} se inserido; {@code false} se for {@code null} ou se o ID já existir
-     */
+    // -------------------------------------------------------------------------
+    // CRUD e Edições
+    // -------------------------------------------------------------------------
+
     public boolean insert(Artist artist) {
         if (artist == null || artistST.contains(artist.getId())) return false;
 
@@ -48,12 +44,6 @@ public class ArtistManager {
         return true;
     }
 
-    /**
-     * Remove um artista de todas as estruturas pelo ID.
-     *
-     * @param id o ID do artista a remover
-     * @return o {@link Artist} removido, ou {@code null} se não for encontrado
-     */
     public Artist remove(String id) {
         if (!artistST.contains(id)) return null;
 
@@ -64,13 +54,6 @@ public class ArtistManager {
         return a;
     }
 
-    /**
-     * Edita o nome de um artista existente e re-indexa a BST de nomes.
-     *
-     * @param id      o ID do artista
-     * @param newName o novo nome
-     * @return {@code true} se for bem-sucedido; {@code false} se o artista não for encontrado
-     */
     public boolean editName(String id, String newName) {
         Artist a = artistST.get(id);
         if (a == null) return false;
@@ -81,13 +64,6 @@ public class ArtistManager {
         return true;
     }
 
-    /**
-     * Edita a nacionalidade de um artista existente.
-     *
-     * @param id             o ID do artista
-     * @param newNationality a nova nacionalidade
-     * @return {@code true} se for bem-sucedido; {@code false} se o artista não for encontrado
-     */
     public boolean editNationality(String id, String newNationality) {
         Artist a = artistST.get(id);
         if (a == null) return false;
@@ -95,180 +71,120 @@ public class ArtistManager {
         return true;
     }
 
-    /**
-     * Retorna o artista com o ID fornecido.
-     *
-     * @param id o ID do artista
-     * @return o {@link Artist}, ou {@code null} se não for encontrado
-     */
+    // -------------------------------------------------------------------------
+    // Consultas Básicas
+    // -------------------------------------------------------------------------
+
     public Artist get(String id) {
         return artistST.get(id);
     }
 
-    /**
-     * Retorna {@code true} se um artista com o ID fornecido existir.
-     *
-     * @param id o ID do artista
-     * @return {@code true} se presente
-     */
     public boolean contains(String id) {
         return artistST.contains(id);
     }
 
-    /**
-     * Retorna o número total de artistas.
-     *
-     * @return número de artistas
-     */
     public int size() {
         return artistST.size();
     }
 
-    /**
-     * Retorna todos os artistas como uma lista não ordenada.
-     *
-     * @return lista de todos os objetos {@link Artist}
-     */
     public List<Artist> listAll() {
         List<Artist> result = new ArrayList<>();
-        for (String key : artistST.keys()) result.add(artistST.get(key));
+        for (String artistId : artistST.keys()) {
+            result.add(artistST.get(artistId));
+        }
         return result;
     }
 
-    /**
-     * Retorna todos os artistas nascidos em uma data exata.
-     *
-     * @param date a data de nascimento para pesquisa
-     * @return lista de artistas correspondentes (pode estar vazia)
-     */
+    // -------------------------------------------------------------------------
+    // Consultas Avançadas
+    // -------------------------------------------------------------------------
+
     public List<Artist> searchByBirthDate(LocalDate date) {
         List<Artist> list = byBirthDateBST.get(date.toEpochDay());
         return list != null ? new ArrayList<>(list) : new ArrayList<>();
     }
 
-    /**
-     * Retorna todos os artistas nascidos dentro de um intervalo de datas [de, até].
-     * Útil para consultas de "idade entre X e Y".
-     *
-     * @param from início do intervalo (inclusive)
-     * @param to   fim do intervalo (inclusive)
-     * @return lista de artistas cuja data de nascimento cai no intervalo
-     */
     public List<Artist> searchByBirthDateRange(LocalDate from, LocalDate to) {
         List<Artist> result = new ArrayList<>();
-        for (Long d : byBirthDateBST.keys(from.toEpochDay(), to.toEpochDay())) {
-            List<Artist> bucket = byBirthDateBST.get(d);
-            if (bucket != null) result.addAll(bucket);
-        }
-        return result;
-    }
 
-    /**
-     * Retorna todos os artistas cujo nome contém a substring fornecida (insensível a maiúsculas).
-     *
-     * @param substring a substring a procurar
-     * @return lista de artistas correspondentes
-     */
-    public List<Artist> searchByNameSubstring(String substring) {
-        String lower = substring.toLowerCase();
-        List<Artist> result = new ArrayList<>();
-        for (String key : byNameBST.keys()) {
-            if (key.contains(lower)) result.addAll(byNameBST.get(key));
-        }
-        return result;
-    }
-
-    /**
-     * Retorna todos os artistas de uma determinada nacionalidade (insensível a maiúsculas).
-     *
-     * @param nationality a nacionalidade pela qual filtrar
-     * @return lista de artistas correspondentes
-     */
-    public List<Artist> searchByNationality(String nationality) {
-        List<Artist> result = new ArrayList<>();
-        for (String key : artistST.keys()) {
-            Artist a = artistST.get(key);
-            if (nationality.equalsIgnoreCase(a.getNationality())) result.add(a);
-        }
-        return result;
-    }
-
-    /**
-     * Retorna todos os artistas de um determinado género (ex: "M", "F").
-     *
-     * @param gender a string do género pela qual filtrar
-     * @return lista de artistas correspondentes
-     */
-    public List<Artist> searchByGender(String gender) {
-        List<Artist> result = new ArrayList<>();
-        for (String key : artistST.keys()) {
-            Artist a = artistST.get(key);
-            if (gender.equalsIgnoreCase(a.getGender())) result.add(a);
-        }
-        return result;
-    }
-
-    /**
-     * Retorna todos os artistas de uma nacionalidade nascidos num intervalo de datas.
-     *
-     * @param nationality a nacionalidade pela qual filtrar
-     * @param from        início do intervalo (inclusive)
-     * @param to          fim do intervalo (inclusive)
-     * @return lista de artistas correspondentes
-     */
-    public List<Artist> searchByNationalityAndBirthDateRange(String nationality,
-                                                             LocalDate from,
-                                                             LocalDate to) {
-        List<Artist> result = new ArrayList<>();
-        for (Long d : byBirthDateBST.keys(from.toEpochDay(), to.toEpochDay())) {
-            List<Artist> bucket = byBirthDateBST.get(d);
-            if (bucket == null) continue;
-            for (Artist a : bucket) {
-                if (nationality.equalsIgnoreCase(a.getNationality())) result.add(a);
+        //Iterar apenas a secção da árvore correspondente ao intervalo de datas
+        for (Long dataNaArvore : byBirthDateBST.keys(from.toEpochDay(), to.toEpochDay())) {
+            List<Artist> artistasDestaData = byBirthDateBST.get(dataNaArvore);
+            if (artistasDestaData != null) {
+                result.addAll(artistasDestaData);
             }
         }
         return result;
     }
 
-    /**
-     * Retorna artistas que coincidam com substring de nome, nacionalidade e género.
-     *
-     * @param substring   substring para procurar no nome
-     * @param nationality nacionalidade para filtrar
-     * @param gender      género para filtrar
-     * @return lista de artistas correspondentes
-     */
-    public List<Artist> searchByNameSubstringNationalityAndGender(String substring,
-                                                                  String nationality,
-                                                                  String gender) {
+    public List<Artist> searchByNameSubstring(String substring) {
         String lower = substring.toLowerCase();
         List<Artist> result = new ArrayList<>();
-        for (String key : byNameBST.keys()) {
-            if (!key.contains(lower)) continue;
-            for (Artist a : byNameBST.get(key)) {
-                if (nationality.equalsIgnoreCase(a.getNationality())
-                        && gender.equalsIgnoreCase(a.getGender())) {
-                    result.add(a);
+
+        for (String nomeNaArvore : byNameBST.keys()) {
+            // Se o nome contiver a pesquisa, adiciona à lista
+            if (nomeNaArvore.contains(lower)) {
+                result.addAll(byNameBST.get(nomeNaArvore));
+            }
+        }
+        return result;
+    }
+
+    public List<Artist> searchByNationality(String nationality) {
+        // Filtra a lista completa de forma declarativa e concisa.
+        return listAll().stream()
+                .filter(a -> nationality.equalsIgnoreCase(a.getNationality()))
+                .collect(Collectors.toList());
+    }
+
+    public List<Artist> searchByGender(String gender) {
+        return listAll().stream()
+                .filter(a -> gender.equalsIgnoreCase(a.getGender()))
+                .collect(Collectors.toList());
+    }
+
+    public List<Artist> searchByRole(ArtistRole role) {
+        return listAll().stream()
+                .filter(a -> a.getRole() == role)
+                .collect(Collectors.toList());
+    }
+
+    public List<Artist> searchByNationalityAndBirthDateRange(String nationality, LocalDate from, LocalDate to) {
+        List<Artist> result = new ArrayList<>();
+
+        for (Long dataNaArvore : byBirthDateBST.keys(from.toEpochDay(), to.toEpochDay())) {
+            List<Artist> artistasDestaData = byBirthDateBST.get(dataNaArvore);
+
+            if (artistasDestaData != null) {
+                for (Artist a : artistasDestaData) {
+                    if (nationality.equalsIgnoreCase(a.getNationality())) {
+                        result.add(a);
+                    }
                 }
             }
         }
         return result;
     }
 
-    /**
-     * Retorna todos os artistas com uma função específica (ex: ACTOR, DIRECTOR).
-     *
-     * @param role o {@link ArtistRole} pelo qual filtrar
-     * @return lista de artistas correspondentes
-     */
-    public List<Artist> searchByRole(ArtistRole role) {
+    public List<Artist> searchByNameSubstringNationalityAndGender(String substring, String nationality, String gender) {
+        String lower = substring.toLowerCase();
         List<Artist> result = new ArrayList<>();
-        for (String key : artistST.keys()) {
-            Artist a = artistST.get(key);
-            if (a.getRole() == role) result.add(a);
+
+        for (String nomeNaArvore : byNameBST.keys()) {
+            if (nomeNaArvore.contains(lower)) {
+                for (Artist a : byNameBST.get(nomeNaArvore)) {
+                    if (nationality.equalsIgnoreCase(a.getNationality()) && gender.equalsIgnoreCase(a.getGender())) {
+                        result.add(a);
+                    }
+                }
+            }
         }
         return result;
     }
+
+    // -------------------------------------------------------------------------
+    // Métodos Internos de Indexação
+    // -------------------------------------------------------------------------
 
     private void indexByBirthDate(Artist artist) {
         Long date = artist.getBirthDate().toEpochDay();
@@ -288,7 +204,6 @@ public class ArtistManager {
             if (bucket.isEmpty()) byBirthDateBST.delete(date);
         }
     }
-
 
     private void indexByName(Artist artist) {
         String key = artist.getName().toLowerCase();

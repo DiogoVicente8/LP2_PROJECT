@@ -14,86 +14,64 @@ import java.util.List;
  */
 public class GenreManager {
 
-    /** Symbol Table principal: chave = id do género. */
+    // Legenda: Cumprimento do Requisito R2. Usamos uma Symbol Table (ST) da biblioteca algs4
+    // para garantir pesquisas super rápidas baseadas num ID único (String).
     private final ST<String, Genre> genreSt;
 
-    /**
-     * Constrói um novo gestor de géneros com a ST vazia.
-     */
     public GenreManager() {
         this.genreSt = new ST<>();
     }
 
-    /**
-     * Insere um género na ST.
-     *
-     * @param genre género a inserir
-     * @return {@code true} se inserido, {@code false} se já existe ou é nulo
-     */
+    // -------------------------------------------------------------------------
+    // CRUD e Edições (Refatorado - Clean Code)
+    // -------------------------------------------------------------------------
+
     public boolean insert(Genre genre) {
+        // Lógica humana: Aborta imediatamente se o objeto for nulo ou se o ID já existir na ST.
         if (genre == null || genreSt.contains(genre.getId())) {
             return false;
         }
+
         genreSt.put(genre.getId(), genre);
         return true;
     }
 
-    /**
-     * Remove um género da ST pelo seu ID.
-     *
-     * @param id identificador do género a remover
-     * @return género removido ou {@code null} se não encontrado
-     */
     public Genre remove(String id) {
         if (!genreSt.contains(id)) return null;
-        Genre removed = genreSt.get(id);
+
+        Genre genreRemovido = genreSt.get(id);
         genreSt.delete(id);
-        return removed;
+        return genreRemovido;
     }
 
-    /**
-     * Edita o nome de um género existente.
-     *
-     * @param id      identificador do género
-     * @param newName novo nome
-     * @return {@code true} se editado, {@code false} se não encontrado
-     */
     public boolean editName(String id, String newName) {
-        Genre g = genreSt.get(id);
-        if (g == null) return false;
-        g.setName(newName);
+        Genre genre = genreSt.get(id);
+
+        if (genre == null) return false;
+
+        genre.setName(newName);
         return true;
     }
 
-    /**
-     * Devolve um género pelo seu ID.
-     *
-     * @param id identificador do género
-     * @return género ou {@code null} se não encontrado
-     */
+    // -------------------------------------------------------------------------
+    // Consultas Rápidas
+    // -------------------------------------------------------------------------
+
     public Genre get(String id) {
         return genreSt.get(id);
     }
 
-    /**
-     * Devolve o número total de géneros na ST.
-     *
-     * @return número de géneros
-     */
     public int size() {
         return genreSt.size();
     }
 
-    /**
-     * Lista todos os géneros da ST.
-     *
-     * @return lista com todos os géneros
-     */
     public List<Genre> listAll() {
         List<Genre> result = new ArrayList<>();
-        for (String key : genreSt.keys()) {
-            result.add(genreSt.get(key));
+        // A ST do algs4 devolve-nos as chaves ordenadas automaticamente.
+        for (String genreId : genreSt.keys()) {
+            result.add(genreSt.get(genreId));
         }
+
         return result;
     }
 }
