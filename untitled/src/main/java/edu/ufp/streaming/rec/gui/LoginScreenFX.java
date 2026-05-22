@@ -51,7 +51,7 @@ public class LoginScreenFX {
         HBox topRow = new HBox();
         topRow.setAlignment(Pos.CENTER_LEFT);
 
-        Label logo = new Label("STREAMINGAPP");
+        Label logo = new Label("STREAMING APP");
         logo.setStyle(
                 "-fx-text-fill:" + N_RED + ";" +
                         "-fx-font-size:26px;" +
@@ -122,7 +122,7 @@ public class LoginScreenFX {
 
         HBox regRow = new HBox(4);
         regRow.setAlignment(Pos.CENTER);
-        Label regTxt = new Label("Novo no StreamingApp?");
+        Label regTxt = new Label("Novo no Streaming App?");
         regTxt.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:13px;");
         Button btnGoReg = new Button("Criar conta.");
         btnGoReg.setStyle(btnLink + "-fx-text-fill:white;-fx-font-weight:bold;");

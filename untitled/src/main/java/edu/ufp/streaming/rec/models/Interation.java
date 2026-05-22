@@ -120,16 +120,6 @@ public class Interation implements Serializable {
   public String getId() {
     return id;
   }
-
-  /**
-   * Define a data e hora da interação.
-   *
-   * @param watchDate nova data e hora
-   */
-  public void setWatchDate(LocalDateTime watchDate) {
-    this.watchDate = watchDate;
-  }
-
   /**
    * Define a avaliação atribuída ao conteúdo.
    *
@@ -140,27 +130,6 @@ public class Interation implements Serializable {
       throw new IllegalArgumentException("rating deve estar em [0.0, 5.0], recebido: " + rating);
     this.rating = rating;
   }
-
-  /**
-   * Define o progresso de visualização do conteúdo.
-   *
-   * @param progress novo progresso (deve estar em [0.0, 1.0])
-   */
-  public void setProgress(double progress) {
-    if (progress < 0.0 || progress > 1.0)
-      throw new IllegalArgumentException("progress deve estar em [0.0, 1.0], recebido: " + progress);
-    this.progress = progress;
-  }
-
-  /**
-   * Define o tipo da interação realizada.
-   *
-   * @param type novo tipo de interação
-   */
-  public void setType(InterationType type) {
-    this.type = type;
-  }
-
   /**
    * Devolve uma representação textual da interação.
    *

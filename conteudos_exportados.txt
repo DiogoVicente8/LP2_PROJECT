@@ -1,0 +1,30 @@
+DOCUMENTARY;doc1;O Nosso Planeta;g9;2019-04-05;49;PT;Natureza;David Attenborough;4.8
+DOCUMENTARY;doc2;Making a Murderer;g9;2015-12-18;55;PT;Crime Real;narrador interno;4.5
+DOCUMENTARY;doc3;13th;g9;2016-10-07;100;PT;Sociedade;narrador interno;4.6
+DOCUMENTARY;doc4;Cosmos: Mundos Possíveis;g9;2020-03-09;44;PT;Ciência;Neil deGrasse Tyson;4.7
+DOCUMENTARY;doc5;Jiro Dreams of Sushi;g9;2011-03-09;81;PT;Gastronomia;narrador interno;4.4
+MOVIE;m1;Inception;g5;2010-07-16;148;PT;4.5
+MOVIE;m10;Gladiador;g1;2000-05-05;155;PT;4.4
+MOVIE;m11;O Senhor dos Anéis: A Sociedade do Anel;g12;2001-12-19;178;PT;4.8
+MOVIE;m12;Forrest Gump;g2;1994-07-06;142;PT;4.7
+MOVIE;m13;Dune: Parte Dois;g5;2024-03-01;166;PT;4.5
+MOVIE;m14;Oppenheimer;g2;2023-07-21;180;PT;4.6
+MOVIE;m15;The Departed;g10;2006-10-06;151;PT;4.5
+MOVIE;m2;Interstellar;g5;2014-11-07;169;PT;4.6
+MOVIE;m3;O Lobo de Wall Street;g2;2013-12-25;180;PT;4.3
+MOVIE;m4;O Silêncio dos Inocentes;g6;1991-02-14;118;PT;4.4
+MOVIE;m5;Parasitas;g6;2019-05-30;132;PT;4.7
+MOVIE;m6;Dune: Parte Um;g5;2021-10-22;155;PT;4.2
+MOVIE;m7;Barbie;g3;2023-07-21;114;PT;3.9
+MOVIE;m8;Joker;g2;2019-10-04;122;PT;4.3
+MOVIE;m9;La La Land;g7;2016-12-09;128;PT;4.1
+SERIES;s1;Breaking Bad;g10;2008-01-20;47;PT;5;4.9
+SERIES;s10;The Mandalorian;g1;2019-11-12;40;PT;3;4.2
+SERIES;s2;Stranger Things;g5;2016-07-15;50;PT;4;4.3
+SERIES;s3;The Last of Us;g2;2023-01-15;60;PT;2;4.7
+SERIES;s4;Chernobyl;g2;2019-05-06;65;PT;1;4.8
+SERIES;s5;Dark;g5;2017-12-01;52;PT;3;4.6
+SERIES;s6;The Bear;g2;2022-06-23;30;PT;3;4.5
+SERIES;s7;Severance;g6;2022-02-18;45;PT;2;4.4
+SERIES;s8;House of the Dragon;g12;2022-08-21;60;PT;2;4.0
+SERIES;s9;Succession;g2;2018-06-29;55;PT;4;4.7

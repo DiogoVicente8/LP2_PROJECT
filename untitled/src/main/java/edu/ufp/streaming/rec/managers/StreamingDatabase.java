@@ -115,28 +115,6 @@ public class StreamingDatabase {
         return userManager.changePassword(userId, newRawPassword);
     }
 
-    /**
-     * Define a password inicial de um utilizador que ainda não tem password.
-     * Falha se o utilizador já tiver password definida.
-     *
-     * @param userId      ID do utilizador
-     * @param rawPassword password em texto simples
-     * @return {@code true} se definida com sucesso
-     */
-    public boolean setInitialPassword(String userId, String rawPassword) {
-        return userManager.setInitialPassword(userId, rawPassword);
-    }
-
-    /**
-     * Indica se um utilizador já tem password definida.
-     *
-     * @param userId ID do utilizador
-     * @return {@code true} se a password estiver definida
-     */
-    public boolean hasPassword(String userId) {
-        return userManager.hasPassword(userId);
-    }
-
     // -------------------------------------------------------------------------
     // Inserções Consistentes
     // -------------------------------------------------------------------------
@@ -312,19 +290,24 @@ public class StreamingDatabase {
         return genreManager.remove(genreId);
     }
 
-    public UserManager getUserManager() {
-        return userManager;
+    /**
+     * Altera o realizador de um filme e atualiza a consistência nas participações.
+     */
+    public boolean updateMovieDirector(String movieId, String newArtistId) {
+        Content content = contentManager.get(movieId);
+        Artist newDirector = artistManager.get(newArtistId);
+
+        if (content instanceof Movie && newDirector != null) {
+            Movie movie = (Movie) content;
+
+            movie.setDirector(newDirector);
+            
+            artistContentManager.addParticipation(newDirector, movie, ArtistRole.DIRECTOR, LocalDate.now());
+
+            return true;
+        }
+        return false;
     }
-
-    public ArtistManager getArtistManager() {
-        return artistManager;
-    }
-
-    public ContentBST getContentBST() {
-        return contentBST;
-    }
-
-
     public ContentManager getContentManager() {
         return contentManager;
     }
@@ -333,11 +316,4 @@ public class StreamingDatabase {
         return genreManager;
     }
 
-    public ArtistContentManager getArtistContentManager() {
-        return artistContentManager;
-    }
-
-    public FollowManager getFollowManager() {
-        return followManager;
-    }
 }

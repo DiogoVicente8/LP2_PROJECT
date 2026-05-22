@@ -1,0 +1,12 @@
+g1;Ação
+g10;Crime
+g11;Aventura
+g12;Fantasia
+g2;Drama
+g3;Comédia
+g4;Terror
+g5;Ficção Científica
+g6;Thriller
+g7;Romance
+g8;Animação
+g9;Documentário

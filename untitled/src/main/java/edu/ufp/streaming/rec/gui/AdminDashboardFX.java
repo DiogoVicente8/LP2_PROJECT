@@ -25,7 +25,7 @@ import java.util.List;
  *
  * Funcionalidades:
  * - Gerir Utilizadores (listar, criar, editar, remover, promover a admin)
- * - Gerir Conteúdos (listar, criar, editar título/rating/duração, remover)
+ * - Gerir Conteúdos (listar, criar, editar título/rating/duração/realizador, remover)
  * - Gerir Artistas (listar, criar, editar, remover)
  * - Gerir Géneros (listar, criar, remover)
  *
@@ -44,7 +44,6 @@ public class AdminDashboardFX {
     private static final String N_INPUT  = "#2A2A2A";
     private static final String N_BORDER = "#3A3A3A";
     private static final String N_GREEN  = "#46D369";
-    private static final String N_BLUE   = "#185FA5";
 
     // ── Estilos reutilizáveis ─────────────────────────────────────────────────
     private static final String FIELD =
@@ -53,10 +52,6 @@ public class AdminDashboardFX {
                     "-fx-border-radius:4;-fx-background-radius:4;-fx-padding:10 12;-fx-font-size:13px;";
 
     private static final String BTN_R =
-            "-fx-background-color:" + N_RED + ";-fx-text-fill:white;" +
-                    "-fx-font-weight:bold;-fx-background-radius:4;-fx-padding:9 18;-fx-cursor:hand;";
-
-    private static final String BTN_G =
             "-fx-background-color:" + N_RED + ";-fx-text-fill:white;" +
                     "-fx-font-weight:bold;-fx-background-radius:4;-fx-padding:9 18;-fx-cursor:hand;";
 
@@ -143,7 +138,12 @@ public class AdminDashboardFX {
                         ".scroll-pane{-fx-background-color:" + N_BG + ";-fx-background:" + N_BG + ";}" +
                         ".scroll-pane > .viewport{-fx-background-color:" + N_BG + ";}" +
                         ".scroll-bar{-fx-background-color:" + N_BG + ";}" +
-                        ".scroll-bar .thumb{-fx-background-color:" + N_BORDER + ";-fx-background-radius:4;}";
+                        ".scroll-bar .thumb{-fx-background-color:" + N_BORDER + ";-fx-background-radius:4;}" +
+                        ".combo-box .list-cell{-fx-text-fill:" + N_TEXT + ";-fx-background-color:" + N_CARD + ";}" +
+                        ".combo-box-popup .list-cell{-fx-text-fill:" + N_TEXT + ";-fx-background-color:#1A1A1A;}" +
+                        ".combo-box-popup .list-cell:hover{-fx-background-color:#3A3A3A;}" +
+                        ".combo-box .arrow-button{-fx-background-color:" + N_CARD + ";}" +
+                        ".combo-box .arrow{-fx-background-color:" + N_TEXT + ";}";
 
         Scene scene = new Scene(root, 1280, 820);
         scene.setFill(Color.TRANSPARENT);
@@ -167,7 +167,7 @@ public class AdminDashboardFX {
         bar.setPrefHeight(64);
         bar.setStyle("-fx-background-color:" + N_BG + ";-fx-border-color:" + N_BORDER + ";-fx-border-width:0 0 1 0;");
 
-        Label logo = new Label("STREAMINGAPP");
+        Label logo = new Label("STREAMING APP");
         logo.setStyle("-fx-text-fill:" + N_RED + ";-fx-font-size:22px;-fx-font-weight:bold;-fx-font-family:'Georgia';");
 
         Label adminBadge = new Label("⚙  ADMIN");
@@ -194,7 +194,11 @@ public class AdminDashboardFX {
 
         Button btnX = new Button("X");
         btnX.setStyle("-fx-background-color:transparent;-fx-text-fill:" + N_MUTED + ";-fx-font-size:14px;-fx-cursor:hand;");
-        btnX.setOnAction(e -> System.exit(0));
+        btnX.setOnAction(e -> {
+            // CORREÇÃO: Força gravação do estado no disco antes do encerramento
+            AppStateSerializer.save(db);
+            System.exit(0);
+        });
 
         bar.getChildren().addAll(logo, adminBadge, spacer, avatar, userName, btnLogout, btnX);
         return bar;
@@ -249,7 +253,6 @@ public class AdminDashboardFX {
         pane.setStyle("-fx-background-color:" + N_BG + ";");
         pane.setPadding(new Insets(20));
 
-        // Tabela
         javafx.scene.control.TableView<User> table = new javafx.scene.control.TableView<>();
         table.setStyle("-fx-background-color:" + N_CARD + ";");
         table.setColumnResizePolicy(javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY);
@@ -269,15 +272,13 @@ public class AdminDashboardFX {
         refreshUsersTab = refresh;
         refresh.run();
 
-        // Sidebar
         VBox sidebar = new VBox(16);
         sidebar.setPrefWidth(320);
         sidebar.setPadding(new Insets(0, 0, 0, 20));
 
-        // Pesquisa
         VBox searchCard = card("Pesquisar");
         TextField fSearch = field("Nome ou ID...");
-        Button bSearch = btn("Pesquisar", BTN_G), bAll = btn("Todos", BTN_S);
+        Button bSearch = btn("Pesquisar", BTN_R), bAll = btn("Todos", BTN_S);
         bSearch.setOnAction(e -> {
             String q = fSearch.getText().trim();
             if (q.isEmpty()) { refresh.run(); return; }
@@ -286,7 +287,6 @@ public class AdminDashboardFX {
         bAll.setOnAction(e -> { fSearch.clear(); refresh.run(); });
         searchCard.getChildren().add(row(fSearch, bSearch, bAll));
 
-        // Criar utilizador
         VBox createCard = card("Criar Utilizador");
         TextField cUId     = field("ID (ex: u10)");
         TextField cUName   = field("Nome completo");
@@ -295,7 +295,7 @@ public class AdminDashboardFX {
         PasswordField cUPwd = pwd("Password");
         CheckBox cUAdmin   = new CheckBox("Administrador");
         cUAdmin.setStyle("-fx-text-fill:" + N_TEXT + ";-fx-font-size:13px;");
-        Button bCreate = btn("Criar", BTN_G);
+        Button bCreate = btn("Criar", BTN_R);
         bCreate.setMaxWidth(Double.MAX_VALUE);
         bCreate.setOnAction(e -> {
             String id = cUId.getText().trim(), nome = cUName.getText().trim();
@@ -313,12 +313,11 @@ public class AdminDashboardFX {
         });
         createCard.getChildren().addAll(cUId, cUName, cUEmail, cURegion, cUPwd, cUAdmin, bCreate);
 
-        // Ações sobre selecionado
         VBox actionsCard = card("Ações sobre Selecionado");
         Button bEditName   = btn("Editar Nome",    BTN_S);
         Button bEditEmail  = btn("Editar Email",   BTN_S);
         Button bEditRegion = btn("Editar Região",  BTN_S);
-        Button bToggleAdmin = btn("Promover/Revogar Admin", BTN_G);
+        Button bToggleAdmin = btn("Promover/Revogar Admin", BTN_R);
         Button bRemove     = btn("Remover Utilizador", BTN_DANGER);
 
         bEditName.setMaxWidth(Double.MAX_VALUE);
@@ -334,7 +333,7 @@ public class AdminDashboardFX {
             if (nv == null || nv.trim().isEmpty()) return;
             db.users().editName(sel.getId(), nv.trim());
             AppStateSerializer.save(db); refresh.run();
-            snack("Nome atualizado", true);
+            snack("Nome updated", true);
         });
         bEditEmail.setOnAction(e -> {
             User sel = table.getSelectionModel().getSelectedItem();
@@ -343,7 +342,7 @@ public class AdminDashboardFX {
             if (nv == null || nv.trim().isEmpty()) return;
             db.users().editEmail(sel.getId(), nv.trim());
             AppStateSerializer.save(db); refresh.run();
-            snack("Email atualizado", true);
+            snack("Email updated", true);
         });
         bEditRegion.setOnAction(e -> {
             User sel = table.getSelectionModel().getSelectedItem();
@@ -352,7 +351,7 @@ public class AdminDashboardFX {
             if (nv == null || nv.trim().isEmpty()) return;
             db.users().editRegion(sel.getId(), nv.trim().toUpperCase());
             AppStateSerializer.save(db); refresh.run();
-            snack("Região atualizada", true);
+            snack("Região updated", true);
         });
         bToggleAdmin.setOnAction(e -> {
             User sel = table.getSelectionModel().getSelectedItem();
@@ -403,27 +402,26 @@ public class AdminDashboardFX {
         javafx.scene.control.TableColumn<Content,String> cDur   = col("Dur.(min)",d -> String.valueOf(d.getValue().getDuration()));
         javafx.scene.control.TableColumn<Content,String> cRat   = col("Rating",   d -> String.format("%.1f", d.getValue().getRating()));
         javafx.scene.control.TableColumn<Content,String> cReg   = col("Região",   d -> d.getValue().getRegion());
+        // Adicionada coluna para ver o realizador na tabela para controlo
+        javafx.scene.control.TableColumn<Content,String> cDir   = col("Realizador", d -> (d.getValue() instanceof Movie && ((Movie) d.getValue()).getDirector() != null) ? ((Movie) d.getValue()).getDirector().getName() : "—");
 
-        table.getColumns().addAll(cId, cTitle, cType, cGenre, cYear, cDur, cRat, cReg);
+        table.getColumns().addAll(cId, cTitle, cType, cGenre, cYear, cDur, cRat, cReg, cDir);
 
         Runnable refresh = () -> table.getItems().setAll(db.contents().listAll());
         refreshContentsTab = refresh;
         refresh.run();
 
-        // Sidebar
         VBox sidebar = new VBox(16);
         sidebar.setPrefWidth(340);
         sidebar.setPadding(new Insets(0, 0, 0, 20));
 
-        // Pesquisa
         VBox searchCard = card("Pesquisar");
         TextField fSearch = field("Título...");
-        Button bS = btn("Pesquisar", BTN_G), bA = btn("Todos", BTN_S);
+        Button bS = btn("Pesquisar", BTN_R), bA = btn("Todos", BTN_S);
         bS.setOnAction(e -> table.getItems().setAll(db.contents().searchByTitleSubstring(fSearch.getText().trim())));
         bA.setOnAction(e -> { fSearch.clear(); refresh.run(); });
         searchCard.getChildren().add(row(fSearch, bS, bA));
 
-        // Criar conteúdo
         VBox createCard = card("Criar Conteúdo");
         TextField cCId    = field("ID (ex: c10)");
         TextField cCTitle = field("Título");
@@ -441,10 +439,10 @@ public class AdminDashboardFX {
         cCGenre.setMaxWidth(Double.MAX_VALUE);
         cCGenre.setStyle("-fx-background-color:" + N_INPUT + ";-fx-text-fill:" + N_TEXT + ";-fx-border-color:" + N_BORDER + ";-fx-border-radius:4;");
         TextField cCDate  = field("Data lançamento (AAAA-MM-DD)");
-        TextField cCDur   = field("Duração (minutos)");
+        TextField fCDur   = field("Duração (minutos)");
         TextField cCReg   = field("Região (PT)");
 
-        Button bCreate = btn("Criar", BTN_G);
+        Button bCreate = btn("Criar", BTN_R);
         bCreate.setMaxWidth(Double.MAX_VALUE);
         bCreate.setOnAction(e -> {
             String id = cCId.getText().trim(), title = cCTitle.getText().trim();
@@ -456,7 +454,7 @@ public class AdminDashboardFX {
             try { date = LocalDate.parse(cCDate.getText().trim()); }
             catch (DateTimeParseException ex) { snack("Data inválida (usa AAAA-MM-DD)", false); return; }
             int dur;
-            try { dur = Integer.parseInt(cCDur.getText().trim()); if (dur <= 0) throw new NumberFormatException(); }
+            try { dur = Integer.parseInt(fCDur.getText().trim()); if (dur <= 0) throw new NumberFormatException(); }
             catch (NumberFormatException ex) { snack("Duração inválida", false); return; }
             Content novo = switch (cCType.getValue()) {
                 case "Série"        -> new Series(id, title, genre, date, dur, region.isEmpty() ? "PT" : region.toUpperCase(), 1);
@@ -465,20 +463,19 @@ public class AdminDashboardFX {
             };
             db.addContent(novo);
             AppStateSerializer.save(db); refresh.run();
-            cCId.clear(); cCTitle.clear(); cCDate.clear(); cCDur.clear(); cCReg.clear();
+            cCId.clear(); cCTitle.clear(); cCDate.clear(); fCDur.clear(); cCReg.clear();
             snack("Conteúdo '" + title + "' criado", true);
         });
-        createCard.getChildren().addAll(cCId, cCTitle, cCType, cCGenre, cCDate, cCDur, cCReg, bCreate);
+        createCard.getChildren().addAll(cCId, cCTitle, cCType, cCGenre, cCDate, fCDur, cCReg, bCreate);
 
-        // Ações Import/Export
         VBox syncCard = card("Sincronização de Dados");
         Button bImportTxt = btn("Importar TXT", BTN_S);
-        Button bExportTxt = btn("Exportar TXT", BTN_S); // <-- Botão Novo!
+        Button bExportTxt = btn("Exportar TXT", BTN_S);
         Button bExportBin = btn("Exportar Binário", BTN_S);
         Button bImportBin = btn("Importar Binário", BTN_S);
 
         bImportTxt.setMaxWidth(Double.MAX_VALUE);
-        bExportTxt.setMaxWidth(Double.MAX_VALUE); // <-- Nova linha
+        bExportTxt.setMaxWidth(Double.MAX_VALUE);
         bExportBin.setMaxWidth(Double.MAX_VALUE);
         bImportBin.setMaxWidth(Double.MAX_VALUE);
 
@@ -495,13 +492,11 @@ public class AdminDashboardFX {
             });
         });
 
-        // <-- NOVA LÓGICA DE EXPORTAR TXT -->
         bExportTxt.setOnAction(e -> {
             ContentFileManager.exportGenres(db.genres(), "generos_exportados.txt");
             ContentFileManager.exportContents(db.contents(), "conteudos_exportados.txt");
             snack("Dados exportados para TXT com sucesso!", true);
         });
-        // <--------------------------------->
 
         bExportBin.setOnAction(e -> {
             ContentSerializer.exportGenres(db.genres(), "generos.bin");
@@ -520,13 +515,15 @@ public class AdminDashboardFX {
 
         syncCard.getChildren().addAll(bImportTxt, bExportTxt, bExportBin, bImportBin);
 
-        // Ações
         VBox actCard = card("Ações sobre Selecionado");
         Button bEditTitle  = btn("Editar Título",    BTN_S);
         Button bEditDur    = btn("Editar Duração",   BTN_S);
         Button bEditRegion = btn("Editar Região",    BTN_S);
+        Button bEditSeasons     = btn("Editar Temporadas", BTN_S);
+        Button bManageEpisodes  = btn("Gerir Episódios",   BTN_S);
+        Button bAddCast = btn("Adicionar Elenco/Equipa", BTN_S);
         Button bRemove     = btn("Remover Conteúdo", BTN_DANGER);
-        for (Button b : List.of(bEditTitle, bEditDur, bEditRegion, bRemove)) b.setMaxWidth(Double.MAX_VALUE);
+        for (Button b : List.of(bEditTitle, bEditDur, bEditRegion, bAddCast, bRemove)) b.setMaxWidth(Double.MAX_VALUE);
 
         bEditTitle.setOnAction(e -> {
             Content sel = table.getSelectionModel().getSelectedItem();
@@ -558,6 +555,261 @@ public class AdminDashboardFX {
             AppStateSerializer.save(db); refresh.run();
             snack("Região atualizada", true);
         });
+
+        // ── LÓGICA DE GESTÃO DE EPISÓDIOS (UTILIZA GETEPISODES, ADDEPISODE, REMOVEEPISODE) ──
+        bManageEpisodes.setOnAction(e -> {
+            Content sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) { snack("Seleciona um conteúdo primeiro", false); return; }
+
+            // Validação: Só podemos gerir episódios se for de facto uma Série!
+            if (!(sel instanceof Series)) {
+                snack("Apenas séries possuem episódios", false);
+                return;
+            }
+
+            Series serie = (Series) sel;
+
+            // 1. Criar janela (Stage) flutuante com fundo escuro e borda dourada
+            Stage popup = new Stage();
+            popup.initStyle(StageStyle.TRANSPARENT);
+            popup.initOwner(table.getScene().getWindow());
+
+            Label lblHeader = new Label("Gerir Episódios de: " + serie.getTitle());
+            lblHeader.setStyle("-fx-text-fill: #F5A623; -fx-font-size: 14px; -fx-font-weight: bold;");
+
+            // 2. Lista Visual (ListView) para mostrar os episódios atuais
+            ListView<String> listEpisodes = new ListView<>();
+            listEpisodes.setPrefHeight(150);
+            listEpisodes.setStyle("-fx-background-color: " + N_INPUT + "; -fx-control-inner-background: " + N_INPUT + ";");
+
+            // USO DO MÉTODO: getEpisodes() para preencher a lista gráfica
+            if (serie.getEpisodes() != null) {
+                listEpisodes.getItems().setAll(serie.getEpisodes());
+            }
+
+            // Força a cor do texto dentro da ListView a ficar visível (branco)
+            listEpisodes.setCellFactory(lv -> new ListCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) { setText(null); setStyle(""); }
+                    else { setText(item); setStyle("-fx-text-fill: white; -fx-background-color: " + N_INPUT + ";"); }
+                }
+            });
+
+            // 3. Campo de Entrada claro para digitar o novo episódio
+            TextField fEpisodeName = new TextField();
+            fEpisodeName.setPromptText("Nome do Episódio (ex: S01E01 - Piloto)");
+            fEpisodeName.setStyle(
+                    "-fx-background-color: #E0E0E0; -fx-text-fill: #000000; -fx-prompt-text-fill: #666666;" +
+                            "-fx-border-color: " + N_BORDER + "; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8 10;"
+            );
+
+            // 4. Botões internos de manipulação
+            Button btnAdd = new Button("Adicionar Episódio");
+            btnAdd.setStyle("-fx-background-color: " + N_RED+ "; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
+            btnAdd.setMaxWidth(Double.MAX_VALUE);
+
+            btnAdd.setOnAction(ev -> {
+                String epName = fEpisodeName.getText().trim();
+                if (epName.isEmpty()) { snack("Digita um nome para o episódio", false); return; }
+
+                // USO DO MÉTODO: addEpisode()
+                serie.addEpisode(epName);
+
+                // Atualiza a lista visual e limpa o campo
+                listEpisodes.getItems().setAll(serie.getEpisodes());
+                fEpisodeName.clear();
+                AppStateSerializer.save(db);
+                snack("Episódio adicionado", true);
+            });
+
+            Button btnRemoveEp = new Button("Remover Selecionado");
+            btnRemoveEp.setStyle("-fx-background-color: transparent; -fx-text-fill: #FF5252; -fx-border-color: #FF5252; -fx-border-radius: 4; -fx-cursor: hand;");
+            btnRemoveEp.setMaxWidth(Double.MAX_VALUE);
+
+            btnRemoveEp.setOnAction(ev -> {
+                String selectedEp = listEpisodes.getSelectionModel().getSelectedItem();
+                if (selectedEp == null) { snack("Seleciona um episódio da lista para remover", false); return; }
+
+                // USO DO MÉTODO: removeEpisode()
+                serie.removeEpisode(selectedEp);
+
+                // Atualiza a lista visual
+                listEpisodes.getItems().setAll(serie.getEpisodes());
+                AppStateSerializer.save(db);
+                snack("Episódio removido", true);
+            });
+
+            Button btnClose = new Button("Fechar");
+            btnClose.setStyle("-fx-background-color: " + N_CARD2 + "; -fx-text-fill: " + N_TEXT + "; -fx-cursor: hand;");
+            btnClose.setMaxWidth(Double.MAX_VALUE);
+            btnClose.setOnAction(ev -> popup.close());
+
+            // 5. Montar o Layout Customizado
+            VBox boxLayout = new VBox(10, lblHeader, new Separator(), listEpisodes, btnRemoveEp, new Separator(), fEpisodeName, btnAdd, btnClose);
+            boxLayout.setPadding(new Insets(15));
+            boxLayout.setStyle(
+                    "-fx-background-color: " + N_BG + "; -fx-border-color: " + N_GOLD + ";" +
+                            "-fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8;"
+            );
+
+            Scene popupScene = new Scene(boxLayout, 360, 420);
+            popupScene.setFill(Color.TRANSPARENT);
+            popup.setScene(popupScene);
+            popup.centerOnScreen();
+            popup.show();
+        });
+
+
+        bEditSeasons.setOnAction(e -> {
+            Content sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) { snack("Seleciona um conteúdo primeiro", false); return; }
+
+            // Validação crucial: Só podemos alterar temporadas se o conteúdo for uma Série!
+            if (!(sel instanceof Series)) {
+                snack("Apenas séries possuem o campo de temporadas", false);
+                return;
+            }
+
+            Series serie = (Series) sel;
+            String nv = askInput("Novo número de temporadas:", String.valueOf(serie.getSeasons()));
+            if (nv == null) return; // Se clicou em cancelar, não faz nada
+
+            try {
+                int novasTemporadas = Integer.parseInt(nv.trim());
+                if (novasTemporadas <= 0) {
+                    snack("O número de temporadas deve ser maior que zero", false);
+                    return;
+                }
+
+                // UTILIZAÇÃO DA FUNÇÃO DA CLASSE SERIES:
+                serie.setSeasons(novasTemporadas);
+
+                // Grava a alteração de imediato no ficheiro de persistência e atualiza a tabela
+                AppStateSerializer.save(db);
+                refresh.run();
+                snack("Número de temporadas atualizado com sucesso!", true);
+
+            } catch (NumberFormatException ex) {
+                snack("Valor numérico inválido", false);
+            }
+        });
+        // ─────────────────────────────────────────────────────────────────────
+
+        // ── LÓGICA DO BOTÃO COM CAIXAS DE TEXTO MAIS CLARAS E LEGÍVEIS ──
+        bAddCast.setOnAction(e -> {
+            Content sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) { snack("Seleciona um conteúdo primeiro", false); return; }
+
+            // 1. Criar uma nova janela (Stage) flutuante personalizada
+            Stage popup = new Stage();
+            popup.initStyle(StageStyle.TRANSPARENT);
+            popup.initOwner(table.getScene().getWindow());
+
+            // 2. Criar os componentes com cores forçadas
+            Label lblHeader = new Label("Associa um artista a: " + sel.getTitle());
+            lblHeader.setStyle("-fx-text-fill: #F5A623; -fx-font-size: 14px; -fx-font-weight: bold;");
+
+            Label lblId = new Label("ID do Artista:");
+            lblId.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+            // CORREÇÃO: Caixa de texto com fundo muito mais claro e texto preto bem visível
+            TextField fArtistId = new TextField();
+            fArtistId.setPromptText("ID do Artista (ex: a1)");
+            fArtistId.setStyle(
+                    "-fx-background-color: #E0E0E0;" +    // Fundo cinza claro para destacar do fundo preto
+                            "-fx-text-fill: #000000;" +           // Letra preta pura quando escreves
+                            "-fx-prompt-text-fill: #666666;" +     // Letra de exemplo em cinza escuro
+                            "-fx-border-color: " + N_BORDER + ";" +
+                            "-fx-border-radius: 4;" +
+                            "-fx-background-radius: 4;" +
+                            "-fx-padding: 10 12;" +
+                            "-fx-font-size: 13px;"
+            );
+
+            Label lblRole = new Label("Função no Conteúdo:");
+            lblRole.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+            // CORREÇÃO: ComboBox com fundo claro e texto bem legível
+            ComboBox<ArtistRole> comboRole = new ComboBox<>();
+            comboRole.getItems().addAll(ArtistRole.values());
+            comboRole.setValue(ArtistRole.ACTOR);
+            comboRole.setMaxWidth(Double.MAX_VALUE);
+            comboRole.setStyle(
+                    "-fx-background-color: #E0E0E0;" +    // Fundo cinza claro
+                            "-fx-text-fill: #000000;" +           // Texto selecionado a preto
+                            "-fx-border-color: " + N_BORDER + ";" +
+                            "-fx-border-radius: 4;" +
+                            "-fx-background-radius: 4;" +
+                            "-fx-padding: 5;"
+            );
+
+            // Garante que os elementos dentro da lista da ComboBox também têm texto legível
+            comboRole.setCellFactory(lv -> new ListCell<>() {
+                @Override
+                protected void updateItem(ArtistRole item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                    } else {
+                        setText(item.toString());
+                        setStyle("-fx-text-fill: #000000; -fx-background-color: #E0E0E0;");
+                    }
+                }
+            });
+
+            // 3. Botões de Ação (Mantidos como querias)
+            Button btnConfirm = new Button("Confirmar");
+            btnConfirm.setStyle("-fx-background-color: " + N_RED + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16; -fx-cursor: hand;");
+            btnConfirm.setMaxWidth(Double.MAX_VALUE);
+
+            Button btnCancelCustom = new Button("Cancelar");
+            btnCancelCustom.setStyle("-fx-background-color: " + N_INPUT + "; -fx-text-fill: " + N_TEXT + "; -fx-padding: 8 16; -fx-cursor: hand;");
+            btnCancelCustom.setMaxWidth(Double.MAX_VALUE);
+
+            // Ação do botão Cancelar
+            btnCancelCustom.setOnAction(ev -> popup.close());
+
+            // Ação do botão Confirmar
+            btnConfirm.setOnAction(ev -> {
+                String idArt = fArtistId.getText().trim();
+                ArtistRole papel = comboRole.getValue();
+
+                if (idArt.isEmpty()) { snack("O ID do artista é obrigatório", false); return; }
+
+                Artist artista = db.artists().get(idArt);
+                if (artista == null) { snack("Artista com o ID '" + idArt + "' não existe", false); return; }
+
+                if (sel instanceof Movie && papel == ArtistRole.DIRECTOR) {
+                    ((Movie) sel).setDirector(artista);
+                }
+
+                db.participations().addParticipation(artista, sel, papel, LocalDate.now());
+                AppStateSerializer.save(db);
+                refresh.run();
+                popup.close();
+                snack(artista.getName() + " adicionado como " + papel + " com sucesso!", true);
+            });
+
+            // 4. Montar o Layout (Fundo geral preto com a borda de ouro que gostas)
+            VBox boxLayout = new VBox(12, lblHeader, new Separator(), lblId, fArtistId, lblRole, comboRole, new Region(), btnConfirm, btnCancelCustom);
+            boxLayout.setPadding(new Insets(20));
+            boxLayout.setStyle(
+                    "-fx-background-color: " + N_BG + ";" +
+                            "-fx-border-color: " + N_GOLD + ";" +
+                            "-fx-border-width: 2;" +
+                            "-fx-border-radius: 8;" +
+                            "-fx-background-radius: 8;"
+            );
+
+            // 5. Exibir a Janela
+            Scene popupScene = new Scene(boxLayout, 340, 320);
+            popupScene.setFill(Color.TRANSPARENT);
+            popup.setScene(popupScene);
+            popup.centerOnScreen();
+            popup.show();
+        });
         bRemove.setOnAction(e -> {
             Content sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) { snack("Seleciona um conteúdo", false); return; }
@@ -566,7 +818,7 @@ public class AdminDashboardFX {
             AppStateSerializer.save(db); refresh.run();
             snack("Conteúdo removido", true);
         });
-        actCard.getChildren().addAll(bEditTitle, bEditDur, bEditRegion, bRemove);
+        actCard.getChildren().addAll(bEditTitle, bEditDur, bEditRegion, bAddCast, bRemove,bManageEpisodes, bEditSeasons);
 
         sidebar.getChildren().addAll(searchCard, createCard, syncCard, actCard);
         pane.setCenter(table);
@@ -602,14 +854,13 @@ public class AdminDashboardFX {
         refreshArtistsTab = refresh;
         refresh.run();
 
-        // Sidebar
         VBox sidebar = new VBox(16);
         sidebar.setPrefWidth(320);
         sidebar.setPadding(new Insets(0, 0, 0, 20));
 
         VBox searchCard = card("Pesquisar");
         TextField fSearch = field("Nome...");
-        Button bS = btn("Pesquisar", BTN_G), bA = btn("Todos", BTN_S);
+        Button bS = btn("Pesquisar", BTN_R), bA = btn("Todos", BTN_S);
         bS.setOnAction(e -> table.getItems().setAll(db.artists().searchByNameSubstring(fSearch.getText().trim())));
         bA.setOnAction(e -> { fSearch.clear(); refresh.run(); });
         searchCard.getChildren().add(row(fSearch, bS, bA));
@@ -630,7 +881,7 @@ public class AdminDashboardFX {
         cARole.setMaxWidth(Double.MAX_VALUE);
         TextField cADate = field("Data nasc. (AAAA-MM-DD)");
 
-        Button bCreate = btn("Criar", BTN_G);
+        Button bCreate = btn("Criar", BTN_R);
         bCreate.setMaxWidth(Double.MAX_VALUE);
         bCreate.setOnAction(e -> {
             String id = cAId.getText().trim(), nome = cAName.getText().trim(), nat = cANat.getText().trim();
@@ -719,7 +970,7 @@ public class AdminDashboardFX {
         VBox createCard = card("Criar Género");
         TextField cGId   = field("ID (ex: g10)");
         TextField cGName = field("Nome do género");
-        Button bCreate = btn("Criar", BTN_G);
+        Button bCreate = btn("Criar", BTN_R);
         bCreate.setMaxWidth(Double.MAX_VALUE);
         bCreate.setOnAction(e -> {
             String id = cGId.getText().trim(), nome = cGName.getText().trim();

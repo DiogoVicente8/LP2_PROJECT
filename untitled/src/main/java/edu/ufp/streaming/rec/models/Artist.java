@@ -122,16 +122,6 @@ public class Artist implements Serializable {
   }
 
   /**
-   * Retorna a lista de participações do artista (alias para {@link #getFilmography()}).
-   *
-   * @return lista mutável de {@link ArtistContent}
-   */
-  public List<ArtistContent> getParticipates() {
-    if (participates == null) participates = new ArrayList<>();
-    return participates;
-  }
-
-  /**
    * Define o ID único do artista.
    *
    * @param id nova string de ID
@@ -153,34 +143,6 @@ public class Artist implements Serializable {
   public void setNationality(String nationality) { this.nationality = nationality; }
 
   /**
-   * Atualiza o género do artista.
-   *
-   * @param gender nova string de género
-   */
-  public void setGender(String gender) { this.gender = gender; }
-
-  /**
-   * Atualiza a data de nascimento do artista.
-   *
-   * @param birthDate nova data de nascimento
-   */
-  public void setBirthDate(LocalDate birthDate) { this.birthDate = birthDate; }
-
-  /**
-   * Atualiza a função principal do artista.
-   *
-   * @param role nova {@link ArtistRole}
-   */
-  public void setRole(ArtistRole role) { this.role = role; }
-
-  /**
-   * Substitui a lista de participações do artista.
-   *
-   * @param participates nova lista de {@link ArtistContent}
-   */
-  public void setParticipates(List<ArtistContent> participates) { this.participates = participates; }
-
-  /**
    * Adiciona uma participação em conteúdo à filmografia deste artista.
    * Também é chamado automaticamente pelo {@link edu.ufp.streaming.rec.managers.ArtistContentManager}
    * quando uma nova participação é registada.
@@ -188,8 +150,9 @@ public class Artist implements Serializable {
    * @param ac a associação {@link ArtistContent} a adicionar
    */
   public void addParticipation(ArtistContent ac) {
+    if (ac == null) return;
     if (participates == null) participates = new ArrayList<>();
-    this.participates.add(ac);
+    if (!participates.contains(ac)) participates.add(ac);
   }
 
   @Override

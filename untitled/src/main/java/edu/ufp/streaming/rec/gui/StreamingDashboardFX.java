@@ -1,6 +1,5 @@
 package edu.ufp.streaming.rec.gui;
 
-import edu.ufp.streaming.rec.enums.ArtistRole;
 import edu.ufp.streaming.rec.enums.InterationType;
 import edu.ufp.streaming.rec.managers.AppStateSerializer;
 import edu.ufp.streaming.rec.managers.StreamingDatabase;
@@ -17,13 +16,11 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 public class StreamingDashboardFX {
 
-    // ── Netflix palette ───────────────────────────────────────────────────
     private static final String N_BG     = "#141414";
     private static final String N_CARD   = "#1F1F1F";
     private static final String N_CARD2  = "#2A2A2A";
@@ -77,13 +74,41 @@ public class StreamingDashboardFX {
     }
 
     private void addInteractionAndRefresh(Interation interaction) {
+        if (interaction == null) return;
+
+        // 1. Regista centralizadamente na Base de Dados
         db.addInteraction(interaction);
+
+        // 2. Sincroniza o utilizador da sessão (loggedUser)
+        boolean AlreadyExists = false;
+        for (Interation i : loggedUser.getInteractions()) {
+            if (i.getId() != null && i.getId().equals(interaction.getId())) {
+                AlreadyExists = true;
+                break;
+            }
+        }
+        if (!AlreadyExists) {
+            loggedUser.getInteractions().add(interaction);
+        }
+
+        // 3. Atualiza a tabela do histórico e força a gravação no disco
+        interactionsList.setAll(loggedUser.getInteractions());
+        AppStateSerializer.save(db);
+
+        // 4. Executa os refreshes visuais da GUI
+        if (refreshStats != null) refreshStats.run();
+        refreshAllData();
+    }
+
+    // Método auxiliar para reverter/remover interações desativadas (ex: desmarcar bookmark)
+    private void removeInteractionAndRefresh(Content c, InterationType type) {
+        loggedUser.getInteractions().removeIf(i -> i.getContent().getId().equals(c.getId()) && i.getType() == type);
         interactionsList.setAll(loggedUser.getInteractions());
         AppStateSerializer.save(db);
         if (refreshStats != null) refreshStats.run();
+        refreshAllData();
     }
 
-    // --- REPOSTO: O nosso método mágico para atualizar tudo ---
     private void refreshAllData() {
         if (refreshUsersTab != null) refreshUsersTab.run();
         if (refreshContentsTab != null) refreshContentsTab.run();
@@ -162,7 +187,7 @@ public class StreamingDashboardFX {
         bar.setPrefHeight(64);
         bar.setStyle("-fx-background-color:" + N_BG + ";-fx-border-color:" + N_BORDER + ";-fx-border-width:0 0 1 0;");
 
-        Label logo = new Label("STREAMINGAPP");
+        Label logo = new Label("STREAMING APP");
         logo.setStyle("-fx-text-fill:" + N_RED + ";-fx-font-size:22px;-fx-font-weight:bold;-fx-font-family:'Georgia';");
 
         Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -187,7 +212,11 @@ public class StreamingDashboardFX {
 
         Button btnX = new Button("X");
         btnX.setStyle("-fx-background-color:transparent;-fx-text-fill:"+N_MUTED+";-fx-font-size:14px;-fx-cursor:hand;");
-        btnX.setOnAction(e -> System.exit(0));
+        btnX.setOnAction(e -> {
+            // CORREÇÃO: Força gravação de última hora do estado antes de desligar pelo "X"
+            AppStateSerializer.save(db);
+            System.exit(0);
+        });
 
         bar.getChildren().addAll(logo, spacer, avatar, userName, btnLogout, btnX);
         return bar;
@@ -242,7 +271,7 @@ public class StreamingDashboardFX {
                     userList.getChildren().add(buildUserCard(u, sel, rl));
         };
 
-        this.refreshUsersTab = rl[0]; // REPOSTO
+        this.refreshUsersTab = rl[0];
         rl[0].run();
 
         VBox sidebar = new VBox(16);
@@ -315,7 +344,7 @@ public class StreamingDashboardFX {
                 if (segueAgora) { db.follows().unfollow(loggedUser.getId(),u.getId()); snack("Deixaste de seguir "+u.getName(),true); }
                 else { db.addFollow(loggedUser.getId(),u.getId()); snack("Passaste a seguir "+u.getName(),true); }
                 if (refreshStats != null) refreshStats.run();
-                refreshAllData(); // REPOSTO: atualiza followers cards
+                refreshAllData();
             });
         }
 
@@ -368,7 +397,7 @@ public class StreamingDashboardFX {
                     .forEach(c -> grid.getChildren().add(buildContentCard(c, rl)));
         };
 
-        this.refreshContentsTab = rl[0]; // REPOSTO
+        this.refreshContentsTab = rl[0];
         rl[0].run();
 
         fSearch.textProperty().addListener((o, old, nv) -> rl[0].run());
@@ -393,6 +422,68 @@ public class StreamingDashboardFX {
         card.setPrefWidth(210);
         card.setMaxWidth(210);
         card.setStyle("-fx-background-color:" + N_CARD + ";-fx-background-radius:8;-fx-border-color:" + N_BORDER + ";-fx-border-radius:8;-fx-cursor:default;");
+
+        // ─── TOOLTIP CONFIGURAÇÃO ─────────────────────────────────────────────
+        StringBuilder detalhes = new StringBuilder();
+        detalhes.append("Título: ").append(c.getTitle()).append("\n");
+        detalhes.append("Género: ").append(c.getGenre().getName()).append("\n");
+        detalhes.append("Lançamento: ").append(c.getReleaseDate()).append("\n");
+        detalhes.append("Duração: ").append(c.getDuration()).append(" min\n");
+        detalhes.append("Região: ").append(c.getRegion()).append("\n");
+        detalhes.append("Classificação: ").append(String.format("%.1f/5.0 *", c.getRating())).append("\n");
+
+
+        if (c instanceof Movie) {
+            Movie m = (Movie) c;
+            if (m.getDirector() != null) {
+                detalhes.append("Realizador (Direto): ").append(m.getDirector().getName()).append("\n");
+            }
+        }
+
+        if (c instanceof Series) {
+            Series s =(Series) c;
+            detalhes.append("Temporadas: ").append(s.getSeasons()).append("\n");
+            detalhes.append("Lista de Episódios: ");
+            if (s.getEpisodes() !=null && !s.getEpisodes().isEmpty()){
+                for(String ep : s.getEpisodes()){
+                    detalhes.append("  - ").append(ep).append("\n");
+                }
+            }else {
+                detalhes.append("  (Sem episódios registados)\n");
+                }
+        }
+
+        detalhes.append("\nElenco e Participações:\n");
+
+        boolean encontrouParticipantes = false;
+        if (db.participations() != null) {
+            for (ArtistContent ac : db.participations().listAll()) {
+                if (ac.getContent().getId().equals(c.getId())) {
+                    detalhes.append("  • ").append(ac.getArtist().getName())
+                            .append(" (").append(ac.getRole()).append(")\n");
+                    encontrouParticipantes = true;
+                }
+            }
+        }
+
+        if (!encontrouParticipantes) {
+            detalhes.append("  (Sem registo de participantes no sistema)\n");
+        }
+
+        Tooltip tooltip = new Tooltip(detalhes.toString());
+        tooltip.setStyle(
+                "-fx-background-color: " + N_CARD2 + "; " +
+                        "-fx-text-fill: " + N_TEXT + "; " +
+                        "-fx-font-family: 'monospace'; " +
+                        "-fx-font-size: 12px; " +
+                        "-fx-border-color: " + N_RED + "; " +
+                        "-fx-border-radius: 4; " +
+                        "-fx-background-radius: 4; " +
+                        "-fx-padding: 10px;"
+        );
+        tooltip.setShowDelay(javafx.util.Duration.millis(200));
+        Tooltip.install(card, tooltip);
+        // ──────────────────────────────────────────────────────────────────────
 
         StackPane thumb = new StackPane();
         thumb.setPrefHeight(120);
@@ -460,8 +551,24 @@ public class StreamingDashboardFX {
         paintStars.run();
 
         Button bBk = actionBtn("+ SAVE",  "#2A2A2A",     N_MUTED, N_BORDER);
-        Button bWt = actionBtn("WATCHED", N_RED,          "white",  N_RED);
+        Button bWt = actionBtn("WATCH", N_RED,          "white",  N_RED);
         Button bSk = actionBtn("SKIP",    "transparent",  N_MUTED, N_BORDER);
+
+        // Inicializa botões de acordo com o estado do histórico atual carregado
+        for (Interation i : loggedUser.getInteractions()) {
+            if (i.getContent().getId().equals(c.getId())) {
+                if (i.getType() == InterationType.BOOKMARK) {
+                    bBk.setText("SAVED");
+                    bBk.setStyle(actionStyle("#1a2a1a", N_GREEN, N_GREEN));
+                } else if (i.getType() == InterationType.WATCH) {
+                    bWt.setText("VISTO");
+                    bWt.setStyle(actionStyle("#831010", "white", "#831010"));
+                } else if (i.getType() == InterationType.SKIP) {
+                    bSk.setText("SKIPPED");
+                    bSk.setStyle(actionStyle("#1a1a2a", "#8888FF", "#555555"));
+                }
+            }
+        }
 
         bBk.setOnAction(e -> {
             boolean on = "SAVED".equals(bBk.getText());
@@ -472,6 +579,8 @@ public class StreamingDashboardFX {
                 bBk.setStyle(actionStyle("#1a2a1a", N_GREEN, N_GREEN));
                 snack("\"" + c.getTitle() + "\" guardado", true);
             } else {
+                // CORREÇÃO: Remove a interação de bookmark se clicar para desativar
+                removeInteractionAndRefresh(c, InterationType.BOOKMARK);
                 bBk.setText("+ SAVE");
                 bBk.setStyle(actionStyle("#2A2A2A", N_MUTED, N_BORDER));
             }
@@ -481,13 +590,26 @@ public class StreamingDashboardFX {
             boolean on = "VISTO".equals(bWt.getText());
             if (!on) {
                 String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
+
+                // ─── AQUI ADICIONAS A SIMULAÇÃO DE REPRODUÇÃO ───
+                if (c instanceof Movie) {
+                    ((Movie) c).play();
+                }
+                // ───────────────────────────────────────────────
+
                 addInteractionAndRefresh(new Interation(loggedUser, c, LocalDateTime.now(), 0, 1.0, InterationType.WATCH, iId));
                 bWt.setText("VISTO");
                 bWt.setStyle(actionStyle("#831010", "white", "#831010"));
-                bSk.setText("SKIP");
-                bSk.setStyle(actionStyle("transparent", N_MUTED, N_BORDER));
+
+                // Limpa o botão skip se estivesse ativo
+                if ("SKIPPED".equals(bSk.getText())) {
+                    removeInteractionAndRefresh(c, InterationType.SKIP);
+                    bSk.setText("SKIP");
+                    bSk.setStyle(actionStyle("transparent", N_MUTED, N_BORDER));
+                }
                 snack("\"" + c.getTitle() + "\" marcado como visto", true);
             } else {
+                removeInteractionAndRefresh(c, InterationType.WATCH);
                 bWt.setText("WATCHED");
                 bWt.setStyle(actionStyle(N_RED, "white", N_RED));
             }
@@ -500,10 +622,17 @@ public class StreamingDashboardFX {
                 addInteractionAndRefresh(new Interation(loggedUser, c, LocalDateTime.now(), 0, 0.0, InterationType.SKIP, iId));
                 bSk.setText("SKIPPED");
                 bSk.setStyle(actionStyle("#1a1a2a", "#8888FF", "#555555"));
-                bWt.setText("WATCHED");
-                bWt.setStyle(actionStyle(N_RED, "white", N_RED));
+
+                // Limpa o botão watched se estivesse ativo
+                if ("VISTO".equals(bWt.getText())) {
+                    removeInteractionAndRefresh(c, InterationType.WATCH);
+                    bWt.setText("WATCH");
+                    bWt.setStyle(actionStyle(N_RED, "white", N_RED));
+                }
                 snack("\"" + c.getTitle() + "\" marcado para skip", true);
             } else {
+                // CORREÇÃO: Remove se desmarcar skip
+                removeInteractionAndRefresh(c, InterationType.SKIP);
                 bSk.setText("SKIP");
                 bSk.setStyle(actionStyle("transparent", N_MUTED, N_BORDER));
             }
@@ -576,7 +705,7 @@ public class StreamingDashboardFX {
                     .forEach(a -> grid.getChildren().add(buildArtistCard(a, rl)));
         };
 
-        this.refreshArtistsTab = rl[0]; // REPOSTO
+        this.refreshArtistsTab = rl[0];
         rl[0].run();
 
         fSearch.textProperty().addListener((o, old, nv) -> rl[0].run());
@@ -783,7 +912,7 @@ public class StreamingDashboardFX {
             if(segs.isEmpty()){Label el=new Label("Sem seguidores ainda.");el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");fCard2.getChildren().add(el);}
             else for(User u1:segs) fCard2.getChildren().add(userChip(u1));
         };
-        this.refreshHeroProfile = refreshHero; // REPOSTO
+        this.refreshHeroProfile = refreshHero;
 
         refreshStats = () -> {
             int tw  = (int) loggedUser.getInteractions().stream().filter(i->i.getType()==InterationType.WATCH).count();
@@ -930,4 +1059,3 @@ public class StreamingDashboardFX {
     private void    showAlert(Alert.AlertType t, String title, String msg) { Alert a=new Alert(t); a.setTitle(title); a.setHeaderText(null); a.setContentText(msg); a.showAndWait(); }
     private String  askInput(String h, String d)  { TextInputDialog td=new TextInputDialog(d); td.setTitle("Editar"); td.setHeaderText(h); return td.showAndWait().orElse(null); }
 }
-
