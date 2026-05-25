@@ -12,10 +12,9 @@ import java.time.LocalDate;
  *
  * Exemplo de uso no Main ou AppStateSerializer:
  *
- * StreamingDatabase db = new StreamingDatabase();
- * SeedData.populate(db);        // ← adiciona seed
- * AppStateSerializer.load(db);  // ← carrega saves por cima (sem duplicar)
- * * @author Diogo Vicente
+ *   StreamingDatabase db = new StreamingDatabase();
+ *   SeedData.populate(db);        // ← adiciona seed
+ *   AppStateSerializer.load(db);  // ← carrega saves por cima (sem duplicar)
  */
 public class SeedData {
 
@@ -31,15 +30,45 @@ public class SeedData {
     // UTILIZADORES  (2 normais + 1 admin)
     // =========================================================================
     private static void addUsers(StreamingDatabase db) {
-        User u1 = new User("u1", "Alice Silva",    "alice@mail.com",        "PT", LocalDate.of(2020, 1, 10), "alice123");
-        User u2 = new User("u2", "Bruno Costa",    "bruno@mail.com",        "PT", LocalDate.of(2020, 3, 15), "bruno123");
-        User adm = new User("admin", "Administrador", "admin@streaming.com", "PT", LocalDate.of(2020, 1,  1), "admin123");
+        // Administrador do Sistema
+        User adm = new User("admin", "Administrador", "admin@streaming.com", "PT", java.time.LocalDate.of(2020, 1, 1), "admin123");
         adm.setAdmin(true);
-
-        db.addUser(u1);
-        db.addUser(u2);
         db.addUser(adm);
-        db.addFollow("u1", "u2"); // Alice segue o Bruno
+
+        // 20 Utilizadores de Teste com IDs estilo Username
+        db.addUser(new User("rui_pereira", "Rui Pereira", "rui_pereira@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 20), "rui123"));
+        db.addUser(new User("sofia46", "Sofia Fernandes", "sofia.fernandes@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 24), "sofia123"));
+        db.addUser(new User("mendes.joao", "João Mendes", "mendes.joao@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 19), "joao123"));
+        db.addUser(new User("user_beatriz", "Beatriz Santos", "user_beatriz@gmail.com", "BR", java.time.LocalDate.of(2026, 5, 23), "beatriz123"));
+        db.addUser(new User("tiago_oliveira", "Tiago Oliveira", "tiago_oliveira@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 21), "tiago123"));
+        db.addUser(new User("matilde97", "Matilde Gomes", "matilde.gomes@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 18), "matilde123"));
+        db.addUser(new User("rodrigues.miguel", "Miguel Rodrigues", "rodrigues.miguel@gmail.com", "UK", java.time.LocalDate.of(2026, 5, 23), "miguel123"));
+        db.addUser(new User("user_ines", "Inês Almeida", "user_ines@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 22), "ines123"));
+        db.addUser(new User("diogo_martins", "Diogo Martins", "diogo_martins@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 12), "diogo123"));
+        db.addUser(new User("claudia51", "Cláudia Carvalho", "claudia.carvalho@gmail.com", "BR", java.time.LocalDate.of(2026, 5, 24), "claudia123"));
+        db.addUser(new User("silva.pedro", "Pedro Silva", "silva.pedro@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 24), "pedro123"));
+        db.addUser(new User("user_ana", "Ana Costa", "user_ana@gmail.com", "US", java.time.LocalDate.of(2026, 5, 17), "ana123"));
+        db.addUser(new User("lucas_ribeiro", "Lucas Ribeiro", "lucas_ribeiro@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 24), "lucas123"));
+        db.addUser(new User("mariana53", "Mariana Pinto", "mariana.pinto@gmail.com", "BR", java.time.LocalDate.of(2026, 5, 16), "mariana123"));
+        db.addUser(new User("teixeira.ricardo", "Ricardo Teixeira", "teixeira.ricardo@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 16), "ricardo123"));
+        db.addUser(new User("user_sara", "Sara Sousa", "user_sara@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 14), "sara123"));
+        db.addUser(new User("andre_moreira", "André Moreira", "andre_moreira@gmail.com", "FR", java.time.LocalDate.of(2026, 5, 22), "andre123"));
+        db.addUser(new User("catarina14", "Catarina Vieira", "catarina.vieira@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 20), "catarina123"));
+        db.addUser(new User("coelho.vasco", "Vasco Coelho", "coelho.vasco@gmail.com", "ES", java.time.LocalDate.of(2026, 5, 12), "vasco123"));
+        db.addUser(new User("user_leonor", "Leonor Marques", "user_leonor@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 20), "leonor123"));
+
+        // ─── Criação de uma teia de seguidores inicial (Follow Graph) ───
+        db.addFollow("rui_pereira", "sofia46");
+        db.addFollow("rui_pereira", "mendes.joao");
+        db.addFollow("sofia46", "mendes.joao");
+        db.addFollow("mendes.joao", "user_beatriz");
+        db.addFollow("user_beatriz", "tiago_oliveira");
+        db.addFollow("tiago_oliveira", "rui_pereira");
+        db.addFollow("matilde97", "user_ines");
+        db.addFollow("user_ines", "diogo_martins");
+        db.addFollow("diogo_martins", "claudia51");
+        db.addFollow("silva.pedro", "user_ana");
+        db.addFollow("user_ana", "lucas_ribeiro");
     }
 
     // =========================================================================
@@ -102,58 +131,71 @@ public class SeedData {
     // CONTEÚDOS  (15 filmes + 10 séries + 5 documentários = 30)
     // =========================================================================
     private static void addContents(StreamingDatabase db) {
+        Genre gAcao  = db.genres().get("g1");
+        Genre gDrama = db.genres().get("g2");
+        Genre gCom   = db.genres().get("g3");
+        Genre gSciFi = db.genres().get("g5");
+        Genre gThril = db.genres().get("g6");
+        Genre gRom   = db.genres().get("g7");
+        Genre gDoc   = db.genres().get("g9");
+        Genre gCrime = db.genres().get("g10");
+        Genre gFant  = db.genres().get("g12");
+
         // ── Filmes ───────────────────────────────────────────────────────────
-        addMovie(db, "m1",  "Inception",                          db.getGenreManager().get("g5"), 2010,  7, 16, 148, 4.5);
-        addMovie(db, "m2",  "Interstellar",                       db.getGenreManager().get("g5"), 2014, 11,  7, 169, 4.6);
-        addMovie(db, "m3",  "O Lobo de Wall Street",              db.getGenreManager().get("g2"), 2013, 12, 25, 180, 4.3);
-        addMovie(db, "m4",  "O Silêncio dos Inocentes",           db.getGenreManager().get("g6"), 1991,  2, 14, 118, 4.4);
-        addMovie(db, "m5",  "Parasitas",                          db.getGenreManager().get("g6"), 2019,  5, 30, 132, 4.7);
-        addMovie(db, "m6",  "Dune: Parte Um",                     db.getGenreManager().get("g5"), 2021, 10, 22, 155, 4.2);
-        addMovie(db, "m7",  "Barbie",                             db.getGenreManager().get("g3"), 2023,  7, 21, 114, 3.9);
-        addMovie(db, "m8",  "Joker",                              db.getGenreManager().get("g2"), 2019, 10,  4, 122, 4.3);
-        addMovie(db, "m9",  "La La Land",                         db.getGenreManager().get("g7"), 2016, 12,  9, 128, 4.1);
-        addMovie(db, "m10", "Gladiador",                          db.getGenreManager().get("g1"), 2000,  5,  5, 155, 4.4);
-        addMovie(db, "m11", "O Senhor dos Anéis",                 db.getGenreManager().get("g12"),2001, 12, 19, 178, 4.8);
-        addMovie(db, "m12", "Forrest Gump",                       db.getGenreManager().get("g2"), 1994,  7,  6, 142, 4.7);
-        addMovie(db, "m13", "Dune: Parte Dois",                   db.getGenreManager().get("g5"), 2024,  3,  1, 166, 4.5);
-        addMovie(db, "m14", "Oppenheimer",                        db.getGenreManager().get("g2"), 2023,  7, 21, 180, 4.6);
-        addMovie(db, "m15", "The Departed",                       db.getGenreManager().get("g10"),2006, 10,  6, 151, 4.5);
+        addMovie(db, "m1",  "Inception",                          gSciFi, 2010,  7, 16, 148, 4.5);
+        addMovie(db, "m2",  "Interstellar",                       gSciFi, 2014, 11,  7, 169, 4.6);
+        addMovie(db, "m3",  "O Lobo de Wall Street",              gDrama, 2013, 12, 25, 180, 4.3);
+        addMovie(db, "m4",  "O Silêncio dos Inocentes",           gThril, 1991,  2, 14, 118, 4.4);
+        addMovie(db, "m5",  "Parasitas",                          gThril, 2019,  5, 30, 132, 4.7);
+        addMovie(db, "m6",  "Dune: Parte Um",                     gSciFi, 2021, 10, 22, 155, 4.2);
+        addMovie(db, "m7",  "Barbie",                             gCom,   2023,  7, 21, 114, 3.9);
+        addMovie(db, "m8",  "Joker",                              gDrama, 2019, 10,  4, 122, 4.3);
+        addMovie(db, "m9",  "La La Land",                         gRom,   2016, 12,  9, 128, 4.1);
+        addMovie(db, "m10", "Gladiador",                          gAcao,  2000,  5,  5, 155, 4.4);
+        addMovie(db, "m11", "O Senhor dos Anéis: A Sociedade do Anel", gFant, 2001, 12, 19, 178, 4.8);
+        addMovie(db, "m12", "Forrest Gump",                       gDrama, 1994,  7,  6, 142, 4.7);
+        addMovie(db, "m13", "Dune: Parte Dois",                   gSciFi, 2024,  3,  1, 166, 4.5);
+        addMovie(db, "m14", "Oppenheimer",                        gDrama, 2023,  7, 21, 180, 4.6);
+        addMovie(db, "m15", "The Departed",                       gCrime, 2006, 10,  6, 151, 4.5);
 
         // ── Séries ───────────────────────────────────────────────────────────
-        addSeries(db, "s1",  "Breaking Bad",           db.getGenreManager().get("g10"), 2008,  1, 20, 47, 5, 4.9);
-        addSeries(db, "s2",  "Stranger Things",        db.getGenreManager().get("g5"),  2016,  7, 15, 50, 4, 4.3);
-        addSeries(db, "s3",  "The Last of Us",         db.getGenreManager().get("g2"),  2023,  1, 15, 60, 2, 4.7);
-        addSeries(db, "s4",  "Chernobyl",              db.getGenreManager().get("g2"),  2019,  5,  6, 65, 1, 4.8);
-        addSeries(db, "s5",  "Dark",                   db.getGenreManager().get("g5"),  2017, 12,  1, 52, 3, 4.6);
-        addSeries(db, "s6",  "The Bear",               db.getGenreManager().get("g2"),  2022,  6, 23, 30, 3, 4.5);
-        addSeries(db, "s7",  "Severance",              db.getGenreManager().get("g6"),  2022,  2, 18, 45, 2, 4.4);
-        addSeries(db, "s8",  "House of the Dragon",    db.getGenreManager().get("g12"), 2022,  8, 21, 60, 2, 4.0);
-        addSeries(db, "s9",  "Succession",             db.getGenreManager().get("g2"),  2018,  6, 29, 55, 4, 4.7);
-        addSeries(db, "s10", "The Mandalorian",        db.getGenreManager().get("g1"),  2019, 11, 12, 40, 3, 4.2);
+        addSeries(db, "s1",  "Breaking Bad",           gCrime, 2008,  1, 20, 47, 5, 4.9);
+        addSeries(db, "s2",  "Stranger Things",        gSciFi, 2016,  7, 15, 50, 4, 4.3);
+        addSeries(db, "s3",  "The Last of Us",         gDrama, 2023,  1, 15, 60, 2, 4.7);
+        addSeries(db, "s4",  "Chernobyl",              gDrama, 2019,  5,  6, 65, 1, 4.8);
+        addSeries(db, "s5",  "Dark",                   gSciFi, 2017, 12,  1, 52, 3, 4.6);
+        addSeries(db, "s6",  "The Bear",               gDrama, 2022,  6, 23, 30, 3, 4.5);
+        addSeries(db, "s7",  "Severance",              gThril, 2022,  2, 18, 45, 2, 4.4);
+        addSeries(db, "s8",  "House of the Dragon",    gFant,  2022,  8, 21, 60, 2, 4.0);
+        addSeries(db, "s9",  "Succession",             gDrama, 2018,  6, 29, 55, 4, 4.7);
+        addSeries(db, "s10", "The Mandalorian",        gAcao,  2019, 11, 12, 40, 3, 4.2);
 
         // ── Documentários ────────────────────────────────────────────────────
-        addDoc(db, "doc1", "O Nosso Planeta",            db.getGenreManager().get("g9"), 2019,  4,  5,  49, "Natureza",     "David Attenborough", 4.8);
-        addDoc(db, "doc2", "Making a Murderer",          db.getGenreManager().get("g9"), 2015, 12, 18,  55, "Crime Real",   "Narrador Interno",   4.5);
-        addDoc(db, "doc3", "13th",                       db.getGenreManager().get("g9"), 2016, 10,  7, 100, "Sociedade",    "Narrador Interno",   4.6);
-        addDoc(db, "doc4", "Cosmos: Mundos Possíveis",   db.getGenreManager().get("g9"), 2020,  3,  9,  44, "Ciência",      "Neil deGrasse Tyson",4.7);
-        addDoc(db, "doc5", "Jiro Dreams of Sushi",       db.getGenreManager().get("g9"), 2011,  3,  9,  81, "Gastronomia",  "Narrador Interno",   4.4);
+        addDoc(db, "doc1", "O Nosso Planeta",            gDoc, 2019,  4,  5,  49, "Natureza",     "David Attenborough", 4.8);
+        addDoc(db, "doc2", "Making a Murderer",          gDoc, 2015, 12, 18,  55, "Crime Real",   "narrador interno",   4.5);
+        addDoc(db, "doc3", "13th",                       gDoc, 2016, 10,  7, 100, "Sociedade",    "narrador interno",   4.6);
+        addDoc(db, "doc4", "Cosmos: Mundos Possíveis",   gDoc, 2020,  3,  9,  44, "Ciência",      "Neil deGrasse Tyson",4.7);
+        addDoc(db, "doc5", "Jiro Dreams of Sushi",       gDoc, 2011,  3,  9,  81, "Gastronomia",  "narrador interno",   4.4);
     }
 
     // ── Helpers de criação ────────────────────────────────────────────────────
-
-    private static void addMovie(StreamingDatabase db, String id, String title, Genre genre, int y, int m, int d, int dur, double rating) {
+    private static void addMovie(StreamingDatabase db, String id, String title,
+                                 Genre genre, int y, int m, int d, int dur, double rating) {
         Movie mv = new Movie(id, title, genre, LocalDate.of(y, m, d), dur, "PT", null);
         mv.setRating(rating);
         db.addContent(mv);
     }
 
-    private static void addSeries(StreamingDatabase db, String id, String title, Genre genre, int y, int m, int d, int dur, int seasons, double rating) {
+    private static void addSeries(StreamingDatabase db, String id, String title,
+                                  Genre genre, int y, int m, int d, int dur, int seasons, double rating) {
         Series s = new Series(id, title, genre, LocalDate.of(y, m, d), dur, "PT", seasons);
         s.setRating(rating);
         db.addContent(s);
     }
 
-    private static void addDoc(StreamingDatabase db, String id, String title, Genre genre, int y, int m, int d, int dur, String topic, String narrator, double rating) {
+    private static void addDoc(StreamingDatabase db, String id, String title,
+                               Genre genre, int y, int m, int d, int dur,
+                               String topic, String narrator, double rating) {
         Documentary doc = new Documentary(id, title, genre, LocalDate.of(y, m, d), dur, "PT", topic, narrator);
         doc.setRating(rating);
         db.addContent(doc);
@@ -163,52 +205,75 @@ public class SeedData {
     // PARTICIPAÇÕES  Artista ↔ Conteúdo
     // =========================================================================
     private static void addParticipations(StreamingDatabase db) {
+        // Inception (m1)
         db.addParticipation("a1", "m1", ArtistRole.ACTOR,    LocalDate.of(2010,  7, 16));
         db.addParticipation("d1", "m1", ArtistRole.DIRECTOR, LocalDate.of(2010,  7, 16));
         db.addParticipation("p1", "m1", ArtistRole.PRODUCER, LocalDate.of(2010,  7, 16));
 
+        // Interstellar (m2)
         db.addParticipation("a3", "m2", ArtistRole.ACTOR,    LocalDate.of(2014, 11,  7));
         db.addParticipation("d1", "m2", ArtistRole.DIRECTOR, LocalDate.of(2014, 11,  7));
         db.addParticipation("p1", "m2", ArtistRole.PRODUCER, LocalDate.of(2014, 11,  7));
 
+        // O Lobo de Wall Street (m3)
         db.addParticipation("a1", "m3", ArtistRole.ACTOR,    LocalDate.of(2013, 12, 25));
         db.addParticipation("d3", "m3", ArtistRole.DIRECTOR, LocalDate.of(2013, 12, 25));
 
+        // O Silêncio dos Inocentes (m4)
         db.addParticipation("a2", "m4", ArtistRole.ACTOR,    LocalDate.of(1991,  2, 14));
+
+        // Parasitas (m5)
         db.addParticipation("d6", "m5", ArtistRole.DIRECTOR, LocalDate.of(2019,  5, 30));
 
+        // Dune: Parte Um (m6)
         db.addParticipation("a13","m6", ArtistRole.ACTOR,    LocalDate.of(2021, 10, 22));
         db.addParticipation("a14","m6", ArtistRole.ACTOR,    LocalDate.of(2021, 10, 22));
         db.addParticipation("d5", "m6", ArtistRole.DIRECTOR, LocalDate.of(2021, 10, 22));
 
+        // Barbie (m7)
         db.addParticipation("a10","m7", ArtistRole.ACTOR,    LocalDate.of(2023,  7, 21));
         db.addParticipation("a11","m7", ArtistRole.ACTOR,    LocalDate.of(2023,  7, 21));
         db.addParticipation("d4", "m7", ArtistRole.DIRECTOR, LocalDate.of(2023,  7, 21));
         db.addParticipation("p4", "m7", ArtistRole.PRODUCER, LocalDate.of(2023,  7, 21));
 
+        // Joker (m8)
         db.addParticipation("a9", "m8", ArtistRole.ACTOR,    LocalDate.of(2019, 10,  4));
+
+        // La La Land (m9)
         db.addParticipation("a10","m9", ArtistRole.ACTOR,    LocalDate.of(2016, 12,  9));
         db.addParticipation("a11","m9", ArtistRole.ACTOR,    LocalDate.of(2016, 12,  9));
 
+        // Gladiador (m10)
         db.addParticipation("d8", "m10",ArtistRole.DIRECTOR, LocalDate.of(2000,  5,  5));
         db.addParticipation("p2", "m10",ArtistRole.PRODUCER, LocalDate.of(2000,  5,  5));
 
+        // Forrest Gump (m12)
         db.addParticipation("a3", "m12",ArtistRole.ACTOR,    LocalDate.of(1994,  7,  6));
 
+        // Dune: Parte Dois (m13)
         db.addParticipation("a13","m13",ArtistRole.ACTOR,    LocalDate.of(2024,  3,  1));
         db.addParticipation("a14","m13",ArtistRole.ACTOR,    LocalDate.of(2024,  3,  1));
         db.addParticipation("d5", "m13",ArtistRole.DIRECTOR, LocalDate.of(2024,  3,  1));
 
+        // Oppenheimer (m14)
         db.addParticipation("d1", "m14",ArtistRole.DIRECTOR, LocalDate.of(2023,  7, 21));
         db.addParticipation("p1", "m14",ArtistRole.PRODUCER, LocalDate.of(2023,  7, 21));
 
+        // The Departed (m15)
         db.addParticipation("a1", "m15",ArtistRole.ACTOR,    LocalDate.of(2006, 10,  6));
         db.addParticipation("a7", "m15",ArtistRole.ACTOR,    LocalDate.of(2006, 10,  6));
         db.addParticipation("d3", "m15",ArtistRole.DIRECTOR, LocalDate.of(2006, 10,  6));
 
+        // Breaking Bad (s1)
         db.addParticipation("d3", "s1", ArtistRole.PRODUCER, LocalDate.of(2008,  1, 20));
+
+        // The Last of Us (s3)
         db.addParticipation("a15","s3", ArtistRole.ACTOR,    LocalDate.of(2023,  1, 15));
+
+        // Succession (s9)
         db.addParticipation("a12","s9", ArtistRole.ACTOR,    LocalDate.of(2018,  6, 29));
+
+        // The Mandalorian (s10)
         db.addParticipation("a15","s10",ArtistRole.ACTOR,    LocalDate.of(2019, 11, 12));
         db.addParticipation("p2", "s10",ArtistRole.PRODUCER, LocalDate.of(2019, 11, 12));
     }
