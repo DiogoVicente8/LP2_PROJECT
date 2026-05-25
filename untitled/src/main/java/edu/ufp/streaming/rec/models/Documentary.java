@@ -45,23 +45,6 @@ public class Documentary extends Content implements Serializable {
     return topic;
   }
 
-  /**
-   * Define o tema principal do documentário.
-   *
-   * @param topic novo tema
-   */
-  public void setTopic(String topic) {
-    this.topic = topic;
-  }
-
-  /**
-   * Devolve o nome do narrador do documentário.
-   *
-   * @return nome do narrador
-   */
-  public String getNarrator() {
-    return narrator;
-  }
 
   /**
    * Define o nome do narrador do documentário.

@@ -30,14 +30,45 @@ public class SeedData {
     // UTILIZADORES  (2 normais + 1 admin)
     // =========================================================================
     private static void addUsers(StreamingDatabase db) {
-        User u1 = new User("u1", "Alice Silva",    "alice@mail.com",        "PT", java.time.LocalDate.of(2020, 1, 10), "alice123");
-        User u2 = new User("u2", "Bruno Costa",    "bruno@mail.com",        "PT", java.time.LocalDate.of(2020, 3, 15), "bruno123");
-        User adm = new User("admin", "Administrador", "admin@streaming.com", "PT", java.time.LocalDate.of(2020, 1,  1), "admin123");
+        // Administrador do Sistema
+        User adm = new User("admin", "Administrador", "admin@streaming.com", "PT", java.time.LocalDate.of(2020, 1, 1), "admin123");
         adm.setAdmin(true);
-        db.addUser(u1);
-        db.addUser(u2);
         db.addUser(adm);
-        db.addFollow("u1", "u2");
+
+        // 20 Utilizadores de Teste com IDs estilo Username
+        db.addUser(new User("rui_pereira", "Rui Pereira", "rui_pereira@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 20), "rui123"));
+        db.addUser(new User("sofia46", "Sofia Fernandes", "sofia.fernandes@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 24), "sofia123"));
+        db.addUser(new User("mendes.joao", "João Mendes", "mendes.joao@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 19), "joao123"));
+        db.addUser(new User("user_beatriz", "Beatriz Santos", "user_beatriz@gmail.com", "BR", java.time.LocalDate.of(2026, 5, 23), "beatriz123"));
+        db.addUser(new User("tiago_oliveira", "Tiago Oliveira", "tiago_oliveira@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 21), "tiago123"));
+        db.addUser(new User("matilde97", "Matilde Gomes", "matilde.gomes@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 18), "matilde123"));
+        db.addUser(new User("rodrigues.miguel", "Miguel Rodrigues", "rodrigues.miguel@gmail.com", "UK", java.time.LocalDate.of(2026, 5, 23), "miguel123"));
+        db.addUser(new User("user_ines", "Inês Almeida", "user_ines@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 22), "ines123"));
+        db.addUser(new User("diogo_martins", "Diogo Martins", "diogo_martins@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 12), "diogo123"));
+        db.addUser(new User("claudia51", "Cláudia Carvalho", "claudia.carvalho@gmail.com", "BR", java.time.LocalDate.of(2026, 5, 24), "claudia123"));
+        db.addUser(new User("silva.pedro", "Pedro Silva", "silva.pedro@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 24), "pedro123"));
+        db.addUser(new User("user_ana", "Ana Costa", "user_ana@gmail.com", "US", java.time.LocalDate.of(2026, 5, 17), "ana123"));
+        db.addUser(new User("lucas_ribeiro", "Lucas Ribeiro", "lucas_ribeiro@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 24), "lucas123"));
+        db.addUser(new User("mariana53", "Mariana Pinto", "mariana.pinto@gmail.com", "BR", java.time.LocalDate.of(2026, 5, 16), "mariana123"));
+        db.addUser(new User("teixeira.ricardo", "Ricardo Teixeira", "teixeira.ricardo@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 16), "ricardo123"));
+        db.addUser(new User("user_sara", "Sara Sousa", "user_sara@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 14), "sara123"));
+        db.addUser(new User("andre_moreira", "André Moreira", "andre_moreira@gmail.com", "FR", java.time.LocalDate.of(2026, 5, 22), "andre123"));
+        db.addUser(new User("catarina14", "Catarina Vieira", "catarina.vieira@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 20), "catarina123"));
+        db.addUser(new User("coelho.vasco", "Vasco Coelho", "coelho.vasco@gmail.com", "ES", java.time.LocalDate.of(2026, 5, 12), "vasco123"));
+        db.addUser(new User("user_leonor", "Leonor Marques", "user_leonor@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 20), "leonor123"));
+
+        // ─── Criação de uma teia de seguidores inicial (Follow Graph) ───
+        db.addFollow("rui_pereira", "sofia46");
+        db.addFollow("rui_pereira", "mendes.joao");
+        db.addFollow("sofia46", "mendes.joao");
+        db.addFollow("mendes.joao", "user_beatriz");
+        db.addFollow("user_beatriz", "tiago_oliveira");
+        db.addFollow("tiago_oliveira", "rui_pereira");
+        db.addFollow("matilde97", "user_ines");
+        db.addFollow("user_ines", "diogo_martins");
+        db.addFollow("diogo_martins", "claudia51");
+        db.addFollow("silva.pedro", "user_ana");
+        db.addFollow("user_ana", "lucas_ribeiro");
     }
 
     // =========================================================================
