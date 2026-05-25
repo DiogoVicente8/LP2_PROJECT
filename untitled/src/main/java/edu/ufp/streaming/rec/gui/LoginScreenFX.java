@@ -204,7 +204,7 @@ public class LoginScreenFX {
             if (id.equalsIgnoreCase("admin")) { msg(msgLabel, "Esse ID é reservado.", false); return; }
             if (pwd.length() < 6) { msg(msgLabel, "A password deve ter pelo menos 6 caracteres.", false); return; }
             if (!pwd.equals(conf)) { msg(msgLabel, "As passwords não coincidem.", false); return; }
-            if (db.users().contains(id)) { msg(msgLabel, "O ID \"" + id + "\" já existe.", false); return; }
+            if (db.getUserManager().contains(id)) { msg(msgLabel, "O ID \"" + id + "\" já existe.", false); return; }
             User novo = new User(id, nome, email, regiao.isEmpty() ? "PT" : regiao.toUpperCase(), LocalDate.now(), pwd);
             db.addUser(novo);
             msg(msgLabel, "Conta criada! A entrar...", true);

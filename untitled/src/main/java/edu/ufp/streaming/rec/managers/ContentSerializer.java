@@ -4,80 +4,91 @@ import edu.ufp.streaming.rec.models.Content;
 import edu.ufp.streaming.rec.models.Genre;
 
 import java.io.*;
+import java.util.List;
 
 /**
- * Classe responsável pela serialização e deserialização binária do estado do sistema.
- * Permite exportar e importar os gestores de conteúdos e géneros em ficheiros binários.
+ * Classe responsável pela serialização e deserialização binária de objetos Java.
+ * Permite exportar e importar os gestores de conteúdos e géneros recorrendo à API
+ * nativa do Java (Interface Serializable).
  *
  * @author Pedro
  */
 public class ContentSerializer {
 
+    // -------------------------------------------------------------------------
+    // Conteúdos
+    // -------------------------------------------------------------------------
+
     /**
      * Exporta o ContentManager para um ficheiro binário.
-     *
-     * @param cm       gestor de conteúdos a exportar
-     * @param filePath caminho do ficheiro de destino
      */
     public static void exportContents(ContentManager cm, String filePath) {
+        // try-with-resources garante que as streams são fechadas automaticamente no fim,
+        // evitando Memory Leaks e ficheiros trancados pelo sistema operativo.
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath))) {
+
+            // Serialização Nativa do Java: transforma a estrutura inteira em bytes
             oos.writeObject(cm.listAll());
-            System.out.println("Conteúdos serializados para " + filePath);
+            System.out.println("[ContentSerializer] Conteúdos serializados para " + filePath);
+
         } catch (IOException e) {
-            System.err.println("Erro ao serializar conteúdos: " + e.getMessage());
+            System.err.println("[ContentSerializer] Erro ao serializar conteúdos: " + e.getMessage());
         }
     }
 
     /**
      * Importa conteúdos de um ficheiro binário para o ContentManager.
-     *
-     * @param cm       gestor de conteúdos de destino
-     * @param filePath caminho do ficheiro de origem
      */
     @SuppressWarnings("unchecked")
     public static void importContents(ContentManager cm, String filePath) {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath))) {
-            java.util.List<Content> list = (java.util.List<Content>) ois.readObject();
+
+            // O cast é necessário porque o Java lê um "Object" genérico.
+            // @SuppressWarnings omite o aviso, pois garantimos o tipo em tempo de execução.
+            List<Content> list = (List<Content>) ois.readObject();
             for (Content c : list) {
                 cm.insert(c);
             }
-            System.out.println("Conteúdos deserializados de " + filePath);
+            System.out.println("[ContentSerializer] Conteúdos deserializados de " + filePath);
+
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Erro ao deserializar conteúdos: " + e.getMessage());
+            System.err.println("[ContentSerializer] Erro ao deserializar conteúdos: " + e.getMessage());
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Géneros
+    // -------------------------------------------------------------------------
+
     /**
      * Exporta o GenreManager para um ficheiro binário.
-     *
-     * @param gm       gestor de géneros a exportar
-     * @param filePath caminho do ficheiro de destino
      */
     public static void exportGenres(GenreManager gm, String filePath) {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath))) {
+
             oos.writeObject(gm.listAll());
-            System.out.println("Géneros serializados para " + filePath);
+            System.out.println("[ContentSerializer] Géneros serializados para " + filePath);
+
         } catch (IOException e) {
-            System.err.println("Erro ao serializar géneros: " + e.getMessage());
+            System.err.println("[ContentSerializer] Erro ao serializar géneros: " + e.getMessage());
         }
     }
 
     /**
      * Importa géneros de um ficheiro binário para o GenreManager.
-     *
-     * @param gm       gestor de géneros de destino
-     * @param filePath caminho do ficheiro de origem
      */
     @SuppressWarnings("unchecked")
     public static void importGenres(GenreManager gm, String filePath) {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath))) {
-            java.util.List<Genre> list = (java.util.List<Genre>) ois.readObject();
+
+            List<Genre> list = (List<Genre>) ois.readObject();
             for (Genre g : list) {
                 gm.insert(g);
             }
-            System.out.println("Géneros deserializados de " + filePath);
+            System.out.println("[ContentSerializer] Géneros deserializados de " + filePath);
+
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Erro ao deserializar géneros: " + e.getMessage());
+            System.err.println("[ContentSerializer] Erro ao deserializar géneros: " + e.getMessage());
         }
     }
 }

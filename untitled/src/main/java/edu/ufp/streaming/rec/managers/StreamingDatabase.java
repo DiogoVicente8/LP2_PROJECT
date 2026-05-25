@@ -4,51 +4,29 @@ import edu.ufp.streaming.rec.enums.ArtistRole;
 import edu.ufp.streaming.rec.models.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Coordenador central da camada de dados da plataforma de streaming (Fase 1 + Fase 2).
  *
- * <p>Mantém referências para todos os gestores e garante a consistência R4:
- * a remoção de uma entidade propaga-se automaticamente para todas as estruturas
- * relacionadas, incluindo o grafo.
- *
- * <ul>
- *   <li>Remover um {@link User}    → limpa o {@link FollowManager} e {@link StreamingGraph}</li>
- *   <li>Remover um {@link Artist}  → limpa o {@link ArtistContentManager}</li>
- *   <li>Remover um {@link Content} → limpa o {@link ArtistContentManager} e {@link StreamingGraph}</li>
- * </ul>
+ * <p>Implementa o padrão de desenho "Facade" (Fachada), servindo de ponto de entrada único
+ * para a interface gráfica interagir com todos os sub-gestores.
+ * * <p>Garante a consistência R4: a remoção de uma entidade propaga-se automaticamente
+ * para todas as estruturas relacionadas, incluindo o grafo.
  *
  * @author Diogo Vicente
  */
 public class StreamingDatabase {
 
-    /** Gere as entidades {@link User}. */
     private final UserManager userManager;
-
-    /** Gere as entidades {@link Artist}. */
     private final ArtistManager artistManager;
-
-    /** BST ordenada por data de lançamento para consultas de conteúdo. */
     private final ContentBST contentBST;
-
-    /** Gere todos os conteúdos (Movie, Series, Documentary). */
     private final ContentManager contentManager;
-
-    /** Gere o catálogo de géneros. */
     private final GenreManager genreManager;
-
-    /** Gere as relações de participação Artista↔Conteúdo. */
     private final ArtistContentManager artistContentManager;
-
-    /** Gere as relações de follow entre utilizadores. */
     private final FollowManager followManager;
-
-    /** Grafo pesado direcionado que representa as relações User↔User e User↔Content. */
     private final StreamingGraph graph;
 
-    /**
-     * Constrói uma nova StreamingDatabase vazia com todos os gestores inicializados.
-     */
     public StreamingDatabase() {
         this.userManager          = new UserManager();
         this.artistManager        = new ArtistManager();
@@ -61,56 +39,26 @@ public class StreamingDatabase {
     }
 
     // -------------------------------------------------------------------------
-    // Getters dos gestores
+    // Getters Padronizados
     // -------------------------------------------------------------------------
 
-    /** @return o {@link UserManager} */
-    public UserManager users() { return userManager; }
-
-    /** @return o {@link ArtistManager} */
-    public ArtistManager artists() { return artistManager; }
-
-    /** @return o {@link ContentManager} */
-    public ContentManager contents() { return contentManager; }
-
-    /** @return o {@link ContentBST} */
-    public ContentBST contentBST() { return contentBST; }
-
-    /** @return o {@link GenreManager} */
-    public GenreManager genres() { return genreManager; }
-
-    /** @return o {@link ArtistContentManager} */
-    public ArtistContentManager participations() { return artistContentManager; }
-
-    /** @return o {@link FollowManager} */
-    public FollowManager follows() { return followManager; }
-
-    /** @return o {@link StreamingGraph} */
+    public UserManager getUserManager() { return userManager; }
+    public ArtistManager getArtistManager() { return artistManager; }
+    public ContentManager getContentManager() { return contentManager; }
+    public ContentBST getContentBST() { return contentBST; }
+    public GenreManager getGenreManager() { return genreManager; }
+    public ArtistContentManager getArtistContentManager() { return artistContentManager; }
+    public FollowManager getFollowManager() { return followManager; }
     public StreamingGraph getGraph() { return graph; }
 
     // -------------------------------------------------------------------------
     // Autenticação
     // -------------------------------------------------------------------------
 
-    /**
-     * Autentica um utilizador com o ID e password fornecidos.
-     *
-     * @param id          ID do utilizador
-     * @param rawPassword password em texto simples
-     * @return o {@link User} autenticado, ou {@code null} se as credenciais forem inválidas
-     *         ou se a password ainda não estiver definida
-     */
     public User authenticate(String id, String rawPassword) {
         return userManager.authenticate(id, rawPassword);
     }
 
-    /**
-     * Altera a password de um utilizador.
-     *
-     * @param userId         ID do utilizador
-     * @param newRawPassword nova password em texto simples
-     * @return {@code true} se alterada com sucesso; {@code false} se o utilizador não existir
-     */
     public boolean changePassword(String userId, String newRawPassword) {
         return userManager.changePassword(userId, newRawPassword);
     }
@@ -119,201 +67,120 @@ public class StreamingDatabase {
     // Inserções Consistentes
     // -------------------------------------------------------------------------
 
-    /**
-     * Insere um {@link User} no sistema e adiciona-o como vértice no grafo.
-     *
-     * @param user o utilizador a inserir
-     * @return {@code true} se inserido com sucesso
-     */
     public boolean addUser(User user) {
+        // Adiciona na BD e, se houver sucesso, insere logo como vértice no Grafo
         if (!userManager.insert(user)) return false;
         graph.addUser(user);
         return true;
     }
 
-    /**
-     * Insere um {@link Artist} no sistema.
-     *
-     * @param artist o artista a inserir
-     * @return {@code true} se inserido com sucesso
-     */
     public boolean addArtist(Artist artist) {
         return artistManager.insert(artist);
     }
 
-    /**
-     * Insere um {@link Content} no sistema e adiciona-o como vértice no grafo.
-     *
-     * @param content o conteúdo a inserir
-     * @return {@code true} se inserido com sucesso
-     */
     public boolean addContent(Content content) {
         if (!contentManager.insert(content)) return false;
         graph.addContent(content);
         return true;
     }
 
-    /**
-     * Insere um {@link Genre} no sistema.
-     *
-     * @param genre o género a inserir
-     * @return {@code true} se inserido com sucesso
-     */
     public boolean addGenre(Genre genre) {
         return genreManager.insert(genre);
     }
 
-    /**
-     * Regista uma participação Artista↔Conteúdo.
-     *
-     * @param artistId  ID do artista (deve já existir)
-     * @param contentId ID do conteúdo (deve já existir)
-     * @param role      a função do artista neste conteúdo
-     * @param date      a data da participação
-     * @return o {@link ArtistContent} criado, ou {@code null} em caso de falha
-     */
-    public ArtistContent addParticipation(String artistId, String contentId,
-                                          ArtistRole role, LocalDate date) {
+    public ArtistContent addParticipation(String artistId, String contentId, ArtistRole role, LocalDate date) {
         Artist  artist  = artistManager.get(artistId);
         Content content = contentManager.get(contentId);
+
         if (artist == null || content == null) return null;
+
         return artistContentManager.addParticipation(artist, content, role, date);
     }
 
-    /**
-     * Regista uma relação de follow entre dois utilizadores com data explícita
-     * (usado na desserialização para restaurar a data original).
-     *
-     * @param followerId ID do seguidor (deve já existir)
-     * @param followedId ID do utilizador a seguir (deve já existir)
-     * @param followDate data e hora originais do follow
-     * @return o {@link UserFollow} criado, ou {@code null} em caso de falha
-     */
-    public UserFollow addFollowWithDate(String followerId, String followedId,
-                                        java.time.LocalDateTime followDate) {
+    public UserFollow addFollowWithDate(String followerId, String followedId, LocalDateTime followDate) {
         User follower = userManager.get(followerId);
         User followed = userManager.get(followedId);
+
         if (follower == null || followed == null) return null;
+
         UserFollow uf = followManager.followWithDate(follower, followed, followDate);
-        if (uf != null) graph.addFollowEdge(uf);
+        if (uf != null) {
+            graph.addFollowEdge(uf);
+        }
         return uf;
     }
 
-    /**
-     * Regista uma relação de follow entre dois utilizadores e adiciona a aresta ao grafo.
-     *
-     * @param followerId ID do seguidor (deve já existir)
-     * @param followedId ID do utilizador a seguir (deve já existir)
-     * @return o {@link UserFollow} criado, ou {@code null} em caso de falha
-     */
     public UserFollow addFollow(String followerId, String followedId) {
-        User follower = userManager.get(followerId);
-        User followed = userManager.get(followedId);
-        if (follower == null || followed == null) return null;
-        UserFollow uf = followManager.follow(follower, followed);
-        if (uf != null) graph.addFollowEdge(uf);
-        return uf;
+        //Princípio DRY (Don't Repeat Yourself). Aproveita o método acima enviando a data de agora.
+        return addFollowWithDate(followerId, followedId, LocalDateTime.now());
     }
 
-    /**
-     * Regista uma interação do utilizador com um conteúdo e adiciona a aresta ao grafo.
-     * Apenas interações do tipo WATCH e RATE são adicionadas como arestas no grafo.
-     *
-     * @param interaction a {@link Interation} a registar
-     */
     public void addInteraction(Interation interaction) {
         if (interaction == null) return;
+
         User user = userManager.get(interaction.getUser().getId());
         if (user == null) return;
+
         user.addInteraction(interaction);
-        graph.addInteractionEdge(interaction);
+        graph.addInteractionEdge(interaction); // Reflete a interação como Aresta no Grafo
     }
 
     // -------------------------------------------------------------------------
-    // R4 — Remoções Consistentes (Cascata)
+    // R4 — Remoções Consistentes
     // -------------------------------------------------------------------------
 
-    /**
-     * Remove um {@link User} do sistema e propaga a remoção a todas as estruturas relacionadas.
-     * Cascata: remove todas as relações de follow e as arestas no grafo.
-     *
-     * @param userId o ID do utilizador a remover
-     * @return o {@link User} removido, ou {@code null} se não encontrado
-     */
     public User removeUser(String userId) {
         if (!userManager.contains(userId)) return null;
+
+        //  Apaga o utilizador e limpa todos os rastos dele noutros gestores.
         followManager.removeAllRelationships(userId);
-        graph.removeUserEdges(userId); // remove follow + interaction edges
+        graph.removeUserEdges(userId);
+
         return userManager.remove(userId);
     }
 
-    /**
-     * Remove um {@link Artist} do sistema e propaga para todas as estruturas relacionadas.
-     * Cascata: remove todos os registos de participação Artista↔Conteúdo.
-     *
-     * @param artistId o ID do artista a remover
-     * @return o {@link Artist} removido, ou {@code null} se não for encontrado
-     */
     public Artist removeArtist(String artistId) {
         if (!artistManager.contains(artistId)) return null;
+
         artistContentManager.removeAllByArtist(artistId);
         return artistManager.remove(artistId);
     }
 
-    /**
-     * Remove um {@link Content} do sistema e propaga a remoção a todas as estruturas relacionadas.
-     * Cascata: remove todos os registos de participação e as arestas no grafo.
-     *
-     * @param contentId o ID do conteúdo a remover
-     * @return o {@link Content} removido, ou {@code null} se não encontrado
-     */
     public Content removeContent(String contentId) {
         if (contentManager.get(contentId) == null) return null;
+
         artistContentManager.removeAllByContent(contentId);
-        graph.removeContentEdges(contentId);   // R4: limpar arestas do grafo
+        graph.removeContentEdges(contentId);
+
         return contentManager.remove(contentId);
     }
 
-    /**
-     * Remove um {@link Genre} do sistema.
-     * @param genreId o ID do género a remover
-     * @return o {@link Genre} removido, ou {@code null} se não for encontrado
-     * @throws IllegalStateException se existirem conteúdos que ainda usam este género
-     */
     public Genre removeGenre(String genreId) {
-        for (var c : contentManager.listAll()) {
-            if (c.getGenre() != null && c.getGenre().getId().equals(genreId))
-                throw new IllegalStateException(
-                        "Não é possível remover o género '" + genreId +
-                                "': o conteúdo '" + c.getId() + "' ainda o utiliza.");
+        //Stream API para verificar rapidamente se o género está preso a algum filme
+        boolean isGeneroEmUso = contentManager.listAll().stream()
+                .anyMatch(c -> c.getGenre() != null && c.getGenre().getId().equals(genreId));
+
+        if (isGeneroEmUso) {
+            throw new IllegalStateException("Não é possível remover o género '" + genreId + "': existem conteúdos que ainda o utilizam.");
         }
         return genreManager.remove(genreId);
     }
 
-    /**
-     * Altera o realizador de um filme e atualiza a consistência nas participações.
-     */
+    // -------------------------------------------------------------------------
+    // Atualizações Complexas
+    // -------------------------------------------------------------------------
+
     public boolean updateMovieDirector(String movieId, String newArtistId) {
         Content content = contentManager.get(movieId);
         Artist newDirector = artistManager.get(newArtistId);
 
+        // Atualiza a referência no Filme E insere a participação no ArtistContentManager
         if (content instanceof Movie && newDirector != null) {
             Movie movie = (Movie) content;
-
             movie.setDirector(newDirector);
-            
             artistContentManager.addParticipation(newDirector, movie, ArtistRole.DIRECTOR, LocalDate.now());
-
             return true;
         }
         return false;
     }
-    public ContentManager getContentManager() {
-        return contentManager;
-    }
-
-    public GenreManager getGenreManager() {
-        return genreManager;
-    }
-
 }

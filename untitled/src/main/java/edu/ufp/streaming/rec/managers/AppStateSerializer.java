@@ -26,80 +26,77 @@ public class AppStateSerializer {
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(FILE)))) {
 
             // 1. Géneros
-            List<Genre> genres = db.genres().listAll();
-            out.writeInt(genres.size()); // Gravar primeiro a quantidade ajuda o leitor a saber quantos ciclos fazer
+            List<Genre> genres = db.getGenreManager().listAll();
+            out.writeInt(genres.size());
             for (Genre g : genres) {
                 writeStr(out, g.getId());
                 writeStr(out, g.getName());
             }
 
             // 2. Conteúdos (Polimorfismo)
-            List<Content> contents = db.contents().listAll();
+            List<Content> contents = db.getContentManager().listAll();
             out.writeInt(contents.size());
 
             for (Content c : contents) {
-                String type = "";
-                if (c instanceof Movie) type = "M";
-                else if (c instanceof Series) type = "S";
+                String type = "M"; // Default para Filme
+                if (c instanceof Series) type = "S";
                 else if (c instanceof Documentary) type = "D";
 
-                writeStr(out, type); // Guarda a "flag" do tipo para sabermos como reconstruir depois
+                writeStr(out, type);
                 writeStr(out, c.getId());
                 writeStr(out, c.getTitle());
-                writeStr(out, c.getGenre().getId());
-                writeStr(out, c.getReleaseDate().toString());
+                writeStr(out, c.getGenre() != null ? c.getGenre().getId() : "g_unknown");
+                writeStr(out, c.getReleaseDate() != null ? c.getReleaseDate().toString() : LocalDate.now().toString());
                 out.writeInt(c.getDuration());
                 writeStr(out, c.getRegion());
                 out.writeDouble(c.getRating());
 
-                // Guardar campos específicos de cada Subclasse
-                if (c instanceof Series) {
-                    Series s = (Series) c;
+                // Pattern Matching do Java Moderno (Aviso resolvido)
+                if (c instanceof Series s) {
                     out.writeInt(s.getSeasons());
-                } else if (c instanceof Documentary) {
-                    Documentary d = (Documentary) c;
+                } else if (c instanceof Documentary d) {
                     writeStr(out, d.getTopic());
                     writeStr(out, d.getNarrator());
                 } else {
-                    writeStr(out, ""); // Filme não tem extras de serialização
+                    writeStr(out, "");
                 }
             }
 
-            //  Artistas
-            List<Artist> artists = db.artists().listAll();
+            // 3. Artistas
+            List<Artist> artists = db.getArtistManager().listAll();
             out.writeInt(artists.size());
             for (Artist a : artists) {
                 writeStr(out, a.getId());
                 writeStr(out, a.getName());
                 writeStr(out, a.getNationality());
                 writeStr(out, a.getGender());
-                writeStr(out, a.getBirthDate().toString());
-                writeStr(out, a.getRole().toString());
+                writeStr(out, a.getBirthDate() != null ? a.getBirthDate().toString() : LocalDate.now().toString());
+                writeStr(out, a.getRole() != null ? a.getRole().toString() : "ACTOR");
             }
 
-            //  Utilizadores
-            List<User> users = db.users().listAll();
+            // 4. Utilizadores
+            List<User> users = db.getUserManager().listAll();
             out.writeInt(users.size());
             for (User u : users) {
                 writeStr(out, u.getId());
                 writeStr(out, u.getName());
                 writeStr(out, u.getEmail());
                 writeStr(out, u.getRegion());
-                writeStr(out, u.getRegisterDate().toString());
+                writeStr(out, u.getRegisterDate() != null ? u.getRegisterDate().toString() : LocalDate.now().toString());
                 writeStr(out, u.getPasswordHash());
                 out.writeBoolean(u.isAdmin());
             }
 
-            //  Follows (Relações do Grafo)
-            List<UserFollow> follows = db.follows().listAll();
+            // 5. Follows
+            List<UserFollow> follows = db.getFollowManager().listAll();
             out.writeInt(follows.size());
             for (UserFollow f : follows) {
                 writeStr(out, f.getFollower().getId());
                 writeStr(out, f.getFollowed().getId());
-                writeStr(out, f.getDate().toString());
+                writeStr(out, f.getDate() != null ? f.getDate().toString() : LocalDateTime.now().toString());
             }
 
-            //  Interações (Arestas de Visualização/Rating do Grafo)
+            // 6. Interações
             int totalInter = 0;
             for (User u : users) {
                 totalInter += u.getInteractions().size();
@@ -110,10 +107,10 @@ public class AppStateSerializer {
                 for (Interation i : u.getInteractions()) {
                     writeStr(out, u.getId());
                     writeStr(out, i.getContent().getId());
-                    writeStr(out, i.getWatchDate().toString());
+                    writeStr(out, i.getWatchDate() != null ? i.getWatchDate().toString() : LocalDateTime.now().toString());
                     out.writeDouble(i.getRating());
                     out.writeDouble(i.getProgress());
-                    writeStr(out, i.getType().toString());
+                    writeStr(out, i.getType() != null ? i.getType().toString() : "WATCH");
                     writeStr(out, i.getId());
                 }
             }
@@ -132,17 +129,17 @@ public class AppStateSerializer {
 
         try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(FILE)))) {
 
-            //  Géneros
+            // 1. Géneros
             int gCount = in.readInt();
             for (int i = 0; i < gCount; i++) {
                 String id   = readStr(in);
                 String name = readStr(in);
-                if (db.genres().get(id) == null) {
+                if (db.getGenreManager().get(id) == null) {
                     db.addGenre(new Genre(id, name));
                 }
             }
 
-            //  Conteúdos (Reconstruir Polimorfismo)
+            // 2. Conteúdos
             int cCount = in.readInt();
             for (int i = 0; i < cCount; i++) {
                 String type    = readStr(in);
@@ -154,14 +151,13 @@ public class AppStateSerializer {
                 String region  = readStr(in);
                 double rating  = in.readDouble();
 
-                Genre g = db.genres().get(genreId);
+                Genre g = db.getGenreManager().get(genreId);
                 if (g == null) {
                     skipExtra(in, type);
                     continue;
                 }
 
-                Content c = null;
-                //  Lemos a "Flag" guardada e recriamos a classe correta
+                Content c; // Aviso null redundante resolvido
                 if (type.equals("S")) {
                     int seasons = in.readInt();
                     c = new Series(id, title, g, date, dur, region, seasons);
@@ -175,12 +171,12 @@ public class AppStateSerializer {
                 }
 
                 c.setRating(rating);
-                if (db.contents().get(id) == null) {
+                if (db.getContentManager().get(id) == null) {
                     db.addContent(c);
                 }
             }
 
-            //  Artistas
+            // 3. Artistas
             int aCount = in.readInt();
             for (int i = 0; i < aCount; i++) {
                 String id    = readStr(in);
@@ -190,13 +186,13 @@ public class AppStateSerializer {
                 LocalDate bd = LocalDate.parse(readStr(in));
                 String role  = readStr(in);
 
-                if (!db.artists().contains(id)) {
+                if (!db.getArtistManager().contains(id)) {
                     Artist a = new Artist(id, name, nat, gen, bd, edu.ufp.streaming.rec.enums.ArtistRole.valueOf(role));
                     db.addArtist(a);
                 }
             }
 
-            //  Utilizadores
+            // 4. Utilizadores
             int uCount = in.readInt();
             for (int i = 0; i < uCount; i++) {
                 String id      = readStr(in);
@@ -207,7 +203,7 @@ public class AppStateSerializer {
                 String hash    = readStr(in);
                 boolean isAdmin = in.readBoolean();
 
-                if (!db.users().contains(id)) {
+                if (!db.getUserManager().contains(id)) {
                     User u = new User(id, name, email, region, date, null);
                     u.setPasswordHash(hash);
                     u.setAdmin(isAdmin);
@@ -222,15 +218,15 @@ public class AppStateSerializer {
                 String followedId  = readStr(in);
                 LocalDateTime followDate = LocalDateTime.parse(readStr(in));
 
-                User follower = db.users().get(followerId);
-                User followed = db.users().get(followedId);
+                User follower = db.getUserManager().get(followerId);
+                User followed = db.getUserManager().get(followedId);
 
-                if (follower != null && followed != null && !db.follows().isFollowing(followerId, followedId)) {
+                if (follower != null && followed != null && !db.getFollowManager().isFollowing(followerId, followedId)) {
                     db.addFollowWithDate(followerId, followedId, followDate);
                 }
             }
 
-            //  Interações
+            // 6. Interações
             int iCount = in.readInt();
             for (int i = 0; i < iCount; i++) {
                 String userId    = readStr(in);
@@ -241,8 +237,8 @@ public class AppStateSerializer {
                 String typeStr   = readStr(in);
                 String iId       = readStr(in);
 
-                User u = db.users().get(userId);
-                Content c = db.contents().get(contentId);
+                User u = db.getUserManager().get(userId);
+                Content c = db.getContentManager().get(contentId);
 
                 if (u == null || c == null) continue;
 
@@ -256,18 +252,18 @@ public class AppStateSerializer {
                 }
             }
 
-            System.out.println("[AppStateSerializer] Estado carregado de " + FILE);
+            System.out.println("[AppStateSerializer] Estado carregado com sucesso!");
 
+        } catch (EOFException eof) {
+            System.err.println("[AppStateSerializer] O ficheiro app_state.dat esta corrompido ou incompleto. Apague-o e reinicie a aplicacao.");
         } catch (Exception ex) {
             System.err.println("[AppStateSerializer] Erro ao carregar: " + ex.getMessage());
-            ex.printStackTrace();
         }
     }
 
-    // ── Helpers (Limpeza dos nulos tratada aqui) ─────────────────────────
+    // ── Helpers ─────────────────────────
 
     private static void writeStr(DataOutputStream out, String s) throws IOException {
-        // Se a string for nula, transforma logo numa string vazia. Evita crashar o ficheiro binário!
         String safeString = (s != null) ? s : "";
         byte[] bytes = safeString.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         out.writeInt(bytes.length);

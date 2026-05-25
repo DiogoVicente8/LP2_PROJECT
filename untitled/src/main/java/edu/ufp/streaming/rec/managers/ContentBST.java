@@ -12,177 +12,156 @@ import java.util.List;
 
 /**
  * Estrutura de dados ordenada para conteúdos multimédia, baseada em Red-Black BST.
- * Indexa conteúdos por data de lançamento, permitindo pesquisas ordenadas e por intervalo.
+ * Indexa conteúdos por data de lançamento, permitindo pesquisas cronológicas incrivelmente rápidas.
  *
  * @author Pedro
  * @version 1.0
  */
 public class ContentBST {
 
-    /** Red-Black BST: chave = data de lançamento (String), valor = lista de conteúdos. */
+    // A árvore usa a data no formato ISO-8601 (YYYY-MM-DD) como chave para garantir
+    // a ordenação cronológica automática, e uma lista para lidar com colisões (vários filmes no mesmo dia).
     private RedBlackBST<String, List<Content>> bst;
 
-    /**
-     * Constrói uma nova BST de conteúdos vazia.
-     */
     public ContentBST() {
         this.bst = new RedBlackBST<>();
     }
 
-    /**
-     * Insere um conteúdo na BST indexado pela data de lançamento.
-     *
-     * @param content conteúdo a inserir
-     */
+    // -------------------------------------------------------------------------
+    // Inserção e Remoção
+    // -------------------------------------------------------------------------
+
     public void insert(Content content) {
         if (content == null) return;
-        String key = content.getReleaseDate().toString();
-        List<Content> list = bst.contains(key) ? bst.get(key) : new ArrayList<>();
-        list.add(content);
-        bst.put(key, list);
+
+        String dataIso = content.getReleaseDate().toString();
+        List<Content> bucketDeConteudos = bst.contains(dataIso) ? bst.get(dataIso) : new ArrayList<>();
+
+        bucketDeConteudos.add(content);
+        bst.put(dataIso, bucketDeConteudos);
     }
 
-    /**
-     * Remove um conteúdo da BST pelo ID e data de lançamento.
-     *
-     * @param contentId identificador do conteúdo
-     * @param date      data de lançamento do conteúdo
-     * @return {@code true} se removido, {@code false} se não encontrado
-     */
     public boolean remove(String contentId, LocalDate date) {
-        String key = date.toString();
-        if (!bst.contains(key)) return false;
-        List<Content> list = bst.get(key);
-        boolean removed = list.removeIf(c -> c.getId().equals(contentId));
-        if (list.isEmpty()) bst.delete(key);
-        return removed;
+        String dataIso = date.toString();
+        if (!bst.contains(dataIso)) return false;
+
+        List<Content> bucketDeConteudos = bst.get(dataIso);
+
+        // Utilização funcional do Java para varrer a lista e remover o conteúdo que der "Match" no ID
+        boolean foiRemovido = bucketDeConteudos.removeIf(c -> c.getId().equals(contentId));
+
+        // Se o dia ficar sem nenhum conteúdo, apagamos o nó da árvore para poupar memória
+        if (bucketDeConteudos.isEmpty()) {
+            bst.delete(dataIso);
+        }
+
+        return foiRemovido;
     }
 
-    /**
-     * Devolve todos os conteúdos lançados numa data específica.
-     *
-     * @param date data de lançamento
-     * @return lista de conteúdos com essa data
-     */
+    // -------------------------------------------------------------------------
+    // Pesquisas Cronológicas
+    // -------------------------------------------------------------------------
+
     public List<Content> getByDate(LocalDate date) {
-        String key = date.toString();
-        List<Content> result = bst.get(key);
-        return result != null ? new ArrayList<>(result) : new ArrayList<>();
+        String dataIso = date.toString();
+        List<Content> resultados = bst.get(dataIso);
+
+        return resultados != null ? new ArrayList<>(resultados) : new ArrayList<>();
     }
 
-    /**
-     * Devolve todos os conteúdos lançados entre duas datas (inclusive), por ordem cronológica.
-     *
-     * @param from data de início
-     * @param to   data de fim
-     * @return lista de conteúdos no intervalo
-     */
     public List<Content> getByDateRange(LocalDate from, LocalDate to) {
         List<Content> result = new ArrayList<>();
-        for (String key : bst.keys(from.toString(), to.toString())) {
-            result.addAll(bst.get(key));
+
+        // A magia da BST: iteramos APENAS as datas que caem no intervalo pretendido
+        for (String dataIso : bst.keys(from.toString(), to.toString())) {
+            result.addAll(bst.get(dataIso));
         }
         return result;
     }
 
-    /**
-     * Devolve conteúdos de um género específico, ordenados por data.
-     *
-     * @param genreId identificador do género
-     * @return lista de conteúdos do género por ordem cronológica
-     */
     public List<Content> getByGenreOrdered(String genreId) {
         List<Content> result = new ArrayList<>();
-        for (String key : bst.keys()) {
-            for (Content c : bst.get(key)) {
-                if (c.getGenre().getId().equals(genreId)) result.add(c);
+
+        for (String dataIso : bst.keys()) {
+            for (Content conteudo : bst.get(dataIso)) {
+                if (conteudo.getGenre().getId().equals(genreId)) {
+                    result.add(conteudo);
+                }
             }
         }
         return result;
     }
 
-    /**
-     * Devolve todos os filmes por ordem cronológica.
-     *
-     * @return lista de {@link Movie} ordenada por data
-     */
+    // -------------------------------------------------------------------------
+    // Pesquisas Polimórficas Ordenadas
+    // -------------------------------------------------------------------------
+
     public List<Movie> getMoviesOrdered() {
         List<Movie> result = new ArrayList<>();
-        for (String key : bst.keys()) {
-            for (Content c : bst.get(key)) {
-                if (c instanceof Movie) result.add((Movie) c);
+
+        // A BST já nos devolve as chaves pré-ordenadas do mais antigo para o mais recente
+        for (String dataIso : bst.keys()) {
+            for (Content conteudo : bst.get(dataIso)) {
+                // Pattern Matching: Se for Filme, o Java faz o cast automático para a variável "m"
+                if (conteudo instanceof Movie m) {
+                    result.add(m);
+                }
             }
         }
         return result;
     }
 
-    /**
-     * Devolve todas as séries por ordem cronológica.
-     *
-     * @return lista de {@link Series} ordenada por data
-     */
     public List<Series> getSeriesOrdered() {
         List<Series> result = new ArrayList<>();
-        for (String key : bst.keys()) {
-            for (Content c : bst.get(key)) {
-                if (c instanceof Series) result.add((Series) c);
+
+        for (String dataIso : bst.keys()) {
+            for (Content conteudo : bst.get(dataIso)) {
+                if (conteudo instanceof Series s) {
+                    result.add(s);
+                }
             }
         }
         return result;
     }
 
-    /**
-     * Devolve todos os documentários por ordem cronológica.
-     *
-     * @return lista de {@link Documentary} ordenada por data
-     */
     public List<Documentary> getDocumentariesOrdered() {
         List<Documentary> result = new ArrayList<>();
-        for (String key : bst.keys()) {
-            for (Content c : bst.get(key)) {
-                if (c instanceof Documentary) result.add((Documentary) c);
+
+        for (String dataIso : bst.keys()) {
+            for (Content conteudo : bst.get(dataIso)) {
+                if (conteudo instanceof Documentary d) {
+                    result.add(d);
+                }
             }
         }
         return result;
     }
 
-    /**
-     * Devolve a data de lançamento mais antiga na BST.
-     *
-     * @return data mais antiga ou {@code null} se vazia
-     */
+    // -------------------------------------------------------------------------
+    // Utilitários de Data
+    // -------------------------------------------------------------------------
+
     public LocalDate getOldestDate() {
         return bst.isEmpty() ? null : LocalDate.parse(bst.min());
     }
 
-    /**
-     * Devolve a data de lançamento mais recente na BST.
-     *
-     * @return data mais recente ou {@code null} se vazia
-     */
     public LocalDate getNewestDate() {
         return bst.isEmpty() ? null : LocalDate.parse(bst.max());
     }
 
-    /**
-     * Devolve o número total de conteúdos na BST.
-     *
-     * @return número de conteúdos
-     */
     public int size() {
         int total = 0;
-        for (String key : bst.keys()) total += bst.get(key).size();
+        for (String dataIso : bst.keys()) {
+            total += bst.get(dataIso).size();
+        }
         return total;
     }
 
-    /**
-     * Imprime na consola todos os conteúdos por ordem cronológica.
-     */
     public void printOrdered() {
         System.out.println("=== ContentBST (" + size() + " conteudos por data) ===");
-        for (String key : bst.keys()) {
-            for (Content c : bst.get(key)) {
-                System.out.println("  " + key + " -> " + c);
+        for (String dataIso : bst.keys()) {
+            for (Content conteudo : bst.get(dataIso)) {
+                System.out.println("  " + dataIso + " -> " + conteudo);
             }
         }
     }

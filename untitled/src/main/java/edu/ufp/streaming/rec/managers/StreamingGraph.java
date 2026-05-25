@@ -20,38 +20,22 @@ import java.util.*;
  * Cada ID de entidade é mapeado para um índice inteiro único através de uma {@link ST}.
  * As arestas representam relações:
  * <ul>
- *   <li>{@code User → User} (seguir) — peso = epoch seconds da data do follow</li>
- *   <li>{@code User → Content} (WATCH) — peso = progresso de visualização (0.0 a 1.0)</li>
- *   <li>{@code User → Content} (RATE) — peso = classificação (0.0 a 5.0)</li>
+ * <li>{@code User → User} (seguir) — peso = epoch seconds da data do follow</li>
+ * <li>{@code User → Content} (WATCH) — peso = progresso de visualização (0.0 a 1.0)</li>
+ * <li>{@code User → Content} (RATE) — peso = classificação (0.0 a 5.0)</li>
  * </ul>
  *
  * @author Diogo Vicente
  */
 public class StreamingGraph {
 
-    /** Mapeia ID da entidade (userId ou contentId) → índice inteiro do vértice. */
     private final ST<String, Integer> idParaIndice;
-
-    /** Mapeia índice inteiro do vértice → ID da entidade. */
     private final ST<Integer, String> indiceParaId;
-
-    /** Mapeia índice inteiro do vértice → tipo de entidade ("USER" ou "CONTENT"). */
     private final ST<Integer, String> indiceParaTipo;
-
-    /** O grafo pesado direcionado subjacente da algs4. */
     private EdgeWeightedDigraph grafo;
-
-    /** Número actual de vértices no grafo. */
     private int totalVertices;
-
-    /** Capacidade máxima actual (duplica automaticamente quando necessário). */
     private int capacidade;
 
-    /**
-     * Constrói um StreamingGraph vazio com uma capacidade inicial.
-     *
-     * @param capacidadeInicial número máximo inicial de vértices
-     */
     public StreamingGraph(int capacidadeInicial) {
         this.capacidade     = capacidadeInicial;
         this.idParaIndice   = new ST<>();
@@ -62,14 +46,9 @@ public class StreamingGraph {
     }
 
     // -------------------------------------------------------------------------
-    // Gestão de vértices
+    // Gestão de vértices e arestas
     // -------------------------------------------------------------------------
 
-    /**
-     * Adiciona um {@link User} como vértice no grafo.
-     *
-     * @param user o {@link User} a adicionar
-     */
     public void addUser(User user) {
         if (user == null || idParaIndice.contains(user.getId())) return;
         garantirCapacidade();
@@ -79,11 +58,6 @@ public class StreamingGraph {
         indiceParaTipo.put(idx, "USER");
     }
 
-    /**
-     * Adiciona um {@link Content} como vértice no grafo.
-     *
-     * @param content o {@link Content} a adicionar
-     */
     public void addContent(Content content) {
         if (content == null || idParaIndice.contains(content.getId())) return;
         garantirCapacidade();
@@ -93,15 +67,6 @@ public class StreamingGraph {
         indiceParaTipo.put(idx, "CONTENT");
     }
 
-    // -------------------------------------------------------------------------
-    // Gestão de arestas — User → User (seguir)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Adiciona uma aresta direcionada de follow (User → User).
-     *
-     * @param follow o {@link UserFollow} a representar como aresta
-     */
     public void addFollowEdge(UserFollow follow) {
         if (follow == null) return;
         String origemId  = follow.getFollower().getId();
@@ -113,12 +78,6 @@ public class StreamingGraph {
         grafo.addEdge(new DirectedEdge(idParaIndice.get(origemId), idParaIndice.get(destinoId), peso));
     }
 
-    /**
-     * Remove apenas as arestas de follow que envolvem um dado utilizador,
-     * mantendo o vértice e as arestas de interação User→Content.
-     *
-     * @param userId o ID do utilizador cujas arestas de follow devem ser removidas
-     */
     public void removeFollowEdges(String userId) {
         if (!idParaIndice.contains(userId)) return;
         int idxUser = idParaIndice.get(userId);
@@ -126,8 +85,6 @@ public class StreamingGraph {
         EdgeWeightedDigraph novoGrafo = new EdgeWeightedDigraph(capacidade);
         for (int v = 0; v < grafo.V(); v++) {
             for (DirectedEdge e : grafo.adj(v)) {
-                // Manter arestas de interação (User→Content) do utilizador,
-                // mas remover arestas de follow (User→User) que o envolvam
                 String tipoDestino = indiceParaTipo.get(e.to());
                 boolean isFollowEdge = "USER".equals(indiceParaTipo.get(e.from()))
                         && "USER".equals(tipoDestino);
@@ -138,26 +95,10 @@ public class StreamingGraph {
         grafo = novoGrafo;
     }
 
-    /**
-     * Remove o vértice de um utilizador e TODAS as arestas associadas
-     * (follows e interações User→Content). Deve ser chamado ao remover
-     * um utilizador para manter o grafo consistente.
-     *
-     * @param userId o ID do utilizador a remover do grafo
-     */
     public void removeUserEdges(String userId) {
         reconstruirGrafoExcluindo(userId, null);
     }
 
-    // -------------------------------------------------------------------------
-    // Gestão de arestas — User → Content (visualizar / classificar)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Adiciona uma aresta direcionada de interação User → Content.
-     *
-     * @param interacao a {@link Interation} a representar como aresta
-     */
     public void addInteractionEdge(Interation interacao) {
         if (interacao == null) return;
         if (interacao.getType() != InterationType.WATCH
@@ -168,17 +109,12 @@ public class StreamingGraph {
         if (!idParaIndice.contains(origemId) || !idParaIndice.contains(destinoId)) return;
 
         double peso = interacao.getType() == InterationType.WATCH
-                ? (1.0 - interacao.getProgress()) // Progresso de 100% = distância 0.0
-                : (5.0 - interacao.getRating());  // Rating de 5.0 = distância 0.0
+                ? (1.0 - interacao.getProgress())
+                : (5.0 - interacao.getRating());
 
         grafo.addEdge(new DirectedEdge(idParaIndice.get(origemId), idParaIndice.get(destinoId), peso));
     }
 
-    /**
-     * Remove todas as arestas e o vértice de um conteúdo removido do sistema (R4).
-     *
-     * @param contentId o ID do conteúdo a remover do grafo
-     */
     public void removeContentEdges(String contentId) {
         reconstruirGrafoExcluindo(null, contentId);
     }
@@ -187,24 +123,13 @@ public class StreamingGraph {
     // R8a — Caminho mais curto entre utilizadores
     // -------------------------------------------------------------------------
 
-    /**
-     * Calcula o caminho mais curto entre dois utilizadores via Dijkstra.
-     * Opera num subgrafo apenas com vértices e arestas User→User para evitar
-     * que nós de conteúdo sejam usados como atalhos.
-     *
-     * @param idOrigem  ID do utilizador de origem
-     * @param idDestino ID do utilizador de destino
-     * @return lista de IDs representando o caminho, ou lista vazia se não existir
-     */
     public List<String> caminhoMaisCurtoBetweenUsers(String idOrigem, String idDestino) {
         List<String> caminho = new ArrayList<>();
         if (!idParaIndice.contains(idOrigem) || !idParaIndice.contains(idDestino)) return caminho;
 
-        // Construir subgrafo apenas com utilizadores e arestas User→User
         List<Integer> verticesUser = getVerticesUtilizadores();
         java.util.Set<Integer> userSet = new java.util.HashSet<>(verticesUser);
 
-        // Remapear para índices contíguos
         java.util.Map<Integer, Integer> remap    = new java.util.HashMap<>();
         java.util.Map<Integer, Integer> remapInv = new java.util.HashMap<>();
         int k = 0;
@@ -232,13 +157,6 @@ public class StreamingGraph {
         return caminho;
     }
 
-    /**
-     * Retorna o peso total do caminho mais curto entre dois utilizadores.
-     *
-     * @param idOrigem  ID do utilizador de origem
-     * @param idDestino ID do utilizador de destino
-     * @return o peso total, ou {@code Double.POSITIVE_INFINITY} se não existir caminho
-     */
     public double pesoCaminhoMaisCurto(String idOrigem, String idDestino) {
         if (!idParaIndice.contains(idOrigem) || !idParaIndice.contains(idDestino))
             return Double.POSITIVE_INFINITY;
@@ -269,13 +187,6 @@ public class StreamingGraph {
     // R8b — Extração de subgrafos
     // -------------------------------------------------------------------------
 
-    /**
-     * Extrai um subgrafo com utilizadores de uma determinada região e as suas arestas de follow.
-     *
-     * @param region  a região a filtrar (ex: "PT", "US")
-     * @param userMgr o {@link UserManager} para obter os utilizadores
-     * @return novo {@link EdgeWeightedDigraph} apenas com utilizadores dessa região
-     */
     public EdgeWeightedDigraph subgrafoByRegion(String region, UserManager userMgr) {
         Set<Integer> idxRegiao = new HashSet<>();
         for (User u : userMgr.searchByRegion(region)) {
@@ -292,13 +203,6 @@ public class StreamingGraph {
         return sub;
     }
 
-    /**
-     * Extrai um subgrafo com conteúdos de um determinado género e as arestas User→Content.
-     *
-     * @param genreId    ID do género a filtrar
-     * @param contentMgr o {@link ContentManager} para obter os conteúdos
-     * @return novo {@link EdgeWeightedDigraph} apenas com conteúdos desse género
-     */
     public EdgeWeightedDigraph subgrafoByGenre(String genreId, ContentManager contentMgr) {
         Set<Integer> idxGenero = new HashSet<>();
         for (Content c : contentMgr.searchByGenre(genreId)) {
@@ -315,26 +219,15 @@ public class StreamingGraph {
         return sub;
     }
 
-    /**
-     * Extrai um subgrafo apenas com utilizadores que classificaram conteúdos acima de um rating mínimo.
-     * Inclui as arestas de follow entre esses utilizadores.
-     *
-     * @param minRating  rating mínimo (inclusive)
-     * @param userMgr    o {@link UserManager} para obter as interações
-     * @return novo {@link EdgeWeightedDigraph} com utilizadores que cumprem o critério
-     */
     public EdgeWeightedDigraph subgrafoByMinRating(double minRating, UserManager userMgr) {
         Set<Integer> idxUtilizadores = new HashSet<>();
         for (User u : userMgr.listAll()) {
-            boolean qualifica = false;
-            for (var i : u.getInteractions()) {
-                if (i.getType() == InterationType.RATE && i.getRating() >= minRating) {
-                    qualifica = true;
-                    break;
-                }
-            }
-            if (qualifica && idParaIndice.contains(u.getId()))
+            boolean qualifica = u.getInteractions().stream()
+                    .anyMatch(i -> i.getType() == InterationType.RATE && i.getRating() >= minRating);
+
+            if (qualifica && idParaIndice.contains(u.getId())) {
                 idxUtilizadores.add(idParaIndice.get(u.getId()));
+            }
         }
 
         EdgeWeightedDigraph sub = new EdgeWeightedDigraph(capacidade);
@@ -346,32 +239,10 @@ public class StreamingGraph {
         return sub;
     }
 
-    // -------------------------------------------------------------------------
-    // R8b (cont.) — Caminho mais curto entre dois artistas via conteúdos partilhados
-    // -------------------------------------------------------------------------
-
-    /**
-     * Calcula o caminho mais curto entre dois artistas com base nos conteúdos
-     * em que participaram em conjunto (grafo artista → artista via conteúdos partilhados).
-     *
-     * <p>Dois artistas estão ligados se participaram no mesmo conteúdo.
-     * O peso da aresta é o {@code toEpochDay()} da data de participação mais antiga
-     * no conteúdo partilhado. O algoritmo constrói um grafo temporário
-     * artista→artista e aplica Dijkstra.
-     *
-     * @param artistIdOrigem  ID do artista de origem
-     * @param artistIdDestino ID do artista de destino
-     * @param acMgr           o {@link ArtistContentManager} para obter as participações
-     * @return lista de IDs de artistas representando o caminho, ou lista vazia se não existir
-     */
-    public List<String> caminhoMaisCurtoEntreArtistas(String artistIdOrigem,
-                                                      String artistIdDestino,
-                                                      ArtistContentManager acMgr) {
-        // Recolher todos os artistas presentes nas participações
+    public List<String> caminhoMaisCurtoEntreArtistas(String artistIdOrigem, String artistIdDestino, ArtistContentManager acMgr) {
         List<ArtistContent> todasParticipacoes = acMgr.listAll();
         if (todasParticipacoes.isEmpty()) return new ArrayList<>();
 
-        // Mapear artistId → índice local para o grafo temporário
         ST<String, Integer> artistIdx = new ST<>();
         ST<Integer, String> idxArtist = new ST<>();
         int count = 0;
@@ -384,16 +255,12 @@ public class StreamingGraph {
             }
         }
 
-        if (!artistIdx.contains(artistIdOrigem) || !artistIdx.contains(artistIdDestino))
-            return new ArrayList<>();
+        if (!artistIdx.contains(artistIdOrigem) || !artistIdx.contains(artistIdDestino)) return new ArrayList<>();
 
-        // Construir grafo temporário artista → artista via conteúdos partilhados
-        // Agrupar participações por contentId para encontrar pares de artistas no mesmo conteúdo
         ST<String, List<ArtistContent>> porConteudo = new ST<>();
         for (ArtistContent ac : todasParticipacoes) {
             String cid = ac.getContent().getId();
-            List<ArtistContent> lista = porConteudo.contains(cid)
-                    ? porConteudo.get(cid) : new ArrayList<>();
+            List<ArtistContent> lista = porConteudo.contains(cid) ? porConteudo.get(cid) : new ArrayList<>();
             lista.add(ac);
             porConteudo.put(cid, lista);
         }
@@ -408,10 +275,7 @@ public class StreamingGraph {
                     ArtistContent b = participantes.get(j);
                     int idxA = artistIdx.get(a.getArtist().getId());
                     int idxB = artistIdx.get(b.getArtist().getId());
-                    // Peso = dia da época da participação (data mais antiga do par)
-                    double peso = Math.min(
-                            a.getDate().toEpochDay(),
-                            b.getDate().toEpochDay());
+                    double peso = Math.min(a.getDate().toEpochDay(), b.getDate().toEpochDay());
                     grafoArtistas.addEdge(new DirectedEdge(idxA, idxB, peso));
                 }
             }
@@ -435,22 +299,10 @@ public class StreamingGraph {
     // R8c — Verificar se o grafo de utilizadores é fortemente conexo
     // -------------------------------------------------------------------------
 
-    /**
-     * Verifica se o subgrafo de utilizadores é fortemente conexo, recorrendo ao
-     * algoritmo de Kosaraju-Sharir (KosarajuSharirSCC da algs4).
-     *
-     * <p>Um grafo dirigido é fortemente conexo se todos os pares de vértices
-     * se alcançam mutuamente. Kosaraju-Sharir determina as componentes fortemente
-     * conexas (SCCs) em O(V+E) — correto e eficiente para este fim.
-     *
-     * @return {@code true} se todos os utilizadores se alcançam mutuamente via follow
-     */
     public boolean isGrafoUtilizadoresConexo() {
         List<Integer> verticesUtilizadores = getVerticesUtilizadores();
         if (verticesUtilizadores.size() <= 1) return true;
 
-        // Remapear os índices de utilizadores para 0..k-1 (contíguos)
-        // evitando que vértices de conteúdo ou "vazios" interfiram no Kosaraju
         java.util.Map<Integer, Integer> remap = new java.util.HashMap<>();
         int k = 0;
         for (int v : verticesUtilizadores) remap.put(v, k++);
@@ -468,7 +320,6 @@ public class StreamingGraph {
 
         KosarajuSharirSCC scc = new KosarajuSharirSCC(digraphUtilizadores);
 
-        // Verificar que todos os vértices remapeados pertencem à mesma SCC
         int componenteReferencia = scc.id(remap.get(verticesUtilizadores.get(0)));
         for (int v : verticesUtilizadores) {
             if (scc.id(remap.get(v)) != componenteReferencia) return false;
@@ -480,31 +331,30 @@ public class StreamingGraph {
     // R8d — Recomendações baseadas em proximidade
     // -------------------------------------------------------------------------
 
-    /**
-     * Recomenda conteúdos a um utilizador com base no que os utilizadores seguidos viram.
-     *
-     * @param userId    ID do utilizador que recebe recomendações
-     * @param followMgr o {@link FollowManager} para obter os utilizadores seguidos
-     * @param userMgr   o {@link UserManager} para obter as interações
-     * @return lista de {@link Content} recomendados (sem duplicados, sem os já vistos)
-     */
-    public List<Content> recomendarConteudosPorProximidade(String userId,
-                                                           FollowManager followMgr,
-                                                           UserManager userMgr) {
-        User user = userMgr.get(userId);
-        if (user == null) return new ArrayList<>();
+    public List<Content> recomendarConteudosPorProximidade(String userId, FollowManager followMgr, UserManager userMgr) {
+        User utilizadorPrincipal = userMgr.get(userId);
+        if (utilizadorPrincipal == null) return new ArrayList<>();
 
-        Set<String> jaViu = new HashSet<>();
-        for (Interation i : user.getInteractions()) {
-            if (i.getType() == InterationType.WATCH) jaViu.add(i.getContent().getId());
+        // Extrair rapidamente para um Set os IDs de conteúdos já vistos pelo utilizador
+        Set<String> conteudosJaVistos = new HashSet<>();
+        for (Interation i : utilizadorPrincipal.getInteractions()) {
+            if (i.getType() == InterationType.WATCH) {
+                conteudosJaVistos.add(i.getContent().getId());
+            }
         }
 
+        // Usa um LinkedHashMap para manter a ordem de inserção e evitar recomendações duplicadas
         LinkedHashMap<String, Content> recomendacoes = new LinkedHashMap<>();
-        for (User seguido : followMgr.getFollowing(userId)) {
-            User u = userMgr.get(seguido.getId());
-            if (u == null) continue;
-            for (Interation i : u.getInteractions()) {
-                if (i.getType() == InterationType.WATCH && !jaViu.contains(i.getContent().getId())) {
+        for (User utilizadorSeguido : followMgr.getFollowing(userId)) {
+            User amigo = userMgr.get(utilizadorSeguido.getId());
+            if (amigo == null) continue;
+
+            for (Interation i : amigo.getInteractions()) {
+                boolean isVisualizacao = i.getType() == InterationType.WATCH;
+                boolean euAindaNaoVi = !conteudosJaVistos.contains(i.getContent().getId());
+
+                // Lógica Afirmativa
+                if (isVisualizacao && euAindaNaoVi) {
                     recomendacoes.put(i.getContent().getId(), i.getContent());
                 }
             }
@@ -516,45 +366,35 @@ public class StreamingGraph {
     // R8e — Estatísticas de visualização de um conteúdo entre duas datas
     // -------------------------------------------------------------------------
 
-    /**
-     * Retorna estatísticas de visualização de um conteúdo num intervalo de datas.
-     * Calcula: número de visualizações, progresso médio e rating médio.
-     *
-     * @param contentId ID do conteúdo
-     * @param de        início do intervalo (inclusivo)
-     * @param ate       fim do intervalo (inclusivo)
-     * @param userMgr   o {@link UserManager} para aceder às interações
-     * @return mapa com chaves "visualizacoes", "progressoMedio", "ratingMedio"
-     */
-    public Map<String, Double> estatisticasVisualizacao(String contentId,
-                                                        LocalDateTime de,
-                                                        LocalDateTime ate,
-                                                        UserManager userMgr) {
+    public Map<String, Double> estatisticasVisualizacao(String contentId, LocalDateTime de, LocalDateTime ate, UserManager userMgr) {
         Map<String, Double> stats = new HashMap<>();
-        int visualizacoes = 0;
+        int totalVisualizacoes = 0;
         double somaProgresso = 0;
         double somaRating = 0;
-        int countRating = 0;
+        int totalRatings = 0;
 
         for (User u : userMgr.listAll()) {
             for (Interation i : u.getInteractions()) {
-                if (!i.getContent().getId().equals(contentId)) continue;
-                LocalDateTime data = i.getWatchDate();
-                if (data.isBefore(de) || data.isAfter(ate)) continue;
+                // Criar variáveis booleanas claras em vez de "ifs" encadeados que saltam a execução
+                boolean isFilmeCerto = i.getContent().getId().equals(contentId);
+                boolean isDataValida = !i.getWatchDate().isBefore(de) && !i.getWatchDate().isAfter(ate);
 
-                if (i.getType() == InterationType.WATCH) {
-                    visualizacoes++;
-                    somaProgresso += i.getProgress();
-                } else if (i.getType() == InterationType.RATE) {
-                    somaRating += i.getRating();
-                    countRating++;
+                if (isFilmeCerto && isDataValida) {
+                    if (i.getType() == InterationType.WATCH) {
+                        totalVisualizacoes++;
+                        somaProgresso += i.getProgress();
+                    } else if (i.getType() == InterationType.RATE) {
+                        somaRating += i.getRating();
+                        totalRatings++;
+                    }
                 }
             }
         }
 
-        stats.put("visualizacoes", (double) visualizacoes);
-        stats.put("progressoMedio", visualizacoes > 0 ? somaProgresso / visualizacoes : 0.0);
-        stats.put("ratingMedio", countRating > 0 ? somaRating / countRating : 0.0);
+        // Evita divisões por zero com o ternário (se não tem visualizações, dá 0.0)
+        stats.put("visualizacoes", (double) totalVisualizacoes);
+        stats.put("progressoMedio", totalVisualizacoes > 0 ? somaProgresso / totalVisualizacoes : 0.0);
+        stats.put("ratingMedio", totalRatings > 0 ? somaRating / totalRatings : 0.0);
         return stats;
     }
 
@@ -562,37 +402,21 @@ public class StreamingGraph {
     // R8f — Utilizadores que viram séries de um género num período
     // -------------------------------------------------------------------------
 
-    /**
-     * Retorna os utilizadores que visualizaram séries de um determinado género
-     * dentro de um intervalo de datas.
-     *
-     * @param genreId    ID do género
-     * @param de         início do intervalo (inclusivo)
-     * @param ate        fim do intervalo (inclusivo)
-     * @param userMgr    o {@link UserManager} para aceder às interações
-     * @param contentMgr o {@link ContentManager} para verificar o tipo de conteúdo
-     * @return lista de {@link User} que viram séries do género no período
-     */
-    public List<User> utilizadoresQueViramSeriesDeGenero(String genreId,
-                                                         LocalDateTime de,
-                                                         LocalDateTime ate,
-                                                         UserManager userMgr,
-                                                         ContentManager contentMgr) {
+    public List<User> utilizadoresQueViramSeriesDeGenero(String genreId, LocalDateTime de, LocalDateTime ate, UserManager userMgr, ContentManager contentMgr) {
         List<User> resultado = new ArrayList<>();
         for (User u : userMgr.listAll()) {
-            boolean viu = false;
-            for (Interation i : u.getInteractions()) {
-                if (i.getType() != InterationType.WATCH) continue;
-                Content c = i.getContent();
-                if (!(c instanceof Series)) continue;
-                if (!c.getGenre().getId().equals(genreId)) continue;
-                LocalDateTime data = i.getWatchDate();
-                if (!data.isBefore(de) && !data.isAfter(ate)) {
-                    viu = true;
-                    break;
-                }
+            //  Uma única expressão diz-nos se a série é do tipo certo, do género certo e na data certa.
+            boolean viuSérieValidada = u.getInteractions().stream().anyMatch(i ->
+                    i.getType() == InterationType.WATCH &&
+                            i.getContent() instanceof Series &&
+                            i.getContent().getGenre().getId().equals(genreId) &&
+                            !i.getWatchDate().isBefore(de) && !i.getWatchDate().isAfter(ate)
+            );
+
+            // Lógica Afirmativa
+            if (viuSérieValidada) {
+                resultado.add(u);
             }
-            if (viu) resultado.add(u);
         }
         return resultado;
     }
@@ -601,92 +425,50 @@ public class StreamingGraph {
     // R8g — Seguidores que viram o mesmo conteúdo num intervalo
     // -------------------------------------------------------------------------
 
-    /**
-     * Retorna todos os seguidores de um utilizador que visualizaram um conteúdo
-     * específico dentro de um intervalo de tempo.
-     *
-     * @param userId    ID do utilizador cujos seguidores se pretendem verificar
-     * @param contentId ID do conteúdo
-     * @param de        início do intervalo de tempo (inclusivo)
-     * @param ate       fim do intervalo de tempo (inclusivo)
-     * @param followMgr o {@link FollowManager} para obter os seguidores
-     * @param userMgr   o {@link UserManager} para obter as interações dos utilizadores
-     * @return lista de {@link User} seguidores que viram o conteúdo no intervalo
-     */
-    public List<User> seguidoresQueViramConteudo(String userId, String contentId,
-                                                 LocalDateTime de, LocalDateTime ate,
-                                                 FollowManager followMgr,
-                                                 UserManager userMgr) {
+    public List<User> seguidoresQueViramConteudo(String userId, String contentId, LocalDateTime de, LocalDateTime ate, FollowManager followMgr, UserManager userMgr) {
         List<User> resultado = new ArrayList<>();
         List<User> seguidores = followMgr.getFollowers(userId);
 
         for (User seguidor : seguidores) {
-            User u = userMgr.get(seguidor.getId());
-            if (u == null) continue;
-            for (Interation interacao : u.getInteractions()) {
-                if (!interacao.getContent().getId().equals(contentId)) continue;
-                if (interacao.getType() != InterationType.WATCH) continue;
-                LocalDateTime dataVisualizacao = interacao.getWatchDate();
-                if (!dataVisualizacao.isBefore(de) && !dataVisualizacao.isAfter(ate)) {
-                    resultado.add(seguidor);
-                    break;
-                }
+            User dadosSeguidor = userMgr.get(seguidor.getId());
+            if (dadosSeguidor == null) continue;
+
+            // Verifica todo o histórico do seguidor sem ciclos manuais chatos.
+            boolean seguidorViuFilme = dadosSeguidor.getInteractions().stream().anyMatch(i ->
+                    i.getContent().getId().equals(contentId) &&
+                            i.getType() == InterationType.WATCH &&
+                            !i.getWatchDate().isBefore(de) && !i.getWatchDate().isAfter(ate)
+            );
+
+            if (seguidorViuFilme) {
+                resultado.add(seguidor);
             }
         }
         return resultado;
     }
 
     // -------------------------------------------------------------------------
-    // Utilitários públicos
+    // Utilitários e Auxiliares
     // -------------------------------------------------------------------------
 
-    /**
-     * Retorna o índice inteiro de um dado ID de entidade.
-     *
-     * @param id o ID da entidade
-     * @return o índice inteiro, ou {@code -1} se não encontrado
-     */
     public int indiceDe(String id) {
         return idParaIndice.contains(id) ? idParaIndice.get(id) : -1;
     }
 
-    /**
-     * Retorna o ID da entidade de um dado índice inteiro.
-     *
-     * @param indice o índice inteiro
-     * @return o ID da entidade, ou {@code null} se não encontrado
-     */
     public String idDe(int indice) {
         return indiceParaId.contains(indice) ? indiceParaId.get(indice) : null;
     }
 
-    /**
-     * Retorna o tipo de uma dada entidade ("USER" ou "CONTENT").
-     *
-     * @param id o ID da entidade
-     * @return string de tipo, ou {@code null} se não encontrado
-     */
     public String tipoDe(String id) {
         if (!idParaIndice.contains(id)) return null;
         return indiceParaTipo.get(idParaIndice.get(id));
     }
 
-    /** @return número total de vértices no grafo */
     public int totalVertices() { return totalVertices; }
 
-    /** @return número total de arestas no grafo */
     public int totalArestas() { return grafo.E(); }
 
-    /**
-     * Retorna o {@link EdgeWeightedDigraph} subjacente.
-     *
-     * @return o grafo pesado direcionado da algs4
-     */
     public EdgeWeightedDigraph getGrafo() { return grafo; }
-
-    // -------------------------------------------------------------------------
-    // Métodos privados auxiliares
-    // -------------------------------------------------------------------------
 
     private List<Integer> getVerticesUtilizadores() {
         List<Integer> resultado = new ArrayList<>();
@@ -707,19 +489,15 @@ public class StreamingGraph {
 
     private void reconstruirGrafoExcluindo(String excludeUserId, String excludeContentId) {
         EdgeWeightedDigraph novoGrafo = new EdgeWeightedDigraph(capacidade);
-        Integer idxUser    = (excludeUserId    != null && idParaIndice.contains(excludeUserId))
-                ? idParaIndice.get(excludeUserId)    : -1;
-        Integer idxContent = (excludeContentId != null && idParaIndice.contains(excludeContentId))
-                ? idParaIndice.get(excludeContentId) : -1;
+        Integer idxUser    = (excludeUserId    != null && idParaIndice.contains(excludeUserId)) ? idParaIndice.get(excludeUserId)    : -1;
+        Integer idxContent = (excludeContentId != null && idParaIndice.contains(excludeContentId)) ? idParaIndice.get(excludeContentId) : -1;
 
-        // Limpar o utilizador das STs
         if (excludeUserId != null && idParaIndice.contains(excludeUserId)) {
             idParaIndice.delete(excludeUserId);
             indiceParaId.delete(idxUser);
             indiceParaTipo.delete(idxUser);
         }
 
-        // Limpar o conteúdo das STs
         if (excludeContentId != null && idParaIndice.contains(excludeContentId)) {
             idParaIndice.delete(excludeContentId);
             indiceParaId.delete(idxContent);
