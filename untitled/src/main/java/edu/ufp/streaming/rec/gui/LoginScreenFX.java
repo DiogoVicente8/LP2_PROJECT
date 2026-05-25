@@ -12,6 +12,7 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 import java.time.LocalDate;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 public class LoginScreenFX {
@@ -139,11 +140,7 @@ public class LoginScreenFX {
         Label regTitle = new Label("Criar Conta");
         regTitle.setStyle("-fx-text-fill:"+N_TEXT+";-fx-font-size:28px;-fx-font-weight:bold;");
 
-        HBox rRow1 = new HBox(10);
-        TextField rId = field(fStyle, "ID (ex: u5)");
         TextField rRegion = field(fStyle, "Região (PT)");
-        HBox.setHgrow(rId, Priority.ALWAYS); HBox.setHgrow(rRegion, Priority.ALWAYS);
-        rRow1.getChildren().addAll(rId, rRegion);
 
         TextField rName  = field(fStyle, "Nome completo");
         TextField rEmail = field(fStyle, "E-mail");
@@ -165,7 +162,7 @@ public class LoginScreenFX {
         btnGoLogin.setStyle(btnLink + "-fx-text-fill:white;-fx-font-weight:bold;");
         loginRow.getChildren().addAll(loginTxt, btnGoLogin);
 
-        registerForm.getChildren().addAll(regTitle, rRow1, rName, rEmail, rPwd, rConf, btnReg, sep2, loginRow);
+        registerForm.getChildren().addAll(regTitle, rRegion, rName, rEmail, rPwd, rConf, btnReg, sep2, loginRow);
 
         // ── Lógica ────────────────────────────────────────────────────────
         btnGoReg.setOnAction(e -> {
@@ -197,14 +194,14 @@ public class LoginScreenFX {
         fPwd.setOnAction(e -> btnLogin.fire());
 
         btnReg.setOnAction(e -> {
-            String id = rId.getText().trim(), nome = rName.getText().trim();
-            String email = rEmail.getText().trim(), regiao = rRegion.getText().trim();
+            String nome = rName.getText().trim();
+            String email = rEmail.getText().trim();
+            String regiao = rRegion.getText().trim();
             String pwd = rPwd.getText(), conf = rConf.getText();
-            if (id.isEmpty() || nome.isEmpty() || pwd.isEmpty()) { msg(msgLabel, "ID, Nome e Password são obrigatórios.", false); return; }
-            if (id.equalsIgnoreCase("admin")) { msg(msgLabel, "Esse ID é reservado.", false); return; }
+            if (nome.isEmpty() || pwd.isEmpty()) { msg(msgLabel, "Nome e Password são obrigatórios.", false); return; }
             if (pwd.length() < 6) { msg(msgLabel, "A password deve ter pelo menos 6 caracteres.", false); return; }
             if (!pwd.equals(conf)) { msg(msgLabel, "As passwords não coincidem.", false); return; }
-            if (db.getUserManager().contains(id)) { msg(msgLabel, "O ID \"" + id + "\" já existe.", false); return; }
+            String id = generateUserId(db);
             User novo = new User(id, nome, email, regiao.isEmpty() ? "PT" : regiao.toUpperCase(), LocalDate.now(), pwd);
             db.addUser(novo);
             msg(msgLabel, "Conta criada! A entrar...", true);
@@ -234,6 +231,14 @@ public class LoginScreenFX {
     private TextField    field(String s, String p) { TextField f = new TextField(); f.setPromptText(p); f.setStyle(s); f.setMaxWidth(Double.MAX_VALUE); return f; }
     private PasswordField  pwd(String s, String p) { PasswordField f = new PasswordField(); f.setPromptText(p); f.setStyle(s); f.setMaxWidth(Double.MAX_VALUE); return f; }
     private void           msg(Label l, String t, boolean ok) { l.setText(t); l.setStyle("-fx-text-fill:" + (ok ? "#46D369" : "#FF5252") + ";-fx-font-size:13px;"); }
+
+    private String generateUserId(StreamingDatabase db) {
+        String id;
+        do {
+            id = "usr_" + UUID.randomUUID().toString().substring(0, 8);
+        } while (db.getUserManager().contains(id));
+        return id;
+    }
 
     private void redirectAfterLogin(Stage currentStage, StreamingDatabase db, User user, Consumer<User> onSuccess) {
         if (onSuccess != null) {

@@ -51,6 +51,14 @@ public class StreamingDatabase {
     public FollowManager getFollowManager() { return followManager; }
     public StreamingGraph getGraph() { return graph; }
 
+    // Convenience accessors for UI and facade code
+    public GenreManager genres() { return genreManager; }
+    public ArtistManager artists() { return artistManager; }
+    public ContentManager contents() { return contentManager; }
+    public ArtistContentManager participations() { return artistContentManager; }
+    public UserManager users() { return userManager; }
+    public FollowManager follows() { return followManager; }
+
     // -------------------------------------------------------------------------
     // Autenticação
     // -------------------------------------------------------------------------

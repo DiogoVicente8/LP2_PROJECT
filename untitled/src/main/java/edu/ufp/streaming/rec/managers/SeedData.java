@@ -171,11 +171,11 @@ public class SeedData {
         addSeries(db, "s10", "The Mandalorian",        gAcao,  2019, 11, 12, 40, 3, 4.2);
 
         // ── Documentários ────────────────────────────────────────────────────
-        addDoc(db, "doc1", "O Nosso Planeta",            gDoc, 2019,  4,  5,  49, "Natureza",     "David Attenborough", 4.8);
-        addDoc(db, "doc2", "Making a Murderer",          gDoc, 2015, 12, 18,  55, "Crime Real",   "narrador interno",   4.5);
-        addDoc(db, "doc3", "13th",                       gDoc, 2016, 10,  7, 100, "Sociedade",    "narrador interno",   4.6);
-        addDoc(db, "doc4", "Cosmos: Mundos Possíveis",   gDoc, 2020,  3,  9,  44, "Ciência",      "Neil deGrasse Tyson",4.7);
-        addDoc(db, "doc5", "Jiro Dreams of Sushi",       gDoc, 2011,  3,  9,  81, "Gastronomia",  "narrador interno",   4.4);
+        addDoc(db, "doc1", "O Nosso Planeta",            gDoc, 2019,  4,  5,  49, "Natureza",     4.8);
+        addDoc(db, "doc2", "Making a Murderer",          gDoc, 2015, 12, 18,  55, "Crime Real",   4.5);
+        addDoc(db, "doc3", "13th",                       gDoc, 2016, 10,  7, 100, "Sociedade",    4.6);
+        addDoc(db, "doc4", "Cosmos: Mundos Possíveis",   gDoc, 2020,  3,  9,  44, "Ciência",      4.7);
+        addDoc(db, "doc5", "Jiro Dreams of Sushi",       gDoc, 2011,  3,  9,  81, "Gastronomia",  4.4);
     }
 
     // ── Helpers de criação ────────────────────────────────────────────────────
@@ -195,8 +195,8 @@ public class SeedData {
 
     private static void addDoc(StreamingDatabase db, String id, String title,
                                Genre genre, int y, int m, int d, int dur,
-                               String topic, String narrator, double rating) {
-        Documentary doc = new Documentary(id, title, genre, LocalDate.of(y, m, d), dur, "PT", topic, narrator);
+                               String topic, double rating) {
+        Documentary doc = new Documentary(id, title, genre, LocalDate.of(y, m, d), dur, "PT", topic);
         doc.setRating(rating);
         db.addContent(doc);
     }

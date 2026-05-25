@@ -194,4 +194,6 @@ public class Content implements Serializable {
             + ", releaseDate=" + releaseDate + ", duration=" + duration
             + ", region='" + region + "', rating=" + rating + "}";
   }
+
+
 }

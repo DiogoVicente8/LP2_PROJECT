@@ -89,7 +89,7 @@ public class ContentFileManager {
                     pw.println("DOCUMENTARY;" + d.getId() + ";" + d.getTitle() + ";"
                             + d.getGenre().getId() + ";" + d.getReleaseDate() + ";"
                             + d.getDuration() + ";" + d.getRegion() + ";"
-                            + d.getTopic() + ";" + d.getNarrator() + ";" + d.getRating());
+                            + d.getTopic() + ";"  + ";" + d.getRating());
                 }
             }
             System.out.println("[ContentFileManager] Conteúdos exportados para " + filePath);
@@ -140,10 +140,12 @@ public class ContentFileManager {
                         cm.insert(s);
                     }
                     case "DOCUMENTARY" -> {
-                        String topic    = p.length > 7 ? p[7].trim() : "";
-                        String narrator = p.length > 8 ? p[8].trim() : "";
-                        double rating   = p.length > 9 && !p[9].isBlank() ? Double.parseDouble(p[9].trim()) : 0.0;
-                        Documentary d = new Documentary(id, title, genre, date, duration, region, topic, narrator);
+                        String topic  = p.length > 7 ? p[7].trim() : "";
+                        double rating = 0.0;
+                        if (p.length > 8 && !p[p.length - 1].isBlank()) {
+                            rating = Double.parseDouble(p[p.length - 1].trim());
+                        }
+                        Documentary d = new Documentary(id, title, genre, date, duration, region, topic);
                         d.setRating(rating);
                         cm.insert(d);
                     }

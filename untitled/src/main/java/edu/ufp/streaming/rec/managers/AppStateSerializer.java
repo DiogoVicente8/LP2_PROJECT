@@ -56,7 +56,6 @@ public class AppStateSerializer {
                     out.writeInt(s.getSeasons());
                 } else if (c instanceof Documentary d) {
                     writeStr(out, d.getTopic());
-                    writeStr(out, d.getNarrator());
                 } else {
                     writeStr(out, "");
                 }
@@ -163,8 +162,7 @@ public class AppStateSerializer {
                     c = new Series(id, title, g, date, dur, region, seasons);
                 } else if (type.equals("D")) {
                     String topic = readStr(in);
-                    String nar = readStr(in);
-                    c = new Documentary(id, title, g, date, dur, region, topic, nar);
+                    c = new Documentary(id, title, g, date, dur, region, topic);
                 } else {
                     readStr(in); // Consumir byte vazio do Filme
                     c = new Movie(id, title, g, date, dur, region, null);

@@ -253,21 +253,21 @@ public class AdminDashboardFX {
         pane.setStyle("-fx-background-color:" + N_BG + ";");
         pane.setPadding(new Insets(20));
 
-        javafx.scene.control.TableView<User> table = new javafx.scene.control.TableView<>();
+        TableView<User> table = new TableView<>();
         table.setStyle("-fx-background-color:" + N_CARD + ";");
-        table.setColumnResizePolicy(javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        javafx.scene.control.TableColumn<User,String> cId    = col("ID",       d -> d.getValue().getId());
-        javafx.scene.control.TableColumn<User,String> cName  = col("Nome",     d -> d.getValue().getName());
-        javafx.scene.control.TableColumn<User,String> cEmail = col("Email",    d -> d.getValue().getEmail());
-        javafx.scene.control.TableColumn<User,String> cReg   = col("Região",   d -> d.getValue().getRegion());
-        javafx.scene.control.TableColumn<User,String> cDate  = col("Registo",  d -> d.getValue().getRegisterDate().toString());
-        javafx.scene.control.TableColumn<User,String> cAdmin = col("Admin",    d -> d.getValue().isAdmin() ? "✔ SIM" : "—");
+        TableColumn<User,String> cId    = col("ID",       d -> d.getValue().getId());
+        TableColumn<User,String> cName  = col("Nome",     d -> d.getValue().getName());
+        TableColumn<User,String> cEmail = col("Email",    d -> d.getValue().getEmail());
+        TableColumn<User,String> cReg   = col("Região",   d -> d.getValue().getRegion());
+        TableColumn<User,String> cDate  = col("Registo",  d -> d.getValue().getRegisterDate().toString());
+        TableColumn<User,String> cAdmin = col("Admin",    d -> d.getValue().isAdmin() ? "✔ SIM" : "—");
 
         table.getColumns().addAll(cId, cName, cEmail, cReg, cDate, cAdmin);
 
         Runnable refresh = () -> {
-            table.getItems().setAll(db.users().listAll());
+            table.getItems().setAll(db.getUserManager().listAll());
         };
         refreshUsersTab = refresh;
         refresh.run();
@@ -282,7 +282,7 @@ public class AdminDashboardFX {
         bSearch.setOnAction(e -> {
             String q = fSearch.getText().trim();
             if (q.isEmpty()) { refresh.run(); return; }
-            table.getItems().setAll(db.users().searchByNameSubstring(q));
+            table.getItems().setAll(db.getUserManager().searchByNameSubstring(q));
         });
         bAll.setOnAction(e -> { fSearch.clear(); refresh.run(); });
         searchCard.getChildren().add(row(fSearch, bSearch, bAll));
@@ -302,7 +302,7 @@ public class AdminDashboardFX {
             String email = cUEmail.getText().trim(), regiao = cURegion.getText().trim();
             String pwd = cUPwd.getText();
             if (id.isEmpty() || nome.isEmpty() || pwd.isEmpty()) { snack("ID, Nome e Password são obrigatórios", false); return; }
-            if (db.users().contains(id)) { snack("ID '" + id + "' já existe", false); return; }
+            if (db.getUserManager().contains(id)) { snack("ID '" + id + "' já existe", false); return; }
             User novo = new User(id, nome, email, regiao.isEmpty() ? "PT" : regiao.toUpperCase(), LocalDate.now(), pwd);
             novo.setAdmin(cUAdmin.isSelected());
             db.addUser(novo);
@@ -331,7 +331,7 @@ public class AdminDashboardFX {
             if (sel == null) { snack("Seleciona um utilizador", false); return; }
             String nv = askInput("Novo nome:", sel.getName());
             if (nv == null || nv.trim().isEmpty()) return;
-            db.users().editName(sel.getId(), nv.trim());
+            db.getUserManager().editName(sel.getId(), nv.trim());
             AppStateSerializer.save(db); refresh.run();
             snack("Nome updated", true);
         });
@@ -340,7 +340,7 @@ public class AdminDashboardFX {
             if (sel == null) { snack("Seleciona um utilizador", false); return; }
             String nv = askInput("Novo email:", sel.getEmail());
             if (nv == null || nv.trim().isEmpty()) return;
-            db.users().editEmail(sel.getId(), nv.trim());
+            db.getUserManager().editEmail(sel.getId(), nv.trim());
             AppStateSerializer.save(db); refresh.run();
             snack("Email updated", true);
         });
@@ -349,7 +349,7 @@ public class AdminDashboardFX {
             if (sel == null) { snack("Seleciona um utilizador", false); return; }
             String nv = askInput("Nova região:", sel.getRegion());
             if (nv == null || nv.trim().isEmpty()) return;
-            db.users().editRegion(sel.getId(), nv.trim().toUpperCase());
+            db.getUserManager().editRegion(sel.getId(), nv.trim().toUpperCase());
             AppStateSerializer.save(db); refresh.run();
             snack("Região updated", true);
         });
@@ -458,7 +458,7 @@ public class AdminDashboardFX {
             catch (NumberFormatException ex) { snack("Duração inválida", false); return; }
             Content novo = switch (cCType.getValue()) {
                 case "Série"        -> new Series(id, title, genre, date, dur, region.isEmpty() ? "PT" : region.toUpperCase(), 1);
-                case "Documentário" -> new Documentary(id, title, genre, date, dur, region.isEmpty() ? "PT" : region.toUpperCase(), "", "");
+                case "Documentário" -> new Documentary(id, title, genre, date, dur, region.isEmpty() ? "PT" : region.toUpperCase(), "");
                 default             -> new Movie(id, title, genre, date, dur, region.isEmpty() ? "PT" : region.toUpperCase(), null);
             };
             db.addContent(novo);

@@ -6,16 +6,13 @@ import java.io.Serializable;
 public class Documentary extends Content implements Serializable {
 /**
  * Representa um documentário disponível na plataforma de streaming.
- * Herda de {@link Content} e adiciona o tema e o narrador.
+ * Herda de {@link Content} e adiciona o tema.
  *
  * @author Pedro
  */
 
   /** Tema principal do documentário. */
   private String topic;
-
-  /** Nome do narrador do documentário. */
-  private String narrator;
 
   /**
    * Constrói um novo documentário.
@@ -27,13 +24,11 @@ public class Documentary extends Content implements Serializable {
    * @param duration    duração em minutos
    * @param region      região de disponibilidade
    * @param topic       tema principal
-   * @param narrator    nome do narrador
    */
   public Documentary(String id, String title, Genre genre, LocalDate releaseDate,
-                     int duration, String region, String topic, String narrator) {
+                     int duration, String region, String topic) {
     super(id, title, genre, releaseDate, duration, region);
     this.topic = topic;
-    this.narrator = narrator;
   }
 
   /**
@@ -47,22 +42,12 @@ public class Documentary extends Content implements Serializable {
 
 
   /**
-   * Define o nome do narrador do documentário.
-   *
-   * @param narrator novo narrador
-   */
-  public void setNarrator(String narrator) {
-    this.narrator = narrator;
-  }
-
-  /**
    * Devolve uma representação textual do documentário.
    *
    * @return string com informação do documentário
    */
   @Override
   public String toString() {
-    return "Documentary{" + super.toString() + ", topic='" + topic
-            + "', narrator='" + narrator + "'}";
+    return "Documentary{" + super.toString() + ", topic='" + topic + "'}";
   }
 }

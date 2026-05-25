@@ -64,7 +64,7 @@
 
         /** Cria um documentário de teste. */
         private static Documentary documentary(String id, String title, Genre g, LocalDate date) {
-            return new Documentary(id, title, g, date, 90, "PT", "Natureza", "David Attenborough");
+            return new Documentary(id, title, g, date, 90, "PT", "Natureza");
         }
 
         /** Cria um ContentManager com BST associada. */
@@ -293,7 +293,7 @@
             cm.insert(movie("C01", "Inception", g1, LocalDate.of(2010, 7, 16)));
             cm.insert(series("C02", "Breaking Bad", g2, LocalDate.of(2008, 1, 20), 5));
             cm.insert(new Documentary("C03", "Planet Earth", g1,
-                    LocalDate.of(2006, 3, 5), 90, "PT", "Natureza", "David Attenborough"));
+                    LocalDate.of(2006, 3, 5), 90, "PT", "Natureza"));
 
             ContentFileManager.exportGenres(gm, "genres.txt");
             ContentFileManager.exportContents(cm, "contents.txt");
