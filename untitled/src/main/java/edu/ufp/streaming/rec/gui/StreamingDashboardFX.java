@@ -58,7 +58,7 @@ public class StreamingDashboardFX {
     private final Label snackLabel = new Label();
     private javafx.animation.PauseTransition snackTimer;
 
-    // --- Reposto: Variáveis para atualizar a ‘interface’ ao importar ---
+    // --- Reposto: Variáveis para atualizar a interface ao importar ---
     private Runnable refreshUsersTab;
     private Runnable refreshContentsTab;
     private Runnable refreshArtistsTab;
@@ -432,7 +432,6 @@ public class StreamingDashboardFX {
         detalhes.append("Região: ").append(c.getRegion()).append("\n");
         detalhes.append("Classificação: ").append(String.format("%.1f/5.0 *", c.getRating())).append("\n");
 
-
         if (c instanceof Movie) {
             Movie m = (Movie) c;
             if (m.getDirector() != null) {
@@ -450,7 +449,7 @@ public class StreamingDashboardFX {
                 }
             }else {
                 detalhes.append("  (Sem episódios registados)\n");
-                }
+            }
         }
 
         detalhes.append("\nElenco e Participações:\n");
@@ -629,7 +628,6 @@ public class StreamingDashboardFX {
                 }
                 snack("\"" + c.getTitle() + "\" marcado para skip", true);
             } else {
-                // CORREÇÃO: Remove se desmarcar skip
                 removeInteractionAndRefresh(c, InterationType.SKIP);
                 bSk.setText("SKIP");
                 bSk.setStyle(actionStyle("transparent", N_MUTED, N_BORDER));
@@ -866,9 +864,6 @@ public class StreamingDashboardFX {
         stats.setPadding(new Insets(10,0,0,0));
         stats.getChildren().addAll(chipVistos, chipAvaliados, chipSeguindo, chipSeguidores);
 
-        VBox recomCard = nCard("Recomendações (R8d)");
-        recomCard.setPrefWidth(260);
-
         VBox fCard=nCard("A Seguir"); HBox.setHgrow(fCard,Priority.ALWAYS);
         VBox fCard2=nCard("Seguidores"); HBox.setHgrow(fCard2,Priority.ALWAYS);
 
@@ -876,27 +871,6 @@ public class StreamingDashboardFX {
             User u = db.users().get(loggedUser.getId()); if(u==null)return;
             heroName.setText(u.getName()); avatar.setText(initials(u.getName()));
             heroSub.setText(u.getId()+" | "+u.getEmail()+" | "+u.getRegion());
-
-            recomCard.getChildren().clear();
-            recomCard.getChildren().add(lbl("RECOMENDAÇÕES (R8d)"));
-            List<Content> recs = db.graph().recomendarConteudosPorProximidade(loggedUser.getId(),db.follows(),db.users());
-            if (recs.isEmpty()) {
-                Label el=new Label("Segue utilizadores\npara receber recomendações.");
-                el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");
-                recomCard.getChildren().add(el);
-            } else {
-                for (Content c : recs) {
-                    HBox chip = new HBox(10); chip.setAlignment(Pos.CENTER_LEFT); chip.setPadding(new Insets(10,12,10,12));
-                    chip.setStyle("-fx-background-color:#0d0d0d;-fx-background-radius:6;");
-                    String tp = c instanceof Movie?"[F]":c instanceof Series?"[S]":"[D]";
-                    Label ti = new Label(tp); ti.setStyle("-fx-text-fill:white;-font-weight:bold;");
-                    VBox li = new VBox(2);
-                    Label lt = new Label(c.getTitle()); lt.setStyle("-fx-text-fill:"+N_TEXT+";-fx-font-size:13px;-fx-font-weight:bold;");
-                    Label lg = new Label(c.getGenre().getName()+" | "+String.format("%.1f *",c.getRating())); lg.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:11px;");
-                    li.getChildren().addAll(lt,lg); chip.getChildren().addAll(ti,li);
-                    recomCard.getChildren().add(chip);
-                }
-            }
 
             fCard.getChildren().clear();
             fCard.getChildren().add(lbl("A SEGUIR"));
@@ -969,15 +943,10 @@ public class StreamingDashboardFX {
         VBox.setVgrow(tI,Priority.ALWAYS);
         interCard.getChildren().add(tI);
 
-        row1.getChildren().addAll(interCard, recomCard);
+        row1.getChildren().addAll(interCard);
 
         HBox row2 = new HBox(16);
-        VBox prefCard=nCard("Generos Preferidos"); prefCard.setPrefWidth(200);
-        List<Genre> prefs=loggedUser.getPreferences();
-        if(prefs.isEmpty()){Label el=new Label("Sem generos preferidos.");el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");prefCard.getChildren().add(el);}
-        else{ FlowPane fp=new FlowPane(8,8); for(Genre g:prefs){Label chip=new Label("  "+g.getName()+"  ");chip.setStyle("-fx-background-color:#2a0505;-fx-text-fill:"+N_RED+";-fx-border-color:"+N_RED+";-fx-border-radius:20;-fx-background-radius:20;-fx-font-size:11px;-fx-padding:4 8;");fp.getChildren().add(chip);} prefCard.getChildren().add(fp); }
-
-        row2.getChildren().addAll(fCard, fCard2, prefCard);
+        row2.getChildren().addAll(fCard, fCard2);
 
         main.getChildren().addAll(hero, row1, row2);
         rootScroll.setContent(main);

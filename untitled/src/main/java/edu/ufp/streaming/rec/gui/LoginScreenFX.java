@@ -104,10 +104,11 @@ public class LoginScreenFX {
         Label loginTitle = new Label("Iniciar Sessão");
         loginTitle.setStyle("-fx-text-fill:"+N_TEXT+";-fx-font-size:28px;-fx-font-weight:bold;");
 
-        TextField fId = new TextField();
-        fId.setPromptText("ID de utilizador");
-        fId.setStyle(fStyle);
-        fId.setMaxWidth(Double.MAX_VALUE);
+        // O campo aceita agora tanto E-mail como ‘ID’
+        TextField fIdentifier = new TextField();
+        fIdentifier.setPromptText("ID ou E-mail");
+        fIdentifier.setStyle(fStyle);
+        fIdentifier.setMaxWidth(Double.MAX_VALUE);
 
         PasswordField fPwd = new PasswordField();
         fPwd.setPromptText("Password");
@@ -129,7 +130,7 @@ public class LoginScreenFX {
         btnGoReg.setStyle(btnLink + "-fx-font-weight:bold;");
         regRow.getChildren().addAll(regTxt, btnGoReg);
 
-        loginForm.getChildren().addAll(loginTitle, fId, fPwd, btnLogin, sep1, regRow);
+        loginForm.getChildren().addAll(loginTitle, fIdentifier, fPwd, btnLogin, sep1, regRow);
 
         // ── FORMULÁRIO Registo ────────────────────────────────────────────
         VBox registerForm = new VBox(14);
@@ -177,12 +178,33 @@ public class LoginScreenFX {
         });
 
         btnLogin.setOnAction(e -> {
-            String id = fId.getText().trim(), pwd = fPwd.getText();
-            if (id.isEmpty() || pwd.isEmpty()) { msg(msgLabel, "Preenche o ID e Password.", false); return; }
+            String loginInput = fIdentifier.getText().trim();
+            String pwd = fPwd.getText();
 
-            User u = db.authenticate(id, pwd);
+            if (loginInput.isEmpty() || pwd.isEmpty()) {
+                msg(msgLabel, "Preenche o ID/E-mail e Password.", false);
+                return;
+            }
+
+            String targetId = null;
+            for (User user : db.users().listAll()) {
+                boolean idMatch = user.getId().equalsIgnoreCase(loginInput);
+                boolean emailMatch = user.getEmail() != null && user.getEmail().equalsIgnoreCase(loginInput);
+
+                if (idMatch || emailMatch) {
+                    targetId = user.getId();
+                    break; // Encontrámos a pessoa, paramos de procurar
+                }
+            }
+
+            if (targetId == null) {
+                msg(msgLabel, "Conta não encontrada.", false);
+                return;
+            }
+
+            User u = db.authenticate(targetId, pwd);
             if (u == null) {
-                msg(msgLabel, "ID ou password incorretos.", false);
+                msg(msgLabel, "Password incorreta.", false);
                 return;
             }
 
@@ -190,7 +212,7 @@ public class LoginScreenFX {
             redirectAfterLogin(stage, db, u, onSuccess);
         });
 
-        // Enter no campo de password faz login
+        // Enter no campo de password faz ‘login’
         fPwd.setOnAction(e -> btnLogin.fire());
 
         btnReg.setOnAction(e -> {
@@ -198,9 +220,28 @@ public class LoginScreenFX {
             String email = rEmail.getText().trim();
             String regiao = rRegion.getText().trim();
             String pwd = rPwd.getText(), conf = rConf.getText();
-            if (nome.isEmpty() || pwd.isEmpty()) { msg(msgLabel, "Nome e Password são obrigatórios.", false); return; }
-            if (pwd.length() < 6) { msg(msgLabel, "A password deve ter pelo menos 6 caracteres.", false); return; }
-            if (!pwd.equals(conf)) { msg(msgLabel, "As passwords não coincidem.", false); return; }
+
+            if (nome.isEmpty() || email.isEmpty() || pwd.isEmpty()) {
+                msg(msgLabel, "Nome, E-mail e Password são obrigatórios.", false);
+                return;
+            }
+            if (pwd.length() < 6) {
+                msg(msgLabel, "A password deve ter pelo menos 6 caracteres.", false);
+                return;
+            }
+            if (!pwd.equals(conf)) {
+                msg(msgLabel, "As passwords não coincidem.", false);
+                return;
+            }
+
+            // Verifica se o email já existe no registo
+            for (User existing : db.users().listAll()) {
+                if (existing.getEmail() != null && existing.getEmail().equalsIgnoreCase(email)) {
+                    msg(msgLabel, "Este e-mail já está registado.", false);
+                    return;
+                }
+            }
+
             String id = generateUserId(db);
             User novo = new User(id, nome, email, regiao.isEmpty() ? "PT" : regiao.toUpperCase(), LocalDate.now(), pwd);
             db.addUser(novo);
