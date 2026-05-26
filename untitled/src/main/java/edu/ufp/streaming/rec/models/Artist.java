@@ -109,13 +109,11 @@ public class Artist implements Serializable {
 
   /**
    * Retorna a filmografia do artista (lista de participações em conteúdos).
-   * Se a lista for null (após desserialização), inicializa-a automaticamente.
-   *
-   * @return lista mutável de {@link ArtistContent}
+   * @return lista de {@link ArtistContent} (vazia se não tiver nenhuma).
    */
   public List<ArtistContent> getFilmography() {
-    if (participates == null) participates = new ArrayList<>();
-    return participates;
+
+    return participates == null ? new ArrayList<>() : participates;
   }
 
   /**
@@ -163,6 +161,7 @@ public class Artist implements Serializable {
     if (ac == null) return;
     if (participates != null) participates.remove(ac);
   }
+
 
   @Override
   public boolean equals(Object o) {

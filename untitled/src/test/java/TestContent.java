@@ -3,6 +3,7 @@
     import edu.ufp.streaming.rec.models.Documentary;
     import edu.ufp.streaming.rec.models.Genre;
     import edu.ufp.streaming.rec.models.Movie;
+    import edu.ufp.streaming.rec.models.User;
     import edu.ufp.streaming.rec.models.Series;
     import edu.ufp.streaming.rec.models.Interation;
     import edu.ufp.streaming.rec.enums.InterationType;
@@ -262,14 +263,17 @@
             Genre g1 = genre("G01", "Acao");
             Movie m1 = movie("C01", "Inception", g1, LocalDate.of(2010, 7, 16));
 
-            Interation i1 = new Interation(null, m1,
+            // CRIAÇÃO DO UTILIZADOR FICTÍCIO PARA O TESTE NÃO DAR ERRO DE NULL
+            User u1 = new User("U01", "Utilizador Teste", "teste@mail.com", "PT", LocalDate.now());
+
+            Interation i1 = new Interation(u1, m1, // <-- Passa o u1 em vez de null
                     LocalDateTime.of(2024, 3, 10, 20, 30),
                     0.0, 0.75, InterationType.WATCH, "I01");
             assert i1.id().equals("I01") : "ID should be I01";
             assert i1.type() == InterationType.WATCH : "Type should be WATCH";
             assert i1.progress() == 0.75 : "Progress should be 0.75";
 
-            Interation i2 = new Interation(null, m1,
+            Interation i2 = new Interation(u1, m1, // <-- Passa o u1 em vez de null
                     LocalDateTime.of(2024, 3, 10, 22, 0),
                     4.5, 1.0, InterationType.RATE, "I02");
             assert i2.rating() == 4.5 : "Rating should be 4.5";

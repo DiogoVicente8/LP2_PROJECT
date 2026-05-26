@@ -99,6 +99,7 @@ public class StreamingDatabase {
         return uf;
     }
 
+
     public UserFollow addFollow(String followerId, String followedId) {
         //Princípio DRY (Don't Repeat Yourself). Aproveita o método acima enviando a data de agora.
         return addFollowWithDate(followerId, followedId, LocalDateTime.now());
@@ -135,6 +136,10 @@ public class StreamingDatabase {
         artistContentManager.removeAllByContent(contentId);
         graph.removeContentEdges(contentId);
         return contentManager.remove(contentId);
+    }
+
+    public void changePassword(String userId, String newPassword) {
+        userManager.changePassword(userId, newPassword);
     }
 
     public Genre removeGenre(String genreId) {

@@ -4,13 +4,13 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.Serializable;
+
 /**
  * Representa uma série disponível na plataforma de streaming.
  * Herda de {@link Content} e adiciona temporadas e episódios.
  *
  * @author Pedro
  */
-
 public class Series extends Content implements Serializable {
 
   /** Número de temporadas da série. */
@@ -52,8 +52,9 @@ public class Series extends Content implements Serializable {
    * @param seasons novo número de temporadas
    */
   public void setSeasons(int seasons) {
-    if (seasons <= 0)
+    if (seasons <= 0) {
       throw new IllegalArgumentException("seasons deve ser positivo, recebido: " + seasons);
+    }
     this.seasons = seasons;
   }
 
@@ -64,6 +65,29 @@ public class Series extends Content implements Serializable {
    */
   public List<String> getEpisodes() {
     return episodes;
+  }
+
+  /**
+   * Adiciona um novo episódio à série.
+   * Não permite adicionar episódios vazios nem duplicados.
+   *
+   * @param episodeName nome do episódio a adicionar
+   */
+  public void addEpisode(String episodeName) {
+    if (episodeName != null && !episodeName.trim().isEmpty() && !this.episodes.contains(episodeName)) {
+      this.episodes.add(episodeName.trim());
+    }
+  }
+
+  /**
+   * Remove um episódio da série pelo seu nome.
+   *
+   * @param episodeName nome do episódio a remover
+   */
+  public void removeEpisode(String episodeName) {
+    if (episodeName != null) {
+      this.episodes.remove(episodeName);
+    }
   }
 
   /**

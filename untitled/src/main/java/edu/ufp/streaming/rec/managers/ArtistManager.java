@@ -4,6 +4,7 @@ import edu.princeton.cs.algs4.ST;
 import edu.princeton.cs.algs4.RedBlackBST;
 import edu.ufp.streaming.rec.models.Artist;
 import edu.ufp.streaming.rec.enums.ArtistRole;
+import edu.ufp.streaming.rec.models.ArtistContent;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -52,6 +53,12 @@ public class ArtistManager {
         removeFromBirthDateIndex(a);
         removeFromNameIndex(a);
         return a;
+    }
+    public boolean editNationality(String id, String newNationality) {
+        Artist a = get(id);
+        if (a == null) return false;
+        a.setNationality(newNationality);
+        return true;
     }
 
     public boolean editName(String id, String newName) {
@@ -123,7 +130,29 @@ public class ArtistManager {
                 .filter(a -> a.getRole() == role)
                 .collect(Collectors.toList());
     }
+    public List<Artist> searchByNationality(String nationality) {
+        return listAll().stream()
+                .filter(a -> nationality.equalsIgnoreCase(a.getNationality()))
+                .collect(Collectors.toList());
+    }
 
+    public List<Artist> searchByGender(String gender) {
+        return listAll().stream()
+                .filter(a -> gender.equalsIgnoreCase(a.getGender()))
+                .collect(Collectors.toList());
+    }
+
+    public List<Artist> searchByNationalityAndBirthDateRange(String nationality, LocalDate from, LocalDate to) {
+        return searchByBirthDateRange(from, to).stream()
+                .filter(a -> nationality.equalsIgnoreCase(a.getNationality()))
+                .collect(Collectors.toList());
+    }
+
+    public List<Artist> searchByNameSubstringNationalityAndGender(String name, String nationality, String gender) {
+        return searchByNameSubstring(name).stream()
+                .filter(a -> nationality.equalsIgnoreCase(a.getNationality()) && gender.equalsIgnoreCase(a.getGender()))
+                .collect(Collectors.toList());
+    }
     // -------------------------------------------------------------------------
     // Métodos Internos de Indexação
     // -------------------------------------------------------------------------

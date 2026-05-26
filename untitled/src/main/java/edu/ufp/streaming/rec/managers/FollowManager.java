@@ -81,6 +81,16 @@ public class FollowManager {
 
         return uf;
     }
+    public List<UserFollow> searchByDateRange(LocalDateTime from, LocalDateTime to) {
+        List<UserFollow> result = new ArrayList<>();
+        long fromEpoch = from.toEpochSecond(ZoneOffset.UTC);
+        long toEpoch = to.toEpochSecond(ZoneOffset.UTC);
+
+        for (Long key : byDateBST.keys(fromEpoch, toEpoch)) {
+            result.addAll(byDateBST.get(key));
+        }
+        return result;
+    }
 
     // -------------------------------------------------------------------------
     // Consultas Rápidas

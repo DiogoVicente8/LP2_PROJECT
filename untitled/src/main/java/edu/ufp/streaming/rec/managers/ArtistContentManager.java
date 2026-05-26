@@ -140,6 +140,32 @@ public class ArtistContentManager {
         }
         return result;
     }
+    /**
+     * Retorna a filmografia de um artista dentro de um intervalo de datas específico.
+     */
+    public List<ArtistContent> getFilmographyByDateRange(String artistId, LocalDate de, LocalDate ate) {
+        List<ArtistContent> list = byArtistIndex.get(artistId);
+        if (list == null) return new ArrayList<>();
+
+        return list.stream()
+                .filter(ac -> !ac.date().isBefore(de) && !ac.date().isAfter(ate))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Retorna todas as participações na plataforma que ocorreram dentro de um intervalo de datas.
+     */
+    public List<ArtistContent> getAllByDateRange(LocalDate de, LocalDate ate) {
+        List<ArtistContent> result = new ArrayList<>();
+
+        for (Long dateKey : byDateBST.keys(de.toEpochDay(), ate.toEpochDay())) {
+            List<ArtistContent> bucket = byDateBST.get(dateKey);
+            if (bucket != null) {
+                result.addAll(bucket);
+            }
+        }
+        return result;
+    }
 
     /**
      * Retorna todos os atores de um determinado conteúdo.

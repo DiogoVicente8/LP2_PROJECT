@@ -8,6 +8,7 @@ import edu.ufp.streaming.rec.models.User;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Gestor de utilizadores: organiza utilizadores por ID, data de registo e nome.
@@ -69,6 +70,62 @@ public class UserManager {
         if (u == null) return false;
         u.setEmail(newEmail);
         return true;
+    }
+    public boolean editRegion(String id, String newRegion) {
+        User u = get(id);
+        if (u != null) u.setRegion(newRegion);
+        return false;
+    }
+    public List<User> searchByRegisterDate(LocalDate date) {
+        List<User> bucket = byDateBST.get(date.toEpochDay());
+        return bucket != null ? new ArrayList<>(bucket) : new ArrayList<>();
+    }
+
+    public List<User> searchByRegisterDateRange(LocalDate from, LocalDate to) {
+        List<User> result = new ArrayList<>();
+        for (Long d : byDateBST.keys(from.toEpochDay(), to.toEpochDay())) {
+            List<User> bucket = byDateBST.get(d);
+            if (bucket != null) {
+                result.addAll(bucket);
+            }
+        }
+        return result;
+    }
+
+    public List<User> searchByRegionAndDateRange(String region, LocalDate from, LocalDate to) {
+        return searchByRegisterDateRange(from, to).stream()
+                .filter(u -> u.getRegion() != null && u.getRegion().equalsIgnoreCase(region))
+                .collect(Collectors.toList());
+    }
+
+    public List<User> searchByNameSubstringAndRegion(String substring, String region) {
+        return searchByNameSubstring(substring).stream()
+                .filter(u -> u.getRegion() != null && u.getRegion().equalsIgnoreCase(region))
+                .collect(Collectors.toList());
+    }
+
+    public List<User> searchByPreferredGenre(String genreId) {
+        return listAll().stream()
+                .filter(u -> u.getPreferences() != null && u.getPreferences().stream()
+                        .anyMatch(g -> g.getId().equals(genreId)))
+                .collect(Collectors.toList());
+    }
+
+    public boolean addPreference(String userId, Genre genre) {
+        User u = get(userId);
+        if (u != null && genre != null) {
+            u.addPreference(genre);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean removePreference(String userId, Genre genre) {
+        User u = get(userId);
+        if (u != null && u.getPreferences() != null && genre != null) {
+            return u.getPreferences().remove(genre);
+        }
+        return false;
     }
 
     public boolean changePassword(String id, String newRawPassword) {

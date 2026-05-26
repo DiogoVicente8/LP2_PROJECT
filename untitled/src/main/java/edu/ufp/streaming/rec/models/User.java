@@ -241,13 +241,12 @@ public class User implements Serializable {
 
   /**
    * Devolve todas as interações registadas para este utilizador.
-   * Se a lista for {@code null} (após desserialização), inicializa-a automaticamente.
    *
-   * @return lista mutável de objetos {@link Interation}
+   * @return lista de objetos {@link Interation} (vazia se for nula)
    */
   public List<Interation> getInteractions() {
-    if (interations == null) interations = new ArrayList<>();
-    return interations;
+    // Retorna uma lista vazia se for null, sem alterar a variável original (evita o aviso no assert)
+    return interations == null ? new ArrayList<>() : interations;
   }
 
   // -------------------------------------------------------------------------
@@ -298,6 +297,7 @@ public class User implements Serializable {
   }
   /** @return hash da password (formato salt: hash), ou {@code null} se não definida */
   public String getPasswordHash() { return passwordHash; }
+
 
 
   @Override

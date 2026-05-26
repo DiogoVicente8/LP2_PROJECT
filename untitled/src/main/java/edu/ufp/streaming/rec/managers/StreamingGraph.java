@@ -65,7 +65,7 @@ public class StreamingGraph {
 
         long dataAtual = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         long dataFollow = follow.getDate().toEpochSecond(ZoneOffset.UTC);
-        double peso = (double) (dataFollow - dataAtual);
+        double peso = (double) Math.abs(dataAtual - dataFollow);
         grafo.addEdge(new DirectedEdge(idParaIndice.get(origemId), idParaIndice.get(destinoId), peso));
     }
 
@@ -140,6 +140,40 @@ public class StreamingGraph {
         }
         return caminho;
     }
+    public double pesoCaminhoMaisCurto(String idOrigem, String idDestino) {
+        if (!idParaIndice.contains(idOrigem) || !idParaIndice.contains(idDestino)) return Double.POSITIVE_INFINITY;
+
+        // Reutiliza a lógica de Dijkstra que já tens implementada
+        DijkstraResult res = runDijkstraOnUsers(idOrigem);
+        int destIdx = res.remap().get(idParaIndice.get(idDestino));
+
+        return res.sp().distTo(destIdx);
+    }
+
+    public boolean isGrafoUtilizadoresConexo() {
+        List<Integer> users = getVerticesUtilizadores();
+        if (users.isEmpty()) return true;
+
+        // Mapear índices originais para um novo intervalo [0, k-1] para o Digraph
+        Map<Integer, Integer> map = new HashMap<>();
+        int k = 0;
+        for (int u : users) map.put(u, k++);
+
+        // Criar um Digraph simples para o algoritmo de SCC (Strongly Connected Components)
+        Digraph dg = new Digraph(k);
+        for (int v : users) {
+            for (DirectedEdge e : grafo.adj(v)) {
+                // Se a aresta aponta para outro utilizador, adiciona ao Digraph
+                if (map.containsKey(e.to())) {
+                    dg.addEdge(map.get(v), map.get(e.to()));
+                }
+            }
+        }
+
+        // Verifica se o grafo de utilizadores tem apenas uma componente fortemente conexa
+        KosarajuSharirSCC scc = new KosarajuSharirSCC(dg);
+        return scc.count() == 1;
+    }
 
     // -------------------------------------------------------------------------
     // R8d — Recomendações
@@ -193,7 +227,7 @@ public class StreamingGraph {
             }
         }
 
-        stats.put("visualizações", (double) totalVisualizacoes);
+        stats.put("visualizacoes", (double) totalVisualizacoes);
         stats.put("progressoMedio", totalVisualizacoes > 0 ? somaProgresso / totalVisualizacoes : 0.0);
         stats.put("ratingMedio", totalRatings > 0 ? somaRating / totalRatings : 0.0);
         return stats;
@@ -282,4 +316,39 @@ public class StreamingGraph {
         }
         grafo = novoGrafo;
     }
+    public EdgeWeightedDigraph subgrafoByRegion(String region, UserManager userMgr) {
+        EdgeWeightedDigraph subgrafo = new EdgeWeightedDigraph(capacidade);
+        for (int v = 0; v < grafo.V(); v++) {
+            if ("USER".equals(indiceParaTipo.get(v))) {
+                User uFrom = userMgr.get(indiceParaId.get(v));
+                if (uFrom != null && region.equalsIgnoreCase(uFrom.getRegion())) {
+                    for (DirectedEdge e : grafo.adj(v)) {
+                        if ("USER".equals(indiceParaTipo.get(e.to()))) {
+                            User uTo = userMgr.get(indiceParaId.get(e.to()));
+                            if (uTo != null && region.equalsIgnoreCase(uTo.getRegion())) {
+                                subgrafo.addEdge(e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return subgrafo;
+    }
+
+    public EdgeWeightedDigraph subgrafoByGenre(String genreId, ContentManager contentMgr) {
+        EdgeWeightedDigraph subgrafo = new EdgeWeightedDigraph(capacidade);
+        for (int v = 0; v < grafo.V(); v++) {
+            for (DirectedEdge e : grafo.adj(v)) {
+                if ("CONTENT".equals(indiceParaTipo.get(e.to()))) {
+                    Content c = contentMgr.get(indiceParaId.get(e.to()));
+                    if (c != null && c.getGenre().getId().equals(genreId)) {
+                        subgrafo.addEdge(e);
+                    }
+                }
+            }
+        }
+        return subgrafo;
+    }
+
 }

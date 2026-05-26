@@ -69,6 +69,42 @@ public class ContentBST {
         }
         return result;
     }
+    /**
+     * Retorna a data de lançamento mais antiga registada na árvore.
+     */
+    public LocalDate getOldestDate() {
+        if (bst.isEmpty()) return null;
+        // A BST armazena as chaves de forma ordenada, logo o "min" é a data mais antiga
+        String oldest = bst.min();
+        return LocalDate.parse(oldest);
+    }
+
+    /**
+     * Retorna a data de lançamento mais recente registada na árvore.
+     */
+    public LocalDate getNewestDate() {
+        if (bst.isEmpty()) return null;
+        // O "max" da BST dá-nos a data mais recente
+        String newest = bst.max();
+        return LocalDate.parse(newest);
+    }
+
+    /**
+     * Retorna uma lista de todos os Filmes (Movies) ordenados cronologicamente.
+     */
+    public List<Movie> getMoviesOrdered() {
+        List<Movie> result = new ArrayList<>();
+        // O método keys() da BST devolve as datas já em ordem cronológica
+        for (String dataIso : bst.keys()) {
+            for (Content c : bst.get(dataIso)) {
+                // Filtra apenas os conteúdos que são instâncias de Movie
+                if (c instanceof Movie) {
+                    result.add((Movie) c);
+                }
+            }
+        }
+        return result;
+    }
 
 
 
