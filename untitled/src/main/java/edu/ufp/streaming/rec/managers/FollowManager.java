@@ -124,21 +124,6 @@ public class FollowManager {
         return list != null ? list.size() : 0;
     }
 
-    public List<UserFollow> searchByDateRange(LocalDateTime from, LocalDateTime to) {
-        List<UserFollow> result = new ArrayList<>();
-        Long fromEpoch = from.toEpochSecond(ZoneOffset.UTC);
-        Long toEpoch = to.toEpochSecond(ZoneOffset.UTC);
-
-        //Usa os limites da RedBlackBST para não ter de iterar todos os registos
-        for (Long dataNaArvore : byDateBST.keys(fromEpoch, toEpoch)) {
-            List<UserFollow> followersNestaData = byDateBST.get(dataNaArvore);
-            if (followersNestaData != null) {
-                result.addAll(followersNestaData);
-            }
-        }
-        return result;
-    }
-
     public List<UserFollow> listAll() {
         List<UserFollow> result = new ArrayList<>();
         for (String key : followST.keys()) {

@@ -280,7 +280,7 @@ public class AppStateSerializer {
 
     private static void skipExtra(DataInputStream in, String type) throws IOException {
         if ("S".equals(type)) in.readInt();
-        else if ("D".equals(type)) { readStr(in); readStr(in); }
+        else if ("D".equals(type)) readStr(in);
         else readStr(in);
     }
 }

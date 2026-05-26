@@ -26,11 +26,13 @@ public record Interation(User user, Content content, LocalDateTime watchDate, do
    * Constrói uma nova interação com validações rigorosas de negócio.
    */
   public Interation {
+    if (user == null) throw new IllegalArgumentException("O utilizador não pode ser nulo");
+    if (content == null) throw new IllegalArgumentException("O conteúdo não pode ser nulo");
+    if (watchDate == null) throw new IllegalArgumentException("A data de visualização não pode ser nula");
     if (progress < 0.0 || progress > 1.0)
       throw new IllegalArgumentException("O progresso deve estar entre 0.0 e 1.0. Recebido: " + progress);
     if (rating < 0.0 || rating > 5.0)
       throw new IllegalArgumentException("O rating deve estar entre 0.0 e 5.0. Recebido: " + rating);
-
   }
 
   // -------------------------------------------------------------------------

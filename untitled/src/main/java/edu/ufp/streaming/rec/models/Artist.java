@@ -152,6 +152,18 @@ public class Artist implements Serializable {
     if (!participates.contains(ac)) participates.add(ac);
   }
 
+  /**
+   * Remove uma participação em conteúdo da filmografia deste artista.
+   * Chamado pelo {@link edu.ufp.streaming.rec.managers.ArtistContentManager}
+   * quando uma participação é removida.
+   *
+   * @param ac a associação {@link ArtistContent} a remover
+   */
+  public void removeParticipation(ArtistContent ac) {
+    if (ac == null) return;
+    if (participates != null) participates.remove(ac);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;

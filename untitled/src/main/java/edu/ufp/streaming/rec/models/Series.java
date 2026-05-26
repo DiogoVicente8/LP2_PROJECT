@@ -67,24 +67,6 @@ public class Series extends Content implements Serializable {
   }
 
   /**
-   * Adiciona um episódio à série.
-   *
-   * @param episode nome ou identificador do episódio
-   */
-  public void addEpisode(String episode) {
-    this.episodes.add(episode);
-  }
-
-  /**
-   * Remove um episódio da série.
-   *
-   * @param episode nome ou identificador do episódio a remover
-   */
-  public void removeEpisode(String episode) {
-    this.episodes.remove(episode);
-  }
-
-  /**
    * Devolve uma representação textual da série.
    *
    * @return string com informação da série

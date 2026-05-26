@@ -10,8 +10,8 @@ public class TestImportacao {
         // 2. Carregar os géneros-base (g1, g2, g5, etc.) para que a importação funcione
         SeedData.populate(db);
 
-        // 3. Importar o ficheiro que acabaste de descarregar
-        String caminhoTXT = "C:\\Users\\pedro\\IdeaProjects\\LP2_PROJECT\\untitled\\conteudos_streaming.txt";
+        // 3. Importar o ficheiro que acabaste de descarregar (caminho relativo)
+        String caminhoTXT = "conteudos_exportados.txt";
         ContentFileManager.importContents(db.contents(), db.genres(), caminhoTXT);
 
         // 4. Imprimir para verificar se funcionou!

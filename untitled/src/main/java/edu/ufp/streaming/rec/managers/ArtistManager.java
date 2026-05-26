@@ -64,13 +64,6 @@ public class ArtistManager {
         return true;
     }
 
-    public boolean editNationality(String id, String newNationality) {
-        Artist a = artistST.get(id);
-        if (a == null) return false;
-        a.setNationality(newNationality);
-        return true;
-    }
-
     // -------------------------------------------------------------------------
     // Consultas Básicas
     // -------------------------------------------------------------------------
@@ -125,56 +118,10 @@ public class ArtistManager {
         return result;
     }
 
-    public List<Artist> searchByNationality(String nationality) {
-        // Filtra a lista completa de forma declarativa e concisa.
-        return listAll().stream()
-                .filter(a -> nationality.equalsIgnoreCase(a.getNationality()))
-                .collect(Collectors.toList());
-    }
-
-    public List<Artist> searchByGender(String gender) {
-        return listAll().stream()
-                .filter(a -> gender.equalsIgnoreCase(a.getGender()))
-                .collect(Collectors.toList());
-    }
-
     public List<Artist> searchByRole(ArtistRole role) {
         return listAll().stream()
                 .filter(a -> a.getRole() == role)
                 .collect(Collectors.toList());
-    }
-
-    public List<Artist> searchByNationalityAndBirthDateRange(String nationality, LocalDate from, LocalDate to) {
-        List<Artist> result = new ArrayList<>();
-
-        for (Long dataNaArvore : byBirthDateBST.keys(from.toEpochDay(), to.toEpochDay())) {
-            List<Artist> artistasDestaData = byBirthDateBST.get(dataNaArvore);
-
-            if (artistasDestaData != null) {
-                for (Artist a : artistasDestaData) {
-                    if (nationality.equalsIgnoreCase(a.getNationality())) {
-                        result.add(a);
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    public List<Artist> searchByNameSubstringNationalityAndGender(String substring, String nationality, String gender) {
-        String lower = substring.toLowerCase();
-        List<Artist> result = new ArrayList<>();
-
-        for (String nomeNaArvore : byNameBST.keys()) {
-            if (nomeNaArvore.contains(lower)) {
-                for (Artist a : byNameBST.get(nomeNaArvore)) {
-                    if (nationality.equalsIgnoreCase(a.getNationality()) && gender.equalsIgnoreCase(a.getGender())) {
-                        result.add(a);
-                    }
-                }
-            }
-        }
-        return result;
     }
 
     // -------------------------------------------------------------------------

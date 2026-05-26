@@ -64,7 +64,8 @@ public class StreamingGraph {
         if (!idParaIndice.contains(origemId) || !idParaIndice.contains(destinoId)) return;
 
         long dataAtual = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
-        double peso = (double) (dataAtual - follow.getDate().toEpochSecond(ZoneOffset.UTC));
+        long dataFollow = follow.getDate().toEpochSecond(ZoneOffset.UTC);
+        double peso = (double) (dataFollow - dataAtual);
         grafo.addEdge(new DirectedEdge(idParaIndice.get(origemId), idParaIndice.get(destinoId), peso));
     }
 
@@ -138,83 +139,6 @@ public class StreamingGraph {
             caminho.add(indiceParaId.get(res.remapInv().get(e.to())));
         }
         return caminho;
-    }
-
-    public double pesoCaminhoMaisCurto(String idOrigem, String idDestino) {
-        if (!idParaIndice.contains(idOrigem) || !idParaIndice.contains(idDestino)) return Double.POSITIVE_INFINITY;
-
-        DijkstraResult res = runDijkstraOnUsers(idOrigem);
-        int dest = res.remap().get(idParaIndice.get(idDestino));
-
-        return res.sp().hasPathTo(dest) ? res.sp().distTo(dest) : Double.POSITIVE_INFINITY;
-    }
-
-    // -------------------------------------------------------------------------
-    // R8b — Extração de Subgrafos
-    // -------------------------------------------------------------------------
-
-    public EdgeWeightedDigraph subgrafoByRegion(String region, UserManager userMgr) {
-        Set<Integer> idxRegiao = new HashSet<>();
-        for (User u : userMgr.searchByRegion(region)) {
-            if (idParaIndice.contains(u.getId()))
-                idxRegiao.add(idParaIndice.get(u.getId()));
-        }
-
-        EdgeWeightedDigraph sub = new EdgeWeightedDigraph(capacidade);
-        for (int v : idxRegiao) {
-            for (DirectedEdge e : grafo.adj(v)) {
-                if (idxRegiao.contains(e.to())) sub.addEdge(e);
-            }
-        }
-        return sub;
-    }
-
-    public EdgeWeightedDigraph subgrafoByGenre(String genreId, ContentManager contentMgr) {
-        Set<Integer> idxGenero = new HashSet<>();
-        for (Content c : contentMgr.searchByGenre(genreId)) {
-            if (idParaIndice.contains(c.getId()))
-                idxGenero.add(idParaIndice.get(c.getId()));
-        }
-
-        EdgeWeightedDigraph sub = new EdgeWeightedDigraph(capacidade);
-        for (int v = 0; v < grafo.V(); v++) {
-            for (DirectedEdge e : grafo.adj(v)) {
-                if (idxGenero.contains(e.to())) sub.addEdge(e);
-            }
-        }
-        return sub;
-    }
-
-    // -------------------------------------------------------------------------
-    // R8c — Verificar Conectividade
-    // -------------------------------------------------------------------------
-
-    public boolean isGrafoUtilizadoresConexo() {
-        List<Integer> verticesUtilizadores = getVerticesUtilizadores();
-        if (verticesUtilizadores.size() <= 1) return true;
-
-        Map<Integer, Integer> remap = new HashMap<>();
-        int k = 0;
-        for (int v : verticesUtilizadores) remap.put(v, k++);
-
-        Set<Integer> userSet = new HashSet<>(verticesUtilizadores);
-        Digraph digraphUtilizadores = new Digraph(k);
-
-        for (int v : verticesUtilizadores) {
-            for (DirectedEdge e : grafo.adj(v)) {
-                if (userSet.contains(e.to())) {
-                    digraphUtilizadores.addEdge(remap.get(e.from()), remap.get(e.to()));
-                }
-            }
-        }
-
-        KosarajuSharirSCC scc = new KosarajuSharirSCC(digraphUtilizadores);
-
-        int componenteReferencia = scc.id(remap.get(verticesUtilizadores.get(0)));
-        for (int v : verticesUtilizadores) {
-            if (scc.id(remap.get(v)) != componenteReferencia) return false;
-        }
-        return true;
     }
 
     // -------------------------------------------------------------------------

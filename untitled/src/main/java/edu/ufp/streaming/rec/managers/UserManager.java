@@ -71,13 +71,6 @@ public class UserManager {
         return true;
     }
 
-    public boolean editRegion(String id, String newRegion) {
-        User u = userST.get(id);
-        if (u == null) return false;
-        u.setRegion(newRegion);
-        return true;
-    }
-
     public boolean changePassword(String id, String newRawPassword) {
         User u = userST.get(id);
         if (u == null) return false;
@@ -110,26 +103,6 @@ public class UserManager {
         return result;
     }
 
-    public List<User> searchByRegisterDate(LocalDate date) {
-        List<User> list = byDateBST.get(date.toEpochDay());
-        return list != null ? new ArrayList<>(list) : new ArrayList<>();
-    }
-
-    public List<User> searchByRegisterDateRange(LocalDate from, LocalDate to) {
-        List<User> result = new ArrayList<>();
-
-        // Iteramos apenas as chaves contidas no intervalo, reduzindo esforço computacional
-        for (Long dataNaArvore : byDateBST.keys(from.toEpochDay(), to.toEpochDay())) {
-            List<User> utilizadoresDestaData = byDateBST.get(dataNaArvore);
-
-            //  SE a lista não for vazia, adicionamos
-            if (utilizadoresDestaData != null) {
-                result.addAll(utilizadoresDestaData);
-            }
-        }
-        return result;
-    }
-
     public List<User> searchByNameSubstring(String substring) {
         String lower = substring.toLowerCase();
         List<User> result = new ArrayList<>();
@@ -149,70 +122,6 @@ public class UserManager {
         for (User u : listAll()) {
             // Protege contra região nula e verifica se é igual à procurada
             if (u.getRegion() != null && region.equalsIgnoreCase(u.getRegion())) {
-                result.add(u);
-            }
-        }
-        return result;
-    }
-
-    public List<User> searchByRegionAndDateRange(String region, LocalDate from, LocalDate to) {
-        List<User> result = new ArrayList<>();
-
-        // Extraímos da Árvore Binária só as datas no intervalo
-        for (Long dataNaArvore : byDateBST.keys(from.toEpochDay(), to.toEpochDay())) {
-            List<User> utilizadoresDestaData = byDateBST.get(dataNaArvore);
-
-            // Filtramos os resultados pela Região sem usar "continue"
-            if (utilizadoresDestaData != null) {
-                for (User u : utilizadoresDestaData) {
-                    if (u.getRegion() != null && region.equalsIgnoreCase(u.getRegion())) {
-                        result.add(u);
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    public List<User> searchByNameSubstringAndRegion(String substring, String region) {
-        String lower = substring.toLowerCase();
-        List<User> result = new ArrayList<>();
-
-        for (String nomeNaArvore : byNameBST.keys()) {
-            if (nomeNaArvore.contains(lower)) {
-                for (User u : byNameBST.get(nomeNaArvore)) {
-                    if (u.getRegion() != null && region.equalsIgnoreCase(u.getRegion())) {
-                        result.add(u);
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    public boolean addPreference(String userId, Genre genre) {
-        User u = userST.get(userId);
-        if (u == null || genre == null) return false;
-        if (u.getPreferences().contains(genre)) return false;
-        u.addPreference(genre);
-        return true;
-    }
-
-    public boolean removePreference(String userId, Genre genre) {
-        User u = userST.get(userId);
-        if (u == null || genre == null) return false;
-        return u.getPreferences().remove(genre);
-    }
-
-    public List<User> searchByPreferredGenre(String genreId) {
-        List<User> result = new ArrayList<>();
-
-        for (User u : listAll()) {
-            // "Existe algum género na lista deste utilizador com este 'ID'?"
-            boolean gostaDesteGenero = u.getPreferences().stream()
-                    .anyMatch(g -> g.getId().equals(genreId));
-
-            if (gostaDesteGenero) {
                 result.add(u);
             }
         }

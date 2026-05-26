@@ -13,7 +13,11 @@ public class StreamingAppFX extends Application {
     public void start(Stage primaryStage) {
         db = buildSampleDB();
 
-        edu.ufp.streaming.rec.managers.SeedData.populate(db);
+        // Carregar estado completo se o ficheiro existir, senão criar dados de exemplo
+        java.nio.file.Path path = java.nio.file.Paths.get(AppStateSerializer.FILE);
+        if (!java.nio.file.Files.exists(path)) {
+            edu.ufp.streaming.rec.managers.SeedData.populate(db);
+        }
         // Carrega estado completo (utilizadores, conteúdos, follows, interações).
         // Dados de exemplo com o mesmo 'ID' não são duplicados.
         AppStateSerializer.load(db);

@@ -73,35 +73,8 @@ public class ContentBST {
 
 
     // -------------------------------------------------------------------------
-    // Pesquisas Polimórficas Ordenadas
-    // -------------------------------------------------------------------------
-
-    public List<Movie> getMoviesOrdered() {
-        List<Movie> result = new ArrayList<>();
-
-        // A BST já nos devolve as chaves pré-ordenadas do mais antigo para o mais recente
-        for (String dataIso : bst.keys()) {
-            for (Content conteudo : bst.get(dataIso)) {
-                // Pattern Matching: Se for Filme, o Java faz o cast automático para a variável "m"
-                if (conteudo instanceof Movie m) {
-                    result.add(m);
-                }
-            }
-        }
-        return result;
-    }
-
-    // -------------------------------------------------------------------------
     // Utilitários de Data
     // -------------------------------------------------------------------------
-
-    public LocalDate getOldestDate() {
-        return bst.isEmpty() ? null : LocalDate.parse(bst.min());
-    }
-
-    public LocalDate getNewestDate() {
-        return bst.isEmpty() ? null : LocalDate.parse(bst.max());
-    }
 
     public int size() {
         int total = 0;

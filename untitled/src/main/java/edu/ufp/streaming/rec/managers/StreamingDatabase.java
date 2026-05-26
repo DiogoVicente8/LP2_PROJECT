@@ -56,10 +56,6 @@ public class StreamingDatabase {
         return userManager.authenticate(id, rawPassword);
     }
 
-    public boolean changePassword(String userId, String newRawPassword) {
-        return userManager.changePassword(userId, newRawPassword);
-    }
-
     // -------------------------------------------------------------------------
     // Inserções Consistentes
     // -------------------------------------------------------------------------

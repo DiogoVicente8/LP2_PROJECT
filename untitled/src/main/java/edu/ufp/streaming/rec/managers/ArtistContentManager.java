@@ -56,10 +56,17 @@ public class ArtistContentManager {
         if (!participationST.contains(key)) return null;
 
         ArtistContent ac = participationST.get(key);
+        Artist artist = ac.artist();
+        
         participationST.delete(key);
         removeFromArtistIndex(ac);
         removeFromContentIndex(ac);
         removeFromDateIndex(ac);
+        
+        // Manter consistência: remover também da lista interna do artista
+        if (artist != null) {
+            artist.removeParticipation(ac);
+        }
         return ac;
     }
 
@@ -115,44 +122,6 @@ public class ArtistContentManager {
         return list.stream()
                 .filter(ac -> ac.role() == role)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Retorna todas as participações de um artista dentro de um intervalo de datas.
-     */
-    public List<ArtistContent> getFilmographyByDateRange(String artistId, LocalDate from, LocalDate to) {
-        List<ArtistContent> result = new ArrayList<>();
-
-        // Iteramos apenas as datas da Árvore Binária que pertencem a este intervalo
-        for (Long dataNaArvore : byDateBST.keys(from.toEpochDay(), to.toEpochDay())) {
-            List<ArtistContent> participacoesDestaData = byDateBST.get(dataNaArvore);
-
-            // SE há participações nesta data, filtra pelo artista
-            if (participacoesDestaData != null) {
-                for (ArtistContent ac : participacoesDestaData) {
-                    if (ac.artist().getId().equals(artistId)) {
-                        result.add(ac);
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Retorna todas as participações de todos os artistas num intervalo de datas.
-     */
-    public List<ArtistContent> getAllByDateRange(LocalDate from, LocalDate to) {
-        List<ArtistContent> result = new ArrayList<>();
-
-        for (Long dataNaArvore : byDateBST.keys(from.toEpochDay(), to.toEpochDay())) {
-            List<ArtistContent> participacoesDestaData = byDateBST.get(dataNaArvore);
-
-            if (participacoesDestaData != null) {
-                result.addAll(participacoesDestaData);
-            }
-        }
-        return result;
     }
 
     /**

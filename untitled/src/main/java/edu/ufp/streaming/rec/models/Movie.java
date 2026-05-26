@@ -48,14 +48,12 @@ public class Movie extends Content implements Serializable {
   public void setDirector(Artist director) {
     this.director = director;
   }
-
   /**
    * Simula a reprodução do filme.
    */
   public void play() {
     System.out.println("A reproduzir filme: " + getTitle());
   }
-
   /**
    * Devolve uma representação textual do filme.
    *

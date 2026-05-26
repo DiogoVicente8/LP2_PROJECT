@@ -95,7 +95,7 @@ public class ContentManager {
 
     public List<Content> searchByGenre(String genreId) {
         return listAll().stream()
-                .filter(c -> c.getGenre().getId().equals(genreId))
+                .filter(c -> c.getGenre() != null && c.getGenre().getId().equals(genreId))
                 .collect(Collectors.toList());
     }
 
