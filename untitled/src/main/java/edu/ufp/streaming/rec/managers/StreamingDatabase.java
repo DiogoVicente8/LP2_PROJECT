@@ -20,7 +20,6 @@ public class StreamingDatabase {
 
     private final UserManager userManager;
     private final ArtistManager artistManager;
-    private final ContentBST contentBST;
     private final ContentManager contentManager;
     private final GenreManager genreManager;
     private final ArtistContentManager artistContentManager;
@@ -30,7 +29,7 @@ public class StreamingDatabase {
     public StreamingDatabase() {
         this.userManager          = new UserManager();
         this.artistManager        = new ArtistManager();
-        this.contentBST           = new ContentBST();
+        ContentBST contentBST = new ContentBST();
         this.contentManager       = new ContentManager(contentBST);
         this.genreManager         = new GenreManager();
         this.artistContentManager = new ArtistContentManager();
@@ -39,25 +38,15 @@ public class StreamingDatabase {
     }
 
     // -------------------------------------------------------------------------
-    // Getters Padronizados
+    // Getters
     // -------------------------------------------------------------------------
-
-    public UserManager getUserManager() { return userManager; }
-    public ArtistManager getArtistManager() { return artistManager; }
-    public ContentManager getContentManager() { return contentManager; }
-    public ContentBST getContentBST() { return contentBST; }
-    public GenreManager getGenreManager() { return genreManager; }
-    public ArtistContentManager getArtistContentManager() { return artistContentManager; }
-    public FollowManager getFollowManager() { return followManager; }
-    public StreamingGraph getGraph() { return graph; }
-
-    // Convenience accessors for UI and facade code
-    public GenreManager genres() { return genreManager; }
+    public UserManager users() { return userManager; }
     public ArtistManager artists() { return artistManager; }
     public ContentManager contents() { return contentManager; }
+    public GenreManager genres() { return genreManager; }
     public ArtistContentManager participations() { return artistContentManager; }
-    public UserManager users() { return userManager; }
     public FollowManager follows() { return followManager; }
+    public StreamingGraph graph() { return graph; }
 
     // -------------------------------------------------------------------------
     // Autenticação
@@ -99,18 +88,14 @@ public class StreamingDatabase {
     public ArtistContent addParticipation(String artistId, String contentId, ArtistRole role, LocalDate date) {
         Artist  artist  = artistManager.get(artistId);
         Content content = contentManager.get(contentId);
-
         if (artist == null || content == null) return null;
-
         return artistContentManager.addParticipation(artist, content, role, date);
     }
 
     public UserFollow addFollowWithDate(String followerId, String followedId, LocalDateTime followDate) {
         User follower = userManager.get(followerId);
         User followed = userManager.get(followedId);
-
         if (follower == null || followed == null) return null;
-
         UserFollow uf = followManager.followWithDate(follower, followed, followDate);
         if (uf != null) {
             graph.addFollowEdge(uf);
@@ -125,10 +110,8 @@ public class StreamingDatabase {
 
     public void addInteraction(Interation interaction) {
         if (interaction == null) return;
-
-        User user = userManager.get(interaction.getUser().getId());
+        User user = userManager.get(interaction.user().getId());
         if (user == null) return;
-
         user.addInteraction(interaction);
         graph.addInteractionEdge(interaction); // Reflete a interação como Aresta no Grafo
     }
@@ -139,27 +122,22 @@ public class StreamingDatabase {
 
     public User removeUser(String userId) {
         if (!userManager.contains(userId)) return null;
-
         //  Apaga o utilizador e limpa todos os rastos dele noutros gestores.
         followManager.removeAllRelationships(userId);
         graph.removeUserEdges(userId);
-
         return userManager.remove(userId);
     }
 
     public Artist removeArtist(String artistId) {
         if (!artistManager.contains(artistId)) return null;
-
         artistContentManager.removeAllByArtist(artistId);
         return artistManager.remove(artistId);
     }
 
     public Content removeContent(String contentId) {
         if (contentManager.get(contentId) == null) return null;
-
         artistContentManager.removeAllByContent(contentId);
         graph.removeContentEdges(contentId);
-
         return contentManager.remove(contentId);
     }
 
@@ -167,28 +145,9 @@ public class StreamingDatabase {
         //Stream API para verificar rapidamente se o género está preso a algum filme
         boolean isGeneroEmUso = contentManager.listAll().stream()
                 .anyMatch(c -> c.getGenre() != null && c.getGenre().getId().equals(genreId));
-
         if (isGeneroEmUso) {
             throw new IllegalStateException("Não é possível remover o género '" + genreId + "': existem conteúdos que ainda o utilizam.");
         }
         return genreManager.remove(genreId);
-    }
-
-    // -------------------------------------------------------------------------
-    // Atualizações Complexas
-    // -------------------------------------------------------------------------
-
-    public boolean updateMovieDirector(String movieId, String newArtistId) {
-        Content content = contentManager.get(movieId);
-        Artist newDirector = artistManager.get(newArtistId);
-
-        // Atualiza a referência no Filme E insere a participação no ArtistContentManager
-        if (content instanceof Movie && newDirector != null) {
-            Movie movie = (Movie) content;
-            movie.setDirector(newDirector);
-            artistContentManager.addParticipation(newDirector, movie, ArtistRole.DIRECTOR, LocalDate.now());
-            return true;
-        }
-        return false;
     }
 }

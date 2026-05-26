@@ -1,4 +1,3 @@
-import edu.ufp.streaming.rec.enums.ArtistRole;
 import edu.ufp.streaming.rec.enums.InterationType;
 import edu.ufp.streaming.rec.managers.*;
 import edu.ufp.streaming.rec.models.*;
@@ -104,7 +103,7 @@ public class TestStreamingGraph {
     public static void testR8a_CaminhoMaisCurto() {
         System.out.println("--- R8a: caminhoMaisCurtoBetweenUsers ---");
         StreamingDatabase db = buildDB();
-        StreamingGraph g = db.getGraph();
+        StreamingGraph g = db.graph();
 
         // u1 → u2 (direto)
         List<String> caminho12 = g.caminhoMaisCurtoBetweenUsers("u1", "u2");
@@ -144,7 +143,7 @@ public class TestStreamingGraph {
     public static void testR8b_SubgrafoByRegion() {
         System.out.println("--- R8b: subgrafoByRegion ---");
         StreamingDatabase db = buildDB();
-        StreamingGraph g = db.getGraph();
+        StreamingGraph g = db.graph();
 
         // Subgrafo PT: u1 e u2 (u1→u2 existe, u2→u1 não)
         var subPT = g.subgrafoByRegion("PT", db.users());
@@ -166,7 +165,7 @@ public class TestStreamingGraph {
     public static void testR8b_SubgrafoByGenre() {
         System.out.println("--- R8b: subgrafoByGenre ---");
         StreamingDatabase db = buildDB();
-        StreamingGraph g = db.getGraph();
+        StreamingGraph g = db.graph();
 
         // Subgrafo g1 (Ação): c1 (Inception) e c3 (Dark)
         // u1→c1 (WATCH), u2→c1 (WATCH+RATE), u3→c3 (WATCH)
@@ -190,13 +189,12 @@ public class TestStreamingGraph {
     public static void testR8c_GrafoConexo() {
         System.out.println("--- R8c: isGrafoUtilizadoresConexo ---");
         StreamingDatabase db = buildDB();
-        StreamingGraph g = db.getGraph();
+        StreamingGraph g = db.graph();
 
         // u1→u2→u3→u4 mas u4 não segue ninguém — não é fortemente conexo
         boolean conexo = g.isGrafoUtilizadoresConexo();
         assert !conexo : "O grafo não deve ser fortemente conexo (u4 não tem saídas)";
         System.out.println("  Grafo conexo (esperado false): " + conexo);
-
         // Tornar conexo: adicionar u4→u1
         db.addFollow("u4", "u1");
         boolean conexoAgora = g.isGrafoUtilizadoresConexo();
@@ -213,7 +211,7 @@ public class TestStreamingGraph {
     public static void testR8d_Recomendacoes() {
         System.out.println("--- R8d: recomendarConteudosPorProximidade ---");
         StreamingDatabase db = buildDB();
-        StreamingGraph g = db.getGraph();
+        StreamingGraph g = db.graph();
 
         // u1 segue u2. u2 viu c1 e c2. u1 já viu c1 → recomendação deve ser c2
         List<Content> recom = g.recomendarConteudosPorProximidade("u1", db.follows(), db.users());
@@ -237,7 +235,7 @@ public class TestStreamingGraph {
     public static void testR8e_EstatisticasVisualizacao() {
         System.out.println("--- R8e: estatisticasVisualizacao ---");
         StreamingDatabase db = buildDB();
-        StreamingGraph g = db.getGraph();
+        StreamingGraph g = db.graph();
 
         // c1 (Inception): u1 viu (0.9), u2 viu (1.0) e avaliou (4.5)
         LocalDateTime de  = LocalDateTime.of(2000, 1, 1, 0, 0);
@@ -268,7 +266,7 @@ public class TestStreamingGraph {
     public static void testR8f_UtilizadoresSeriesGenero() {
         System.out.println("--- R8f: utilizadoresQueViramSeriesDeGenero ---");
         StreamingDatabase db = buildDB();
-        StreamingGraph g = db.getGraph();
+        StreamingGraph g = db.graph();
 
         // Drama (g2): u2 viu Breaking Bad (fev/2024), u4 viu Breaking Bad (mar/2024)
         LocalDateTime de  = LocalDateTime.of(2024, 1, 1, 0, 0);
@@ -300,7 +298,7 @@ public class TestStreamingGraph {
     public static void testR8g_SeguidoresQueViramConteudo() {
         System.out.println("--- R8g: seguidoresQueViramConteudo ---");
         StreamingDatabase db = buildDB();
-        StreamingGraph g = db.getGraph();
+        StreamingGraph g = db.graph();
 
         // Seguidores de u2: nenhum (u2 é seguido por u1, mas não tem seguidores que viram c1)
         // Seguidores de u1: nenhum

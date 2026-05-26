@@ -10,16 +10,13 @@ import java.util.List;
 /**
  * Representa um artista (ator, realizador, produtor ou argumentista) na plataforma de streaming.
  *
- * <p>Os artistas possuem um ID único, detalhes pessoais, uma função principal ({@link ArtistRole}),
+ * <p>Os artistas possuem um 'ID' único, detalhes pessoais, uma função principal ({@link ArtistRole}),
  * e uma filmografia — uma lista de associações {@link ArtistContent} que ligam
  * este artista ao conteúdo em que participou.
  *
  * @author  Diogo Vicente
  */
 public class Artist implements Serializable {
-
-  /** Identificador de versão para serialização. */
-  private static final long serialVersionUID = 1L;
 
   /** Identificador único para este artista. */
   private String id;
@@ -31,13 +28,13 @@ public class Artist implements Serializable {
   private String nationality;
 
   /** String de género (ex: "M", "F"). */
-  private String gender;
+  private final String gender;
 
   /** Data de nascimento. */
-  private LocalDate birthDate;
+  private final LocalDate birthDate;
 
-  /** Função principal na plataforma (ex: ACTOR, DIRECTOR). */
-  private ArtistRole role;
+  /** Função principal na plataforma. */
+  private final ArtistRole role;
 
   /**
    * Lista de participações em conteúdos (filmografia).
@@ -78,7 +75,7 @@ public class Artist implements Serializable {
   /**
    * Retorna o nome completo do artista.
    *
-   * @return string do nome
+   * @return 'string' do nome
    */
   public String getName() { return name; }
 

@@ -126,12 +126,12 @@ public class LoginScreenFX {
         Label regTxt = new Label("Novo no Streaming App?");
         regTxt.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:13px;");
         Button btnGoReg = new Button("Criar conta.");
-        btnGoReg.setStyle(btnLink + "-fx-text-fill:white;-fx-font-weight:bold;");
+        btnGoReg.setStyle(btnLink + "-fx-font-weight:bold;");
         regRow.getChildren().addAll(regTxt, btnGoReg);
 
         loginForm.getChildren().addAll(loginTitle, fId, fPwd, btnLogin, sep1, regRow);
 
-        // ── FORMULÁRIO REGISTO ────────────────────────────────────────────
+        // ── FORMULÁRIO Registo ────────────────────────────────────────────
         VBox registerForm = new VBox(14);
         registerForm.setAlignment(Pos.TOP_LEFT);
         registerForm.setVisible(false);
@@ -159,7 +159,7 @@ public class LoginScreenFX {
         Label loginTxt = new Label("Já tens conta?");
         loginTxt.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:13px;");
         Button btnGoLogin = new Button("Iniciar sessão.");
-        btnGoLogin.setStyle(btnLink + "-fx-text-fill:white;-fx-font-weight:bold;");
+        btnGoLogin.setStyle(btnLink + "-fx-font-weight:bold;");
         loginRow.getChildren().addAll(loginTxt, btnGoLogin);
 
         registerForm.getChildren().addAll(regTitle, rRegion, rName, rEmail, rPwd, rConf, btnReg, sep2, loginRow);
@@ -236,7 +236,7 @@ public class LoginScreenFX {
         String id;
         do {
             id = "usr_" + UUID.randomUUID().toString().substring(0, 8);
-        } while (db.getUserManager().contains(id));
+        } while (db.users().contains(id));
         return id;
     }
 

@@ -92,17 +92,6 @@ public class UserManager {
         return u.checkPassword(rawPassword) ? u : null;
     }
 
-    public boolean setInitialPassword(String id, String rawPassword) {
-        User u = userST.get(id);
-        if (u == null) return false;
-        return u.setInitialPassword(rawPassword);
-    }
-
-    public boolean hasPassword(String id) {
-        User u = userST.get(id);
-        return u != null && u.hasPassword();
-    }
-
     // -------------------------------------------------------------------------
     // Consultas
     // -------------------------------------------------------------------------
@@ -219,7 +208,7 @@ public class UserManager {
         List<User> result = new ArrayList<>();
 
         for (User u : listAll()) {
-            // "Existe algum género na lista deste utilizador com este ID?"
+            // "Existe algum género na lista deste utilizador com este 'ID'?"
             boolean gostaDesteGenero = u.getPreferences().stream()
                     .anyMatch(g -> g.getId().equals(genreId));
 

@@ -10,7 +10,7 @@ import java.io.Serializable;
  */
 public class Genre implements Serializable {
 
-  private String id;
+  private final String id;
   private String name;
 
   public Genre(String id, String name) {

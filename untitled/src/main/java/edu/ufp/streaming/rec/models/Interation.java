@@ -1,150 +1,71 @@
 package edu.ufp.streaming.rec.models;
 
 import edu.ufp.streaming.rec.enums.InterationType;
-import java.time.LocalDateTime;
+
 import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * Representa uma interação de um utilizador com um conteúdo na plataforma de streaming.
+ * Guarda o estado da visualização (progresso) e a avaliação.
  *
+ * @param user      Utilizador que realizou a interação.
+ * @param content   Conteúdo alvo da interação.
+ * @param watchDate Data e hora em que ocorreu a interação.
+ * @param rating    Avaliação atribuída ao conteúdo (se aplicável).
+ * @param progress  Progresso da visualização do conteúdo (se aplicável, 0,0 a 1,0).
+ * @param type      Tipo da interação realizada.
+ * @param id        Identificador único da interação.
  * @author Pedro
- * @version 1.0
  */
-public class Interation implements Serializable {
-
-  /** Utilizador que realizou a interação. */
-  private User user;
-
-  /** Conteúdo alvo da interação. */
-  private Content content;
-
-  /** Data e hora em que ocorreu a interação. */
-  private LocalDateTime watchDate;
-
-  /** Avaliação atribuída ao conteúdo (se aplicável). */
-  private double rating;
-
-  /** Progresso da visualização do conteúdo (se aplicável). */
-  private double progress;
-
-  /** Tipo da interação realizada. */
-  private InterationType type;
-
-  /** Identificador único da interação. */
-  private String id;
+public record Interation(User user, Content content, LocalDateTime watchDate, double rating, double progress,
+                         InterationType type, String id) implements Serializable {
 
   /**
-   * Constrói uma nova interação.
-   *
-   * @param user      utilizador que realizou a interação
-   * @param content   conteúdo alvo da interação
-   * @param watchDate data e hora da interação
-   * @param rating    avaliação atribuída ao conteúdo
-   * @param progress  progresso da visualização do conteúdo
-   * @param type      tipo da interação
-   * @param id        identificador único da interação
+   * Constrói uma nova interação com validações rigorosas de negócio.
    */
-  public Interation(User user, Content content, LocalDateTime watchDate, double rating, double progress, InterationType type, String id) {
+  public Interation {
     if (progress < 0.0 || progress > 1.0)
-      throw new IllegalArgumentException("progress deve estar em [0.0, 1.0], recebido: " + progress);
+      throw new IllegalArgumentException("O progresso deve estar entre 0.0 e 1.0. Recebido: " + progress);
     if (rating < 0.0 || rating > 5.0)
-      throw new IllegalArgumentException("rating deve estar em [0.0, 5.0], recebido: " + rating);
-    this.user = user;
-    this.content = content;
-    this.watchDate = watchDate;
-    this.rating = rating;
-    this.progress = progress;
-    this.type = type;
-    this.id = id;
+      throw new IllegalArgumentException("O rating deve estar entre 0.0 e 5.0. Recebido: " + rating);
+
   }
 
-  /**
-   * Devolve o utilizador que realizou a interação.
-   *
-   * @return utilizador da interação
-   */
-  public User getUser() {
-    return user;
-  }
+  // -------------------------------------------------------------------------
+  // Getters & Setters
+  // -------------------------------------------------------------------------
+
+  // -------------------------------------------------------------------------
+  // Métodos Utilitários (Equals, HashCode e toString)
+  // -------------------------------------------------------------------------
 
   /**
-   * Devolve o conteúdo alvo da interação.
-   *
-   * @return conteúdo da interação
-   */
-  public Content getContent() {
-    return content;
-  }
-
-  /**
-   * Devolve a data e hora da interação.
-   *
-   * @return data da interação
-   */
-  public LocalDateTime getWatchDate() {
-    return watchDate;
-  }
-
-  /**
-   * Devolve a avaliação atribuída ao conteúdo.
-   *
-   * @return avaliação da interação
-   */
-  public double getRating() {
-    return rating;
-  }
-
-  /**
-   * Devolve o progresso de visualização do conteúdo.
-   *
-   * @return progresso da interação
-   */
-  public double getProgress() {
-    return progress;
-  }
-
-  /**
-   * Devolve o tipo da interação realizada.
-   *
-   * @return tipo de interação
-   */
-  public InterationType getType() {
-    return type;
-  }
-
-  /**
-   * Devolve o identificador único da interação.
-   *
-   * @return id da interação
-   */
-  public String getId() {
-    return id;
-  }
-  /**
-   * Define a avaliação atribuída ao conteúdo.
-   *
-   * @param rating nova avaliação (deve estar em [0.0, 5.0])
-   */
-  public void setRating(double rating) {
-    if (rating < 0.0 || rating > 5.0)
-      throw new IllegalArgumentException("rating deve estar em [0.0, 5.0], recebido: " + rating);
-    this.rating = rating;
-  }
-  /**
-   * Devolve uma representação textual da interação.
-   *
-   * @return string com os dados da interação
+   * Duas interações são iguais se tiverem o mesmo ID.
    */
   @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Interation that = (Interation) o;
+    return Objects.equals(id, that.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
+  }
+
+  @Override
   public String toString() {
-    return "edu.pt.lp2.edu.ufp.streaming.rec.models.Interation{" +
-            "user=" + user +
-            ", content=" + content +
-            ", watchDate=" + watchDate +
+    return "Interation{" +
+            "id='" + id + '\'' +
+            ", type=" + type +
+            ", userId='" + (user != null ? user.getId() : "null") + '\'' +
+            ", contentId='" + (content != null ? content.getId() : "null") + '\'' +
             ", rating=" + rating +
             ", progress=" + progress +
-            ", type=" + type +
-            ", id='" + id + '\'' +
             '}';
   }
 }

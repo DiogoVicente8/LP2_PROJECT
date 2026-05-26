@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Gerenciador de Artistas: organiza artistas por ID, Nome e Data de Nascimento.
+ * Gerenciador de Artistas: organiza artistas por 'ID', Nome e Data de Nascimento.
  * @author Diogo Vicente
  */
 public class ArtistManager {
@@ -98,11 +98,6 @@ public class ArtistManager {
     // -------------------------------------------------------------------------
     // Consultas Avançadas
     // -------------------------------------------------------------------------
-
-    public List<Artist> searchByBirthDate(LocalDate date) {
-        List<Artist> list = byBirthDateBST.get(date.toEpochDay());
-        return list != null ? new ArrayList<>(list) : new ArrayList<>();
-    }
 
     public List<Artist> searchByBirthDateRange(LocalDate from, LocalDate to) {
         List<Artist> result = new ArrayList<>();

@@ -7,15 +7,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Gestor de géneros de conteúdos da plataforma de streaming.
- * Utiliza uma Symbol Table (ST) para armazenar géneros por ID.
+ * Gestor de géneros de conteúdos da plataforma de 'streaming'.
+ * Utiliza uma Symbol Table (ST) para armazenar géneros por 'ID'.
  *
  * @author Pedro
  */
 public class GenreManager {
 
     // Legenda: Cumprimento do Requisito R2. Usamos uma Symbol Table (ST) da biblioteca algs4
-    // para garantir pesquisas super rápidas baseadas num ID único (String).
+    // para garantir pesquisas super-rápidas baseadas num 'ID' único ('String').
     private final ST<String, Genre> genreSt;
 
     public GenreManager() {

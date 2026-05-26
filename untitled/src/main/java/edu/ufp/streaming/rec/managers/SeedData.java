@@ -9,12 +9,10 @@ import java.time.LocalDate;
  * Dados de seed realistas para a plataforma de streaming.
  * Chama SeedData.populate(db) no teu método de inicialização,
  * ANTES de AppStateSerializer.load(db), para que o load não duplique.
- *
  * Exemplo de uso no Main ou AppStateSerializer:
- *
- *   StreamingDatabase db = new StreamingDatabase();
- *   SeedData.populate(db);        // ← adiciona seed
- *   AppStateSerializer.load(db);  // ← carrega saves por cima (sem duplicar)
+ * StreamingDatabase db = new StreamingDatabase();
+ * SeedData.populate(db);        // ← adiciona seed
+ * AppStateSerializer.load(db);  // ← carrega saves por cima (sem duplicar)
  */
 public class SeedData {
 
@@ -35,7 +33,7 @@ public class SeedData {
         adm.setAdmin(true);
         db.addUser(adm);
 
-        // 20 Utilizadores de Teste com IDs estilo Username
+        // 20 Utilizadores de Teste com 'IDs' estilo Username
         db.addUser(new User("rui_pereira", "Rui Pereira", "rui_pereira@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 20), "rui123"));
         db.addUser(new User("sofia46", "Sofia Fernandes", "sofia.fernandes@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 24), "sofia123"));
         db.addUser(new User("mendes.joao", "João Mendes", "mendes.joao@gmail.com", "PT", java.time.LocalDate.of(2026, 5, 19), "joao123"));

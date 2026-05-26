@@ -4,8 +4,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.Serializable;
-
-public class Series extends Content implements Serializable {
 /**
  * Representa uma série disponível na plataforma de streaming.
  * Herda de {@link Content} e adiciona temporadas e episódios.
@@ -13,11 +11,13 @@ public class Series extends Content implements Serializable {
  * @author Pedro
  */
 
+public class Series extends Content implements Serializable {
+
   /** Número de temporadas da série. */
   private int seasons;
 
   /** Lista de episódios da série. */
-  private List<String> episodes;
+  private final List<String> episodes;
 
   /**
    * Constrói uma nova série.

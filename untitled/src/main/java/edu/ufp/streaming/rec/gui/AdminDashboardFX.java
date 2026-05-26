@@ -20,12 +20,11 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 
 /**
- * Painel de administração da plataforma de streaming.
+ * Painel de administração da plataforma de ‘streaming’.
  * Só acessível a utilizadores com {@code isAdmin() == true}.
- *
  * Funcionalidades:
  * - Gerir Utilizadores (listar, criar, editar, remover, promover a admin)
- * - Gerir Conteúdos (listar, criar, editar título/rating/duração/realizador, remover)
+ * - Gerir Conteúdos (listar, criar, editar título/classificação/duração/realizador, remover)
  * - Gerir Artistas (listar, criar, editar, remover)
  * - Gerir Géneros (listar, criar, remover)
  *
@@ -63,11 +62,6 @@ public class AdminDashboardFX {
     private static final String BTN_DANGER =
             "-fx-background-color:transparent;-fx-text-fill:#FF5252;" +
                     "-fx-border-color:#FF5252;-fx-border-radius:4;-fx-background-radius:4;" +
-                    "-fx-padding:6 12;-fx-cursor:hand;-fx-font-size:11px;";
-
-    private static final String BTN_SMALL =
-            "-fx-background-color:" + N_CARD2 + ";-fx-text-fill:" + N_TEXT + ";" +
-                    "-fx-border-color:" + N_BORDER + ";-fx-border-radius:4;-fx-background-radius:4;" +
                     "-fx-padding:6 12;-fx-cursor:hand;-fx-font-size:11px;";
 
     private final StreamingDatabase db;
@@ -244,7 +238,7 @@ public class AdminDashboardFX {
     }
 
     // =========================================================================
-    // ABA: UTILIZADORES
+    // ABA: Utilizadores
     // =========================================================================
 
     private Tab buildUsersTab() {
@@ -267,7 +261,7 @@ public class AdminDashboardFX {
         table.getColumns().addAll(cId, cName, cEmail, cReg, cDate, cAdmin);
 
         Runnable refresh = () -> {
-            table.getItems().setAll(db.getUserManager().listAll());
+            table.getItems().setAll(db.users().listAll());
         };
         refreshUsersTab = refresh;
         refresh.run();
@@ -282,7 +276,7 @@ public class AdminDashboardFX {
         bSearch.setOnAction(e -> {
             String q = fSearch.getText().trim();
             if (q.isEmpty()) { refresh.run(); return; }
-            table.getItems().setAll(db.getUserManager().searchByNameSubstring(q));
+            table.getItems().setAll(db.users().searchByNameSubstring(q));
         });
         bAll.setOnAction(e -> { fSearch.clear(); refresh.run(); });
         searchCard.getChildren().add(row(fSearch, bSearch, bAll));
@@ -302,7 +296,7 @@ public class AdminDashboardFX {
             String email = cUEmail.getText().trim(), regiao = cURegion.getText().trim();
             String pwd = cUPwd.getText();
             if (id.isEmpty() || nome.isEmpty() || pwd.isEmpty()) { snack("ID, Nome e Password são obrigatórios", false); return; }
-            if (db.getUserManager().contains(id)) { snack("ID '" + id + "' já existe", false); return; }
+            if (db.users().contains(id)) { snack("ID '" + id + "' já existe", false); return; }
             User novo = new User(id, nome, email, regiao.isEmpty() ? "PT" : regiao.toUpperCase(), LocalDate.now(), pwd);
             novo.setAdmin(cUAdmin.isSelected());
             db.addUser(novo);
@@ -313,7 +307,7 @@ public class AdminDashboardFX {
         });
         createCard.getChildren().addAll(cUId, cUName, cUEmail, cURegion, cUPwd, cUAdmin, bCreate);
 
-        VBox actionsCard = card("Ações sobre Selecionado");
+        VBox actionsCard = card("Ações sobre selecionado");
         Button bEditName   = btn("Editar Nome",    BTN_S);
         Button bEditEmail  = btn("Editar Email",   BTN_S);
         Button bEditRegion = btn("Editar Região",  BTN_S);
@@ -328,34 +322,34 @@ public class AdminDashboardFX {
 
         bEditName.setOnAction(e -> {
             User sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um utilizador", false); return; }
+            if (sel == null) { snack("seleciona um utilizador", false); return; }
             String nv = askInput("Novo nome:", sel.getName());
             if (nv == null || nv.trim().isEmpty()) return;
-            db.getUserManager().editName(sel.getId(), nv.trim());
+            db.users().editName(sel.getId(), nv.trim());
             AppStateSerializer.save(db); refresh.run();
             snack("Nome updated", true);
         });
         bEditEmail.setOnAction(e -> {
             User sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um utilizador", false); return; }
+            if (sel == null) { snack("seleciona um utilizador", false); return; }
             String nv = askInput("Novo email:", sel.getEmail());
             if (nv == null || nv.trim().isEmpty()) return;
-            db.getUserManager().editEmail(sel.getId(), nv.trim());
+            db.users().editEmail(sel.getId(), nv.trim());
             AppStateSerializer.save(db); refresh.run();
             snack("Email updated", true);
         });
         bEditRegion.setOnAction(e -> {
             User sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um utilizador", false); return; }
+            if (sel == null) { snack("seleciona um utilizador", false); return; }
             String nv = askInput("Nova região:", sel.getRegion());
             if (nv == null || nv.trim().isEmpty()) return;
-            db.getUserManager().editRegion(sel.getId(), nv.trim().toUpperCase());
+            db.users().editRegion(sel.getId(), nv.trim().toUpperCase());
             AppStateSerializer.save(db); refresh.run();
             snack("Região updated", true);
         });
         bToggleAdmin.setOnAction(e -> {
             User sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um utilizador", false); return; }
+            if (sel == null) { snack("seleciona um utilizador", false); return; }
             if (sel.getId().equals(adminUser.getId())) { snack("Não podes alterar a tua própria conta", false); return; }
             sel.setAdmin(!sel.isAdmin());
             AppStateSerializer.save(db); refresh.run();
@@ -363,7 +357,7 @@ public class AdminDashboardFX {
         });
         bRemove.setOnAction(e -> {
             User sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um utilizador", false); return; }
+            if (sel == null) { snack("seleciona um utilizador", false); return; }
             if (sel.getId().equals(adminUser.getId())) { snack("Não podes remover a tua própria conta", false); return; }
             if (!confirm("Remover utilizador '" + sel.getName() + "'?")) return;
             db.removeUser(sel.getId());
@@ -515,7 +509,7 @@ public class AdminDashboardFX {
 
         syncCard.getChildren().addAll(bImportTxt, bExportTxt, bExportBin, bImportBin);
 
-        VBox actCard = card("Ações sobre Selecionado");
+        VBox actCard = card("Ações sobre selecionado");
         Button bEditTitle  = btn("Editar Título",    BTN_S);
         Button bEditDur    = btn("Editar Duração",   BTN_S);
         Button bEditRegion = btn("Editar Região",    BTN_S);
@@ -527,7 +521,7 @@ public class AdminDashboardFX {
 
         bEditTitle.setOnAction(e -> {
             Content sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um conteúdo", false); return; }
+            if (sel == null) { snack("seleciona um conteúdo", false); return; }
             String nv = askInput("Novo título:", sel.getTitle());
             if (nv == null || nv.trim().isEmpty()) return;
             db.contents().editTitle(sel.getId(), nv.trim());
@@ -536,7 +530,7 @@ public class AdminDashboardFX {
         });
         bEditDur.setOnAction(e -> {
             Content sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um conteúdo", false); return; }
+            if (sel == null) { snack("seleciona um conteúdo", false); return; }
             String nv = askInput("Nova duração (min):", String.valueOf(sel.getDuration()));
             if (nv == null) return;
             try {
@@ -548,7 +542,7 @@ public class AdminDashboardFX {
         });
         bEditRegion.setOnAction(e -> {
             Content sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um conteúdo", false); return; }
+            if (sel == null) { snack("seleciona um conteúdo", false); return; }
             String nv = askInput("Nova região:", sel.getRegion());
             if (nv == null || nv.trim().isEmpty()) return;
             sel.setRegion(nv.trim().toUpperCase());
@@ -556,18 +550,16 @@ public class AdminDashboardFX {
             snack("Região atualizada", true);
         });
 
-        // ── LÓGICA DE GESTÃO DE EPISÓDIOS (UTILIZA GETEPISODES, ADDEPISODE, REMOVEEPISODE) ──
+        // ── LÓGICA DE GESTÃO DE EPISÓDIOS (UTILIZA GET-EPISODES, ADD-EPISODE, REMOVE-EPISODE) ──
         bManageEpisodes.setOnAction(e -> {
             Content sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um conteúdo primeiro", false); return; }
+            if (sel == null) { snack("seleciona um conteúdo primeiro", false); return; }
 
             // Validação: Só podemos gerir episódios se for de facto uma Série!
-            if (!(sel instanceof Series)) {
+            if (!(sel instanceof Series serie)) {
                 snack("Apenas séries possuem episódios", false);
                 return;
             }
-
-            Series serie = (Series) sel;
 
             // 1. Criar janela (Stage) flutuante com fundo escuro e borda dourada
             Stage popup = new Stage();
@@ -624,13 +616,13 @@ public class AdminDashboardFX {
                 snack("Episódio adicionado", true);
             });
 
-            Button btnRemoveEp = new Button("Remover Selecionado");
+            Button btnRemoveEp = new Button("Remover selecionado");
             btnRemoveEp.setStyle("-fx-background-color: transparent; -fx-text-fill: #FF5252; -fx-border-color: #FF5252; -fx-border-radius: 4; -fx-cursor: hand;");
             btnRemoveEp.setMaxWidth(Double.MAX_VALUE);
 
             btnRemoveEp.setOnAction(ev -> {
                 String selectedEp = listEpisodes.getSelectionModel().getSelectedItem();
-                if (selectedEp == null) { snack("Seleciona um episódio da lista para remover", false); return; }
+                if (selectedEp == null) { snack("seleciona um episódio da lista para remover", false); return; }
 
                 // USO DO MÉTODO: removeEpisode()
                 serie.removeEpisode(selectedEp);
@@ -664,15 +656,14 @@ public class AdminDashboardFX {
 
         bEditSeasons.setOnAction(e -> {
             Content sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um conteúdo primeiro", false); return; }
+            if (sel == null) { snack("seleciona um conteúdo primeiro", false); return; }
 
             // Validação crucial: Só podemos alterar temporadas se o conteúdo for uma Série!
-            if (!(sel instanceof Series)) {
+            if (!(sel instanceof Series serie)) {
                 snack("Apenas séries possuem o campo de temporadas", false);
                 return;
             }
 
-            Series serie = (Series) sel;
             String nv = askInput("Novo número de temporadas:", String.valueOf(serie.getSeasons()));
             if (nv == null) return; // Se clicou em cancelar, não faz nada
 
@@ -683,7 +674,7 @@ public class AdminDashboardFX {
                     return;
                 }
 
-                // UTILIZAÇÃO DA FUNÇÃO DA CLASSE SERIES:
+                // UTILIZAÇÃO DA FUNÇÃO DA Classe SERIES:
                 serie.setSeasons(novasTemporadas);
 
                 // Grava a alteração de imediato no ficheiro de persistência e atualiza a tabela
@@ -697,12 +688,12 @@ public class AdminDashboardFX {
         });
         // ─────────────────────────────────────────────────────────────────────
 
-        // ── LÓGICA DO BOTÃO COM CAIXAS DE TEXTO MAIS CLARAS E LEGÍVEIS ──
+        // ── LÓGICA DO BOTÃO COM Caixas DE TEXTO MAIS Claras E LEGÍVEIS ──
         bAddCast.setOnAction(e -> {
             Content sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um conteúdo primeiro", false); return; }
+            if (sel == null) { snack("seleciona um conteúdo primeiro", false); return; }
 
-            // 1. Criar uma nova janela (Stage) flutuante personalizada
+            // 1. Criar uma janela (Stage) flutuante personalizada
             Stage popup = new Stage();
             popup.initStyle(StageStyle.TRANSPARENT);
             popup.initOwner(table.getScene().getWindow());
@@ -718,9 +709,9 @@ public class AdminDashboardFX {
             TextField fArtistId = new TextField();
             fArtistId.setPromptText("ID do Artista (ex: a1)");
             fArtistId.setStyle(
-                    "-fx-background-color: #E0E0E0;" +    // Fundo cinza claro para destacar do fundo preto
+                    "-fx-background-color: #E0E0E0;" +    // Fundo cinza-claro para destacar do fundo preto
                             "-fx-text-fill: #000000;" +           // Letra preta pura quando escreves
-                            "-fx-prompt-text-fill: #666666;" +     // Letra de exemplo em cinza escuro
+                            "-fx-prompt-text-fill: #666666;" +     // Letra de exemplo em cinza-escuro
                             "-fx-border-color: " + N_BORDER + ";" +
                             "-fx-border-radius: 4;" +
                             "-fx-background-radius: 4;" +
@@ -737,7 +728,7 @@ public class AdminDashboardFX {
             comboRole.setValue(ArtistRole.ACTOR);
             comboRole.setMaxWidth(Double.MAX_VALUE);
             comboRole.setStyle(
-                    "-fx-background-color: #E0E0E0;" +    // Fundo cinza claro
+                    "-fx-background-color: #E0E0E0;" +    // Fundo cinza-claro
                             "-fx-text-fill: #000000;" +           // Texto selecionado a preto
                             "-fx-border-color: " + N_BORDER + ";" +
                             "-fx-border-radius: 4;" +
@@ -812,7 +803,7 @@ public class AdminDashboardFX {
         });
         bRemove.setOnAction(e -> {
             Content sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um conteúdo", false); return; }
+            if (sel == null) { snack("seleciona um conteúdo", false); return; }
             if (!confirm("Remover '" + sel.getTitle() + "'?")) return;
             db.removeContent(sel.getId());
             AppStateSerializer.save(db); refresh.run();
@@ -828,7 +819,7 @@ public class AdminDashboardFX {
     }
 
     // =========================================================================
-    // ABA: ARTISTAS
+    // ABA: Artistas
     // =========================================================================
 
     private Tab buildArtistsTab() {
@@ -879,7 +870,7 @@ public class AdminDashboardFX {
         cARole.setValue(ArtistRole.ACTOR);
         cARole.setStyle("-fx-background-color:" + N_INPUT + ";-fx-text-fill:" + N_TEXT + ";-fx-border-color:" + N_BORDER + ";-fx-border-radius:4;");
         cARole.setMaxWidth(Double.MAX_VALUE);
-        TextField cADate = field("Data nasc. (AAAA-MM-DD)");
+        TextField cADate = field("Data nascimento. (AAAA-MM-DD)");
 
         Button bCreate = btn("Criar", BTN_R);
         bCreate.setMaxWidth(Double.MAX_VALUE);
@@ -898,7 +889,7 @@ public class AdminDashboardFX {
         });
         createCard.getChildren().addAll(cAId, cAName, cANat, cAGen, cARole, cADate, bCreate);
 
-        VBox actCard = card("Ações sobre Selecionado");
+        VBox actCard = card("Ações sobre selecionado");
         Button bEditName = btn("Editar Nome",        BTN_S);
         Button bEditNat  = btn("Editar Nacionalidade", BTN_S);
         Button bRemove   = btn("Remover Artista",    BTN_DANGER);
@@ -906,7 +897,7 @@ public class AdminDashboardFX {
 
         bEditName.setOnAction(e -> {
             Artist sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um artista", false); return; }
+            if (sel == null) { snack("seleciona um artista", false); return; }
             String nv = askInput("Novo nome:", sel.getName());
             if (nv == null || nv.trim().isEmpty()) return;
             db.artists().editName(sel.getId(), nv.trim());
@@ -915,16 +906,21 @@ public class AdminDashboardFX {
         });
         bEditNat.setOnAction(e -> {
             Artist sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um artista", false); return; }
+            if (sel == null) { snack("seleciona um artista", false); return; }
             String nv = askInput("Nova nacionalidade:", sel.getNationality());
             if (nv == null || nv.trim().isEmpty()) return;
-            db.artists().editNationality(sel.getId(), nv.trim());
-            AppStateSerializer.save(db); refresh.run();
+            boolean ok = db.artists().editNationality(sel.getId(), nv.trim());
+            if (ok){
+            AppStateSerializer.save(db);
+            refresh.run();
             snack("Nacionalidade atualizada", true);
+            }else {
+                snack("Erro ao atualizar a nacionalidade", false);
+            }
         });
         bRemove.setOnAction(e -> {
             Artist sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um artista", false); return; }
+            if (sel == null) { snack("seleciona um artista", false); return; }
             if (!confirm("Remover artista '" + sel.getName() + "'?")) return;
             db.removeArtist(sel.getId());
             AppStateSerializer.save(db); refresh.run();
@@ -983,12 +979,12 @@ public class AdminDashboardFX {
         });
         createCard.getChildren().addAll(cGId, cGName, bCreate);
 
-        VBox actCard = card("Ações sobre Selecionado");
+        VBox actCard = card("Ações sobre selecionado");
         Button bRemove = btn("Remover Género", BTN_DANGER);
         bRemove.setMaxWidth(Double.MAX_VALUE);
         bRemove.setOnAction(e -> {
             Genre sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { snack("Seleciona um género", false); return; }
+            if (sel == null) { snack("seleciona um género", false); return; }
             if (!confirm("Remover género '" + sel.getName() + "'?")) return;
             try {
                 db.removeGenre(sel.getId());

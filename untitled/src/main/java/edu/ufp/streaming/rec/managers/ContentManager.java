@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class ContentManager {
 
     private final ST<String, Content> contentSt;
-    private ContentBST contentBst;
+    private final ContentBST contentBst;
 
     public ContentManager(ContentBST contentBst) {
         this.contentSt = new ST<>();
@@ -34,7 +34,7 @@ public class ContentManager {
     public boolean insert(Content content) {
         if (content == null || contentSt.contains(content.getId())) return false;
 
-        //  Inserção síncrona! O conteúdo é guardado na ST para pesquisa rápida por ID,
+        //  Inserção síncrona! O conteúdo é guardado na ST para pesquisa rápida por 'ID',
         // e na BST para pesquisa ordenada por Data.
         contentSt.put(content.getId(), content);
         contentBst.insert(content);

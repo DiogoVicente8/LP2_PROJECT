@@ -58,7 +58,7 @@ public class StreamingDashboardFX {
     private final Label snackLabel = new Label();
     private javafx.animation.PauseTransition snackTimer;
 
-    // --- REPOSTO: Variáveis para atualizar a interface ao importar ---
+    // --- Reposto: Variáveis para atualizar a ‘interface’ ao importar ---
     private Runnable refreshUsersTab;
     private Runnable refreshContentsTab;
     private Runnable refreshArtistsTab;
@@ -82,7 +82,7 @@ public class StreamingDashboardFX {
         // 2. Sincroniza o utilizador da sessão (loggedUser)
         boolean AlreadyExists = false;
         for (Interation i : loggedUser.getInteractions()) {
-            if (i.getId() != null && i.getId().equals(interaction.getId())) {
+            if (i.id() != null && i.id().equals(interaction.id())) {
                 AlreadyExists = true;
                 break;
             }
@@ -102,7 +102,7 @@ public class StreamingDashboardFX {
 
     // Método auxiliar para reverter/remover interações desativadas (ex: desmarcar bookmark)
     private void removeInteractionAndRefresh(Content c, InterationType type) {
-        loggedUser.getInteractions().removeIf(i -> i.getContent().getId().equals(c.getId()) && i.getType() == type);
+        loggedUser.getInteractions().removeIf(i -> i.content().getId().equals(c.getId()) && i.type() == type);
         interactionsList.setAll(loggedUser.getInteractions());
         AppStateSerializer.save(db);
         if (refreshStats != null) refreshStats.run();
@@ -315,13 +315,13 @@ public class StreamingDashboardFX {
         Label lId    = nbadge(u.getId());
         Label lEmail = new Label(u.getEmail().isEmpty() ? "sem email" : u.getEmail());
         lEmail.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");
-        Label lReg   = new Label("Regiao: " + u.getRegion());
+        Label lReg   = new Label("Região: " + u.getRegion());
         lReg.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");
         meta.getChildren().addAll(lId, lEmail, lReg);
 
         int followers = db.follows().getFollowers(u.getId()).size();
         int following = db.follows().getFollowing(u.getId()).size();
-        int watched   = (int) u.getInteractions().stream().filter(i -> i.getType() == InterationType.WATCH).count();
+        int watched   = (int) u.getInteractions().stream().filter(i -> i.type() == InterationType.WATCH).count();
 
         HBox statsRow = new HBox(16);
         statsRow.setAlignment(Pos.CENTER_LEFT);
@@ -357,7 +357,7 @@ public class StreamingDashboardFX {
     }
 
     private Tab buildContentsTab() {
-        Tab tab = new Tab("Conteudos");
+        Tab tab = new Tab("Conteúdos");
         BorderPane pane = new BorderPane();
         pane.setStyle("-fx-background-color:" + N_BG + ";");
         pane.setPadding(new Insets(20));
@@ -458,9 +458,9 @@ public class StreamingDashboardFX {
         boolean encontrouParticipantes = false;
         if (db.participations() != null) {
             for (ArtistContent ac : db.participations().listAll()) {
-                if (ac.getContent().getId().equals(c.getId())) {
-                    detalhes.append("  • ").append(ac.getArtist().getName())
-                            .append(" (").append(ac.getRole()).append(")\n");
+                if (ac.content().getId().equals(c.getId())) {
+                    detalhes.append("  • ").append(ac.artist().getName())
+                            .append(" (").append(ac.role()).append(")\n");
                     encontrouParticipantes = true;
                 }
             }
@@ -539,8 +539,8 @@ public class StreamingDashboardFX {
                 double soma = 0; int cnt = 0;
                 for (User u : db.users().listAll())
                     for (Interation it : u.getInteractions())
-                        if (it.getType() == InterationType.RATE && it.getContent().getId().equals(c.getId())) {
-                            soma += it.getRating(); cnt++;
+                        if (it.type() == InterationType.RATE && it.content().getId().equals(c.getId())) {
+                            soma += it.rating(); cnt++;
                         }
                 if (cnt > 0) c.setRating(soma / cnt);
                 ratingBadge.setText(String.format("%.1f *", c.getRating()));
@@ -554,16 +554,15 @@ public class StreamingDashboardFX {
         Button bWt = actionBtn("WATCH", N_RED,          "white",  N_RED);
         Button bSk = actionBtn("SKIP",    "transparent",  N_MUTED, N_BORDER);
 
-        // Inicializa botões de acordo com o estado do histórico atual carregado
         for (Interation i : loggedUser.getInteractions()) {
-            if (i.getContent().getId().equals(c.getId())) {
-                if (i.getType() == InterationType.BOOKMARK) {
+            if (i.content().getId().equals(c.getId())) {
+                if (i.type() == InterationType.BOOKMARK) {
                     bBk.setText("SAVED");
                     bBk.setStyle(actionStyle("#1a2a1a", N_GREEN, N_GREEN));
-                } else if (i.getType() == InterationType.WATCH) {
+                } else if (i.type() == InterationType.WATCH) {
                     bWt.setText("VISTO");
                     bWt.setStyle(actionStyle("#831010", "white", "#831010"));
-                } else if (i.getType() == InterationType.SKIP) {
+                } else if (i.type() == InterationType.SKIP) {
                     bSk.setText("SKIPPED");
                     bSk.setStyle(actionStyle("#1a1a2a", "#8888FF", "#555555"));
                 }
@@ -579,7 +578,6 @@ public class StreamingDashboardFX {
                 bBk.setStyle(actionStyle("#1a2a1a", N_GREEN, N_GREEN));
                 snack("\"" + c.getTitle() + "\" guardado", true);
             } else {
-                // CORREÇÃO: Remove a interação de bookmark se clicar para desativar
                 removeInteractionAndRefresh(c, InterationType.BOOKMARK);
                 bBk.setText("+ SAVE");
                 bBk.setStyle(actionStyle("#2A2A2A", N_MUTED, N_BORDER));
@@ -791,22 +789,22 @@ public class StreamingDashboardFX {
 
         TextArea output = new TextArea("// Resultados aparecem aqui...");
         output.setEditable(false);
-        output.setStyle("-fx-font-family:monospace;-fx-font-size:13px;-fx-background-color:"+N_CARD+";-fx-text-fill:"+N_GREEN+";-fx-border-color:"+N_BORDER+";");
+        output.setStyle("-fx-font-family:monospace;-fx-font-size:13px;-fx-background-color:"+N_CARD+";-fx-text-fill:"+N_RED+";-fx-border-color:"+N_BORDER+";");
 
         VBox sidebar = new VBox(16); sidebar.setPrefWidth(340); sidebar.setPadding(new Insets(0,0,0,20));
 
         VBox r8a = nCard("R8a - Caminho mais curto");
         TextField fO=field("ID Origem"), fDest=field("ID Destino");
         Button bC=btn("Calcular",BTN_R);
-        bC.setOnAction(e->{String o=fO.getText().trim(),d=fDest.getText().trim();List<String> p=db.getGraph().caminhoMaisCurtoBetweenUsers(o,d);double w=db.getGraph().pesoCaminhoMaisCurto(o,d);if(p.isEmpty())output.setText("[R8a] Sem caminho de "+o+" para "+d);else output.setText(String.format("[R8a] %s -> %s:\n  %s\n  Peso: %.2f",o,d,p,w));});
+        bC.setOnAction(e->{String o=fO.getText().trim(),d=fDest.getText().trim();List<String> p=db.graph().caminhoMaisCurtoBetweenUsers(o,d);double w=db.graph().pesoCaminhoMaisCurto(o,d);if(p.isEmpty())output.setText("[R8a] Sem caminho de "+o+" para "+d);else output.setText(String.format("[R8a] %s -> %s:\n  %s\n  Peso: %.2f",o,d,p,w));});
         r8a.getChildren().addAll(new HBox(8,lbl("Origem:"),fO), new HBox(8,lbl("Destino:"),fDest), bC);
 
         VBox r8c = nCard("R8c - Conectividade forte");
         Button bConexo=btn("Verificar Grafo",BTN_R);
-        bConexo.setOnAction(e->output.setText("[R8c] Fortemente conexo: "+(db.getGraph().isGrafoUtilizadoresConexo()?"SIM":"NAO")));
+        bConexo.setOnAction(e->output.setText("[R8c] Fortemente conexo: "+(db.graph().isGrafoUtilizadoresConexo()?"SIM":"NAO")));
         r8c.getChildren().add(bConexo);
 
-        VBox r8g = nCard("R8g - Seguidores que viram conteudo");
+        VBox r8g = nCard("R8g - Seguidores que viram conteúdo");
         TextField fUId=field("User ID"), fCId=field("Content ID");
         Button bG=btn("Pesquisar",BTN_R);
         bG.setOnAction(e->{
@@ -814,7 +812,7 @@ public class StreamingDashboardFX {
             String c = fCId.getText().trim();
             LocalDateTime de = LocalDateTime.of(2000, 1, 1, 0, 0);
             LocalDateTime ate = LocalDateTime.of(2100, 12, 31, 23, 59);
-            List<User> l = db.getGraph().seguidoresQueViramConteudo(u, c, de, ate, db.follows(), db.users());
+            List<User> l = db.graph().seguidoresQueViramConteudo(u, c, de, ate, db.follows(), db.users());
             if(l.isEmpty()) {
                 output.setText("[R8g] Nenhum resultado. \n(Verifica se o user tem mesmo seguidores e se viram)");
             } else {
@@ -826,7 +824,7 @@ public class StreamingDashboardFX {
         r8g.getChildren().addAll(new HBox(8,lbl("User ID:"),fUId), new HBox(8,lbl("Content ID:"),fCId), bG);
 
         Button bInfo=btn("Info do Grafo",BTN_S);
-        bInfo.setOnAction(e->output.setText(String.format("[GRAFO] Vertices: %d | Arestas: %d",db.getGraph().totalVertices(),db.getGraph().totalArestas())));
+        bInfo.setOnAction(e->output.setText(String.format("[GRAFO] Vertices: %d | Arestas: %d",db.graph().totalVertices(),db.graph().totalArestas())));
 
         sidebar.getChildren().addAll(r8a, r8c, r8g, bInfo);
         pane.setCenter(output); pane.setRight(scroll(sidebar));
@@ -860,7 +858,7 @@ public class StreamingDashboardFX {
         heroDate.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");
 
         VBox chipVistos     = statChip("Vistos", 0, "");
-        VBox chipAvaliados  = statChip("Avaliacoes", 0, "");
+        VBox chipAvaliados  = statChip("Avaliações", 0, "");
         VBox chipSeguindo   = statChip("A Seguir", 0, "");
         VBox chipSeguidores = statChip("Seguidores", 0, "");
 
@@ -868,7 +866,7 @@ public class StreamingDashboardFX {
         stats.setPadding(new Insets(10,0,0,0));
         stats.getChildren().addAll(chipVistos, chipAvaliados, chipSeguindo, chipSeguidores);
 
-        VBox recomCard = nCard("Recomendacoes (R8d)");
+        VBox recomCard = nCard("Recomendações (R8d)");
         recomCard.setPrefWidth(260);
 
         VBox fCard=nCard("A Seguir"); HBox.setHgrow(fCard,Priority.ALWAYS);
@@ -880,10 +878,10 @@ public class StreamingDashboardFX {
             heroSub.setText(u.getId()+" | "+u.getEmail()+" | "+u.getRegion());
 
             recomCard.getChildren().clear();
-            recomCard.getChildren().add(lbl("RECOMENDACOES (R8d)"));
-            List<Content> recs = db.getGraph().recomendarConteudosPorProximidade(loggedUser.getId(),db.follows(),db.users());
+            recomCard.getChildren().add(lbl("RECOMENDAÇÕES (R8d)"));
+            List<Content> recs = db.graph().recomendarConteudosPorProximidade(loggedUser.getId(),db.follows(),db.users());
             if (recs.isEmpty()) {
-                Label el=new Label("Segue utilizadores\npara receber recomendacoes.");
+                Label el=new Label("Segue utilizadores\npara receber recomendações.");
                 el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");
                 recomCard.getChildren().add(el);
             } else {
@@ -903,7 +901,7 @@ public class StreamingDashboardFX {
             fCard.getChildren().clear();
             fCard.getChildren().add(lbl("A SEGUIR"));
             List<User> segu=db.follows().getFollowing(loggedUser.getId());
-            if(segu.isEmpty()){Label el=new Label("Nao segues ninguem.");el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");fCard.getChildren().add(el);}
+            if(segu.isEmpty()){Label el=new Label("Nao segues ninguém.");el.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;");fCard.getChildren().add(el);}
             else for(User u1:segu) fCard.getChildren().add(userChip(u1));
 
             fCard2.getChildren().clear();
@@ -915,12 +913,12 @@ public class StreamingDashboardFX {
         this.refreshHeroProfile = refreshHero;
 
         refreshStats = () -> {
-            int tw  = (int) loggedUser.getInteractions().stream().filter(i->i.getType()==InterationType.WATCH).count();
-            int tr  = (int) loggedUser.getInteractions().stream().filter(i->i.getType()==InterationType.RATE).count();
+            int tw  = (int) loggedUser.getInteractions().stream().filter(i->i.type()==InterationType.WATCH).count();
+            int tr  = (int) loggedUser.getInteractions().stream().filter(i->i.type()==InterationType.RATE).count();
             int tfo = db.follows().getFollowing(loggedUser.getId()).size();
             int tfi = db.follows().getFollowers(loggedUser.getId()).size();
             ((Label) chipVistos.getChildren().get(0)).setText("Vistos: " + tw);
-            ((Label) chipAvaliados.getChildren().get(0)).setText("Avaliacoes: " + tr);
+            ((Label) chipAvaliados.getChildren().get(0)).setText("Avaliações: " + tr);
             ((Label) chipSeguindo.getChildren().get(0)).setText("A seguir: " + tfo);
             ((Label) chipSeguidores.getChildren().get(0)).setText("Seguidores: " + tfi);
         };
@@ -932,11 +930,11 @@ public class StreamingDashboardFX {
 
         VBox editBtns = new VBox(8);
         editBtns.setAlignment(Pos.CENTER_RIGHT);
-        Button bN=btn("Editar Nome",BTN_S), bE=btn("Editar Email",BTN_S), bR=btn("Editar Regiao",BTN_S), bP=btn("Alterar Password",BTN_G);
+        Button bN=btn("Editar Nome",BTN_S), bE=btn("Editar Email",BTN_S), bR=btn("Editar Região",BTN_S), bP=btn("Alterar Password",BTN_G);
         bN.setMaxWidth(160); bE.setMaxWidth(160); bR.setMaxWidth(160); bP.setMaxWidth(160);
         bN.setOnAction(e->{ String nv=askInput("Novo nome:",loggedUser.getName());if(nv==null||nv.trim().isEmpty())return;if(db.users().editName(loggedUser.getId(),nv.trim())){refreshHero.run();AppStateSerializer.save(db);snack("Nome atualizado",true);} });
         bE.setOnAction(e->{ String nv=askInput("Novo email:",loggedUser.getEmail());if(nv==null||nv.trim().isEmpty())return;for(User u:db.users().listAll())if(!u.getId().equals(loggedUser.getId())&&u.getEmail().equalsIgnoreCase(nv.trim())){snack("Email em uso",false);return;}if(db.users().editEmail(loggedUser.getId(),nv.trim())){refreshHero.run();AppStateSerializer.save(db);snack("Email atualizado",true);} });
-        bR.setOnAction(e->{ String nv=askInput("Nova regiao:",loggedUser.getRegion());if(nv==null||nv.trim().isEmpty())return;if(db.users().editRegion(loggedUser.getId(),nv.trim())){refreshHero.run();AppStateSerializer.save(db);snack("Regiao atualizada",true);} });
+        bR.setOnAction(e->{ String nv=askInput("Nova região:",loggedUser.getRegion());if(nv==null||nv.trim().isEmpty())return;if(db.users().editRegion(loggedUser.getId(),nv.trim())){refreshHero.run();AppStateSerializer.save(db);snack("Região atualizada",true);} });
         bP.setOnAction(e->{
             PasswordField pa=new PasswordField();pa.setPromptText("Password atual");pa.setStyle(FIELD);
             PasswordField pn=new PasswordField();pn.setPromptText("Nova password");pn.setStyle(FIELD);
@@ -954,20 +952,20 @@ public class StreamingDashboardFX {
 
         HBox row1 = new HBox(16); row1.setPrefHeight(260);
 
-        VBox interCard = nCard("Historico de Interacoes");
+        VBox interCard = nCard("Histórico de Interações");
         VBox.setVgrow(interCard,Priority.ALWAYS); HBox.setHgrow(interCard,Priority.ALWAYS);
         TableView<Interation> tI = new TableView<>();
         tI.setStyle("-fx-background-color:"+N_CARD+";");
         tI.getColumns().addAll(
-                col("Conteudo", d->d.getValue().getContent().getTitle()),
-                col("Tipo",     d->d.getValue().getType().toString()),
-                col("Rating",   d->d.getValue().getType()==InterationType.RATE?String.format("%.0f *",d.getValue().getRating()):"-"),
-                col("Progresso",d->d.getValue().getType()==InterationType.WATCH?String.format("%.0f%%",d.getValue().getProgress()*100):"-"),
-                col("Data",     d->d.getValue().getWatchDate().toLocalDate().toString())
+                col("Conteúdo", d->d.getValue().content().getTitle()),
+                col("Tipo",     d->d.getValue().type().toString()),
+                col("Rating",   d->d.getValue().type()==InterationType.RATE?String.format("%.0f *",d.getValue().rating()):"-"),
+                col("Progresso",d->d.getValue().type()==InterationType.WATCH?String.format("%.0f%%",d.getValue().progress()*100):"-"),
+                col("Data",     d->d.getValue().watchDate().toLocalDate().toString())
         );
         tI.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tI.setItems(interactionsList);
-        tI.setPlaceholder(new Label("Sem interacoes."));
+        tI.setPlaceholder(new Label("Sem interações."));
         VBox.setVgrow(tI,Priority.ALWAYS);
         interCard.getChildren().add(tI);
 
@@ -1050,12 +1048,8 @@ public class StreamingDashboardFX {
     }
 
     private TextField    field(String p)          { TextField f=new TextField(); f.setPromptText(p); f.setStyle(FIELD); return f; }
-    private PasswordField  pwd(String p)          { PasswordField f=new PasswordField(); f.setPromptText(p); f.setStyle(FIELD); return f; }
     private Button         btn(String t,String s) { Button b=new Button(t); b.setStyle(s); return b; }
     private Label          lbl(String t)          { Label l=new Label(t); l.setStyle("-fx-text-fill:"+N_MUTED+";-fx-font-size:12px;"); return l; }
-    private GridPane      grid()                  { GridPane g=new GridPane(); g.setHgap(10); g.setVgap(10); return g; }
-    private HBox           row(javafx.scene.Node... n) { HBox h=new HBox(8,n); h.setAlignment(Pos.CENTER_LEFT); return h; }
     private ScrollPane    scroll(javafx.scene.Node n)  { ScrollPane s=new ScrollPane(n); s.setFitToWidth(true); s.setStyle("-fx-background-color:"+N_BG+";-fx-background:"+N_BG+";"); return s; }
-    private void    showAlert(Alert.AlertType t, String title, String msg) { Alert a=new Alert(t); a.setTitle(title); a.setHeaderText(null); a.setContentText(msg); a.showAndWait(); }
     private String  askInput(String h, String d)  { TextInputDialog td=new TextInputDialog(d); td.setTitle("Editar"); td.setHeaderText(h); return td.showAndWait().orElse(null); }
 }

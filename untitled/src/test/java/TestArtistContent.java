@@ -84,7 +84,7 @@ public class TestArtistContent {
 
         List<ArtistContent> filmography = acm.getFilmography("a1");
         assert filmography.size() == 1 : "A filmografia deveria ter 1 entrada";
-        assert filmography.get(0).getContent().getId().equals("m1") : "O conteúdo deveria ser m1";
+        assert filmography.get(0).content().getId().equals("m1") : "O conteúdo deveria ser m1";
 
         // A lista interna do Artista também deve ser atualizada
         assert a1.getFilmography().size() == 1 : "A filmografia interna do Artista deve estar atualizada";

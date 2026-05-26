@@ -69,7 +69,7 @@ public class ArtistContentManager {
 
         // Usa-se 'new ArrayList<>(list)' para fazer uma cópia segura e evitar
         for (ArtistContent ac : new ArrayList<>(list)) {
-            String key = compositeKey(ac.getArtist().getId(), ac.getContent().getId(), ac.getRole());
+            String key = compositeKey(ac.artist().getId(), ac.content().getId(), ac.role());
             participationST.delete(key);
             removeFromContentIndex(ac);
             removeFromDateIndex(ac);
@@ -82,7 +82,7 @@ public class ArtistContentManager {
         if (list == null) return;
 
         for (ArtistContent ac : new ArrayList<>(list)) {
-            String key = compositeKey(ac.getArtist().getId(), contentId, ac.getRole());
+            String key = compositeKey(ac.artist().getId(), contentId, ac.role());
             participationST.delete(key);
             removeFromArtistIndex(ac);
             removeFromDateIndex(ac);
@@ -105,15 +105,15 @@ public class ArtistContentManager {
     }
 
     /**
-     * Retorna todas as participações de um artista filtradas por função (ex: só como Realizador).
+     * Retorna todas as participações de um artista, filtradas por função (ex: só como Realizador).
      */
     public List<ArtistContent> getFilmographyByRole(String artistId, ArtistRole role) {
         List<ArtistContent> list = byArtistIndex.get(artistId);
         if (list == null) return new ArrayList<>();
 
-        // Filtra a filmografia instantaneamente mantendo apenas a função desejada.
+        // Filtra a filmography instantaneamente mantendo apenas a função desejada.
         return list.stream()
-                .filter(ac -> ac.getRole() == role)
+                .filter(ac -> ac.role() == role)
                 .collect(Collectors.toList());
     }
 
@@ -130,7 +130,7 @@ public class ArtistContentManager {
             // SE há participações nesta data, filtra pelo artista
             if (participacoesDestaData != null) {
                 for (ArtistContent ac : participacoesDestaData) {
-                    if (ac.getArtist().getId().equals(artistId)) {
+                    if (ac.artist().getId().equals(artistId)) {
                         result.add(ac);
                     }
                 }
@@ -164,9 +164,9 @@ public class ArtistContentManager {
 
         List<Artist> result = new ArrayList<>();
         for (ArtistContent ac : list) {
-            // Se a função for Realizador (DIRECTOR), guarda a pessoa (Artist)
-            if (ac.getRole() == ArtistRole.DIRECTOR) {
-                result.add(ac.getArtist());
+            // Se a função for Realizadores, guarda a pessoa (Artist)
+            if (ac.role() == ArtistRole.DIRECTOR) {
+                result.add(ac.artist());
             }
         }
         return result;
@@ -181,9 +181,9 @@ public class ArtistContentManager {
 
         List<Artist> result = new ArrayList<>();
         for (ArtistContent ac : list) {
-            // Se a função for Ator (ACTOR), guarda a pessoa (Artist)
-            if (ac.getRole() == ArtistRole.ACTOR) {
-                result.add(ac.getArtist());
+            // Se a função for Ator, guarda a pessoa (Artist)
+            if (ac.role() == ArtistRole.ACTOR) {
+                result.add(ac.artist());
             }
         }
         return result;
@@ -196,9 +196,9 @@ public class ArtistContentManager {
         List<ArtistContent> list = byArtistIndex.get(artistId);
         if (list == null) return false;
 
-        // "Alguma destas participações pertence ao ID de conteúdo procurado?"
+        // "Alguma destas participações pertence ao 'ID' de conteúdo procurado?"
         return list.stream()
-                .anyMatch(ac -> ac.getContent().getId().equals(contentId));
+                .anyMatch(ac -> ac.content().getId().equals(contentId));
     }
 
     public int size() {
@@ -222,40 +222,40 @@ public class ArtistContentManager {
     }
 
     private void indexByArtist(ArtistContent ac) {
-        String key = ac.getArtist().getId();
+        String key = ac.artist().getId();
         List<ArtistContent> list = byArtistIndex.get(key);
         if (list == null) { list = new ArrayList<>(); byArtistIndex.put(key, list); }
         list.add(ac);
     }
 
     private void indexByContent(ArtistContent ac) {
-        String key = ac.getContent().getId();
+        String key = ac.content().getId();
         List<ArtistContent> list = byContentIndex.get(key);
         if (list == null) { list = new ArrayList<>(); byContentIndex.put(key, list); }
         list.add(ac);
     }
 
     private void indexByDate(ArtistContent ac) {
-        Long dateKey = ac.getDate().toEpochDay();
+        Long dateKey = ac.date().toEpochDay();
         List<ArtistContent> bucket = byDateBST.get(dateKey);
         if (bucket == null) { bucket = new ArrayList<>(); byDateBST.put(dateKey, bucket); }
         bucket.add(ac);
     }
 
     private void removeFromArtistIndex(ArtistContent ac) {
-        String key = ac.getArtist().getId();
+        String key = ac.artist().getId();
         List<ArtistContent> list = byArtistIndex.get(key);
         if (list != null) { list.remove(ac); if (list.isEmpty()) byArtistIndex.delete(key); }
     }
 
     private void removeFromContentIndex(ArtistContent ac) {
-        String key = ac.getContent().getId();
+        String key = ac.content().getId();
         List<ArtistContent> list = byContentIndex.get(key);
         if (list != null) { list.remove(ac); if (list.isEmpty()) byContentIndex.delete(key); }
     }
 
     private void removeFromDateIndex(ArtistContent ac) {
-        Long dateKey = ac.getDate().toEpochDay();
+        Long dateKey = ac.date().toEpochDay();
         List<ArtistContent> bucket = byDateBST.get(dateKey);
         if (bucket != null) { bucket.remove(ac); if (bucket.isEmpty()) byDateBST.delete(dateKey); }
     }

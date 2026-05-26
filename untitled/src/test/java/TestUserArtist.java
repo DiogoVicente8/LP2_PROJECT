@@ -650,7 +650,7 @@ public class TestUserArtist {
         assert db.users().get("u1") == null : "u1 devia ter sido removido";
         assert !db.follows().isFollowing("u1", "u2") : "Follow devia ter sido removido em cascata";
         // Grafo: caminho de u1 para qualquer vértice deve estar vazio
-        assert db.getGraph().caminhoMaisCurtoBetweenUsers("u1", "u2").isEmpty()
+        assert db.graph().caminhoMaisCurtoBetweenUsers("u1", "u2").isEmpty()
                 : "Grafo não devia ter u1 após remoção";
 
         System.out.println("PASSOU: remoção em cascata\n");
@@ -677,20 +677,20 @@ public class TestUserArtist {
         db.addContent(m);
 
         // u1 e u2 não têm interações — nenhum viu o filme
-        List<edu.ufp.streaming.rec.models.User> antes =
-                db.getGraph().seguidoresQueViramConteudo(
+        List<User> antes =
+                db.graph().seguidoresQueViramConteudo(
                         "u1", "c1",
                         LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(1),
                         db.follows(), db.users());
         assert antes.isEmpty() : "Antes da interação não deve haver resultados";
 
         // Registar WATCH
-        db.addInteraction(new edu.ufp.streaming.rec.models.Interation(
+        db.addInteraction(new Interation(
                 u1, m, LocalDateTime.now(), 0, 1.0,
-                edu.ufp.streaming.rec.enums.InterationType.WATCH, "i1"));
+                InterationType.WATCH, "i1"));
 
         assert !u1.getInteractions().isEmpty() : "u1 devia ter 1 interação registada";
-        assert u1.getInteractions().get(0).getContent().getId().equals("c1")
+        assert u1.getInteractions().get(0).content().getId().equals("c1")
                 : "A interação devia apontar para c1";
 
         System.out.println("PASSOU: interação WATCH adicionada\n");
@@ -728,9 +728,9 @@ public class TestUserArtist {
         double soma = 0; int count = 0;
         for (User u : db.users().listAll()) {
             for (Interation it : u.getInteractions()) {
-                if (it.getType() == InterationType.RATE
-                        && it.getContent().getId().equals("c1")) {
-                    soma += it.getRating(); count++;
+                if (it.type() == InterationType.RATE
+                        && it.content().getId().equals("c1")) {
+                    soma += it.rating(); count++;
                 }
             }
         }

@@ -13,17 +13,15 @@ import java.time.LocalDate;
 /**
  * Representa um utilizador/cliente da plataforma de streaming.
  *
- * <p>A password é armazenada como hash SHA-256 com salt aleatório (PBKDF-like),
+ * <p>A senha é armazenada como hash SHA-256 com salt aleatório (PBKDF-like),
  * no formato {@code base64(salt):hex(SHA-256(salt + password))}.
  * O campo {@code passwordHash} é {@code null} enquanto o utilizador ainda não
- * tiver definido a sua password — o sistema bloqueia o login nesse estado e
- * redireciona para a definição de password.
+ * tiver definido a sua senha — o sistema bloqueia o login nesse estado e
+ * redireciona para a definição de senha.
  *
  * @author Diogo Vicente
  */
 public class User implements Serializable {
-
-  private static final long serialVersionUID = 1L;
 
   /** Identificador único para este utilizador. */
   private String id;
@@ -38,7 +36,7 @@ public class User implements Serializable {
   private String region;
 
   /** Data em que o utilizador se registou na plataforma. */
-  private LocalDate registerDate;
+  private final LocalDate registerDate;
 
   /**
    * Hash da password no formato {@code base64(salt):hex(SHA-256(salt+password))}.
@@ -51,9 +49,6 @@ public class User implements Serializable {
 
   /** Lista de géneros que o utilizador marcou como preferidos. */
   private List<Genre> preferences;
-
-  /** Lista ordenada de conteúdo que o utilizador assistiu. */
-  private List<Content> watchHistory;
 
   /**
    * Todas as interações registadas (ver, avaliar, marcar, saltar).
@@ -87,14 +82,11 @@ public class User implements Serializable {
             ? hashPassword(rawPassword)
             : null;   // password ainda não definida
     this.preferences  = new ArrayList<>();
-    this.watchHistory = new ArrayList<>();
     this.interations = new ArrayList<>();
   }
 
   /**
    * Constrói um novo utilizador sem password definida.
-   * A password deve ser definida com {@link #setInitialPassword(String)}
-   * antes do primeiro login.
    *
    * @param id           ID único do utilizador
    * @param name         nome de exibição
@@ -117,21 +109,6 @@ public class User implements Serializable {
    */
   public boolean hasPassword() {
     return passwordHash != null;
-  }
-
-  /**
-   * Define a password inicial de um utilizador que ainda não tem password.
-   * Só funciona se {@link #hasPassword()} for {@code false} — use
-   * {@link #changePassword(String)} para alterar uma password já existente.
-   *
-   * @param rawPassword nova password em texto simples
-   * @return {@code true} se definida com sucesso; {@code false} se já existia uma password
-   */
-  public boolean setInitialPassword(String rawPassword) {
-    if (hasPassword()) return false;
-    if (rawPassword == null || rawPassword.isEmpty()) return false;
-    this.passwordHash = hashPassword(rawPassword);
-    return true;
   }
 
   /**
@@ -170,23 +147,16 @@ public class User implements Serializable {
    */
   private static String hashPassword(String raw) {
     try {
-      // Gerar salt aleatório de 16 bytes
+      // 1. Gerar salt aleatório de 16 bytes
       SecureRandom rng = new SecureRandom();
       byte[] salt = new byte[16];
       rng.nextBytes(salt);
       String saltB64 = Base64.getEncoder().encodeToString(salt);
 
-      // Calcular SHA-256(salt + password)
-      MessageDigest md = MessageDigest.getInstance("SHA-256");
-      md.update(salt);
-      md.update(raw.getBytes(StandardCharsets.UTF_8));
-      byte[] hashBytes = md.digest();
+      // 2. Usar o método auxiliar para calcular a string hexadecimal
+      String hexHash = computeSHA256Hex(raw, salt);
 
-      // Codificar hash em hex
-      StringBuilder hex = new StringBuilder();
-      for (byte b : hashBytes) hex.append(String.format("%02x", b));
-
-      return saltB64 + ":" + hex;
+      return saltB64 + ":" + hexHash;
     } catch (NoSuchAlgorithmException e) {
       // SHA-256 está sempre disponível na JVM padrão
       throw new RuntimeException("SHA-256 não disponível", e);
@@ -205,23 +175,34 @@ public class User implements Serializable {
       String[] parts = saltedHash.split(":", 2);
       if (parts.length != 2) return false;
 
+      // Extrai o salt do utilizador que guardámos no formato Base64
       byte[] salt = Base64.getDecoder().decode(parts[0]);
 
-      MessageDigest md = MessageDigest.getInstance("SHA-256");
-      md.update(salt);
-      md.update(raw.getBytes(StandardCharsets.UTF_8));
-      byte[] hashBytes = md.digest();
-
-      StringBuilder hex = new StringBuilder();
-      for (byte b : hashBytes) hex.append(String.format("%02x", b));
+      // Calcula o hash da tentativa de 'login' usando o mesmo salt
+      String newHexHash = computeSHA256Hex(raw, salt);
 
       // Comparação em tempo constante para evitar timing attacks
-      return constantTimeEquals(hex.toString(), parts[1]);
+      return constantTimeEquals(newHexHash, parts[1]);
     } catch (Exception e) {
       return false;
     }
   }
+  /**
+   * UTILITÁRIO: Calcula o Hash SHA-256 e converte-o para uma String Hexadecimal.
+   * Centralizado aqui para evitar repetição de código (Resolve o aviso do SonarLint).
+   */
+  private static String computeSHA256Hex(String raw, byte[] salt) throws NoSuchAlgorithmException {
+    MessageDigest md = MessageDigest.getInstance("SHA-256");
+    md.update(salt);
+    md.update(raw.getBytes(StandardCharsets.UTF_8));
+    byte[] hashBytes = md.digest();
 
+    StringBuilder hex = new StringBuilder();
+    for (byte b : hashBytes) {
+      hex.append(String.format("%02x", b));
+    }
+    return hex.toString();
+  }
   /**
    * Compara duas strings em tempo constante para evitar timing attacks.
    *
@@ -258,9 +239,6 @@ public class User implements Serializable {
   /** @return lista de géneros preferidos do utilizador */
   public List<Genre> getPreferences() { return preferences; }
 
-  /** @return histórico de visualização do utilizador */
-  public List<Content> getWatchHistory() { return watchHistory; }
-
   /**
    * Devolve todas as interações registadas para este utilizador.
    * Se a lista for {@code null} (após desserialização), inicializa-a automaticamente.
@@ -287,18 +265,6 @@ public class User implements Serializable {
 
   /** @param region nova string de região */
   public void setRegion(String region) { this.region = region; }
-
-  /** @param registerDate nova data de registo */
-  public void setRegisterDate(LocalDate registerDate) { this.registerDate = registerDate; }
-
-  /** @param preferences nova lista de preferências de {@link Genre} */
-  public void setPreferences(List<Genre> preferences) { this.preferences = preferences; }
-
-  /** @param watchHistory nova lista de {@link Content} assistidos */
-  public void setWatchHistory(List<Content> watchHistory) { this.watchHistory = watchHistory; }
-
-  /** @param interactions nova lista de objetos {@link Interation} */
-  public void setInteractions(List<Interation> interactions) { this.interations = interactions; }
 
   public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
 
@@ -330,7 +296,7 @@ public class User implements Serializable {
     if (interations == null) interations = new ArrayList<>();
     interations.add(interaction);
   }
-  /** @return hash da password (formato salt:hash), ou {@code null} se não definida */
+  /** @return hash da password (formato salt: hash), ou {@code null} se não definida */
   public String getPasswordHash() { return passwordHash; }
 
 

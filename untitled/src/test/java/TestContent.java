@@ -265,14 +265,14 @@
             Interation i1 = new Interation(null, m1,
                     LocalDateTime.of(2024, 3, 10, 20, 30),
                     0.0, 0.75, InterationType.WATCH, "I01");
-            assert i1.getId().equals("I01") : "ID should be I01";
-            assert i1.getType() == InterationType.WATCH : "Type should be WATCH";
-            assert i1.getProgress() == 0.75 : "Progress should be 0.75";
+            assert i1.id().equals("I01") : "ID should be I01";
+            assert i1.type() == InterationType.WATCH : "Type should be WATCH";
+            assert i1.progress() == 0.75 : "Progress should be 0.75";
 
             Interation i2 = new Interation(null, m1,
                     LocalDateTime.of(2024, 3, 10, 22, 0),
                     4.5, 1.0, InterationType.RATE, "I02");
-            assert i2.getRating() == 4.5 : "Rating should be 4.5";
+            assert i2.rating() == 4.5 : "Rating should be 4.5";
 
             System.out.println("PASS: Interation\n");
         }

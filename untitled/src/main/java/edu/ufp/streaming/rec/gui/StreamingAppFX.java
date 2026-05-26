@@ -1,7 +1,6 @@
 package edu.ufp.streaming.rec.gui;
 
 import edu.ufp.streaming.rec.managers.AppStateSerializer;
-import edu.ufp.streaming.rec.managers.SeedData;
 import edu.ufp.streaming.rec.managers.StreamingDatabase;
 import javafx.application.Application;
 import javafx.stage.Stage;
@@ -16,7 +15,7 @@ public class StreamingAppFX extends Application {
 
         edu.ufp.streaming.rec.managers.SeedData.populate(db);
         // Carrega estado completo (utilizadores, conteúdos, follows, interações).
-        // Dados de exemplo com o mesmo ID não são duplicados.
+        // Dados de exemplo com o mesmo 'ID' não são duplicados.
         AppStateSerializer.load(db);
 
         // Guarda estado ao fechar a janela principal

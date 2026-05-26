@@ -2,16 +2,15 @@ package edu.ufp.streaming.rec.models;
 
 import java.time.LocalDate;
 import java.io.Serializable;
-
-public class Content implements Serializable {
 /**
  * Classe base que representa um conteúdo multimédia da plataforma de streaming.
  * Serve de superclasse para {@link Movie}, {@link Series} e {@link Documentary}.
  *
  * @author Pedro
  */
+public class Content implements Serializable {
   /** Identificador único do conteúdo. */
-  private String id;
+  private final String id;
 
   /** Título do conteúdo. */
   private String title;
@@ -20,7 +19,7 @@ public class Content implements Serializable {
   private Genre genre;
 
   /** Data de lançamento do conteúdo. */
-  private LocalDate releaseDate;
+  private final LocalDate releaseDate;
 
   /** Duração do conteúdo em minutos. */
   private int duration;
@@ -28,7 +27,7 @@ public class Content implements Serializable {
   /** Região onde o conteúdo está disponível. */
   private String region;
 
-  /** Classificação média do conteúdo (0.0 a 5.0). */
+  /** Classificação média do conteúdo (0,0 a 5,0). */
   private double rating;
 
   /**
@@ -105,16 +104,6 @@ public class Content implements Serializable {
   public LocalDate getReleaseDate() {
     return releaseDate;
   }
-
-  /**
-   * Define a data de lançamento do conteúdo.
-   *
-   * @param releaseDate nova data de lançamento
-   */
-  public void setReleaseDate(LocalDate releaseDate) {
-    this.releaseDate = releaseDate;
-  }
-
   /**
    * Devolve a duração do conteúdo em minutos.
    *
@@ -156,7 +145,7 @@ public class Content implements Serializable {
   /**
    * Devolve a classificação média do conteúdo.
    *
-   * @return rating (0.0 a 5.0)
+   * @return rating (0,0 a 5,0)
    */
   public double getRating() {
     return rating;
@@ -165,7 +154,7 @@ public class Content implements Serializable {
   /**
    * Define a classificação média do conteúdo.
    *
-   * @param rating novo rating (0.0 a 5.0)
+   * @param rating novo rating (0,0 a 5,0)
    */
   public void setRating(double rating) {
     if (rating < 0.0 || rating > 5.0)

@@ -2,8 +2,6 @@ package edu.ufp.streaming.rec.models;
 
 import java.time.LocalDate;
 import java.io.Serializable;
-
-public class Movie extends Content implements Serializable {
 /**
  * Representa um filme disponível na plataforma de streaming.
  * Herda de {@link Content} e adiciona o realizador do filme.
@@ -11,6 +9,7 @@ public class Movie extends Content implements Serializable {
  * @author Pedro
 
  */
+public class Movie extends Content implements Serializable {
 
   /** Realizador do filme. */
   private Artist director;

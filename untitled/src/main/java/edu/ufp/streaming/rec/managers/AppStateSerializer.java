@@ -1,5 +1,7 @@
 package edu.ufp.streaming.rec.managers;
 
+import edu.ufp.streaming.rec.enums.ArtistRole;
+import edu.ufp.streaming.rec.enums.InterationType;
 import edu.ufp.streaming.rec.models.*;
 
 import java.io.*;
@@ -10,7 +12,6 @@ import java.util.List;
 
 /**
  * Persistência completa do estado da aplicação.
- *
  * Guarda e carrega utilizadores, artistas, géneros, conteúdos,
  * follows e interações num único ficheiro binário (app_state.dat).
  *
@@ -26,7 +27,7 @@ public class AppStateSerializer {
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(FILE)))) {
 
             // 1. Géneros
-            List<Genre> genres = db.getGenreManager().listAll();
+            List<Genre> genres = db.genres().listAll();
             out.writeInt(genres.size());
             for (Genre g : genres) {
                 writeStr(out, g.getId());
@@ -34,11 +35,11 @@ public class AppStateSerializer {
             }
 
             // 2. Conteúdos (Polimorfismo)
-            List<Content> contents = db.getContentManager().listAll();
+            List<Content> contents = db.contents().listAll();
             out.writeInt(contents.size());
 
             for (Content c : contents) {
-                String type = "M"; // Default para Filme
+                String type = "M"; // 'Default' para Filme
                 if (c instanceof Series) type = "S";
                 else if (c instanceof Documentary) type = "D";
 
@@ -62,7 +63,7 @@ public class AppStateSerializer {
             }
 
             // 3. Artistas
-            List<Artist> artists = db.getArtistManager().listAll();
+            List<Artist> artists = db.artists().listAll();
             out.writeInt(artists.size());
             for (Artist a : artists) {
                 writeStr(out, a.getId());
@@ -74,7 +75,7 @@ public class AppStateSerializer {
             }
 
             // 4. Utilizadores
-            List<User> users = db.getUserManager().listAll();
+            List<User> users = db.users().listAll();
             out.writeInt(users.size());
             for (User u : users) {
                 writeStr(out, u.getId());
@@ -87,7 +88,7 @@ public class AppStateSerializer {
             }
 
             // 5. Follows
-            List<UserFollow> follows = db.getFollowManager().listAll();
+            List<UserFollow> follows = db.follows().listAll();
             out.writeInt(follows.size());
             for (UserFollow f : follows) {
                 writeStr(out, f.getFollower().getId());
@@ -105,12 +106,12 @@ public class AppStateSerializer {
             for (User u : users) {
                 for (Interation i : u.getInteractions()) {
                     writeStr(out, u.getId());
-                    writeStr(out, i.getContent().getId());
-                    writeStr(out, i.getWatchDate() != null ? i.getWatchDate().toString() : LocalDateTime.now().toString());
-                    out.writeDouble(i.getRating());
-                    out.writeDouble(i.getProgress());
-                    writeStr(out, i.getType() != null ? i.getType().toString() : "WATCH");
-                    writeStr(out, i.getId());
+                    writeStr(out, i.content().getId());
+                    writeStr(out, i.watchDate() != null ? i.watchDate().toString() : LocalDateTime.now().toString());
+                    out.writeDouble(i.rating());
+                    out.writeDouble(i.progress());
+                    writeStr(out, i.type() != null ? i.type().toString() : "WATCH");
+                    writeStr(out, i.id());
                 }
             }
 
@@ -133,7 +134,7 @@ public class AppStateSerializer {
             for (int i = 0; i < gCount; i++) {
                 String id   = readStr(in);
                 String name = readStr(in);
-                if (db.getGenreManager().get(id) == null) {
+                if (db.genres().get(id) == null) {
                     db.addGenre(new Genre(id, name));
                 }
             }
@@ -150,7 +151,7 @@ public class AppStateSerializer {
                 String region  = readStr(in);
                 double rating  = in.readDouble();
 
-                Genre g = db.getGenreManager().get(genreId);
+                Genre g = db.genres().get(genreId);
                 if (g == null) {
                     skipExtra(in, type);
                     continue;
@@ -169,7 +170,7 @@ public class AppStateSerializer {
                 }
 
                 c.setRating(rating);
-                if (db.getContentManager().get(id) == null) {
+                if (db.contents().get(id) == null) {
                     db.addContent(c);
                 }
             }
@@ -184,8 +185,8 @@ public class AppStateSerializer {
                 LocalDate bd = LocalDate.parse(readStr(in));
                 String role  = readStr(in);
 
-                if (!db.getArtistManager().contains(id)) {
-                    Artist a = new Artist(id, name, nat, gen, bd, edu.ufp.streaming.rec.enums.ArtistRole.valueOf(role));
+                if (!db.artists().contains(id)) {
+                    Artist a = new Artist(id, name, nat, gen, bd, ArtistRole.valueOf(role));
                     db.addArtist(a);
                 }
             }
@@ -201,7 +202,7 @@ public class AppStateSerializer {
                 String hash    = readStr(in);
                 boolean isAdmin = in.readBoolean();
 
-                if (!db.getUserManager().contains(id)) {
+                if (!db.users().contains(id)) {
                     User u = new User(id, name, email, region, date, null);
                     u.setPasswordHash(hash);
                     u.setAdmin(isAdmin);
@@ -216,10 +217,10 @@ public class AppStateSerializer {
                 String followedId  = readStr(in);
                 LocalDateTime followDate = LocalDateTime.parse(readStr(in));
 
-                User follower = db.getUserManager().get(followerId);
-                User followed = db.getUserManager().get(followedId);
+                User follower = db.users().get(followerId);
+                User followed = db.users().get(followedId);
 
-                if (follower != null && followed != null && !db.getFollowManager().isFollowing(followerId, followedId)) {
+                if (follower != null && followed != null && !db.follows().isFollowing(followerId, followedId)) {
                     db.addFollowWithDate(followerId, followedId, followDate);
                 }
             }
@@ -235,16 +236,16 @@ public class AppStateSerializer {
                 String typeStr   = readStr(in);
                 String iId       = readStr(in);
 
-                User u = db.getUserManager().get(userId);
-                Content c = db.getContentManager().get(contentId);
+                User u = db.users().get(userId);
+                Content c = db.contents().get(contentId);
 
                 if (u == null || c == null) continue;
 
                 // Evitar carregar interações duplicadas
-                boolean jaExiste = u.getInteractions().stream().anyMatch(it -> iId.equals(it.getId()));
+                boolean jaExiste = u.getInteractions().stream().anyMatch(it -> iId.equals(it.id()));
 
                 if (!jaExiste) {
-                    edu.ufp.streaming.rec.enums.InterationType type = edu.ufp.streaming.rec.enums.InterationType.valueOf(typeStr);
+                    InterationType type = InterationType.valueOf(typeStr);
                     Interation inter = new Interation(u, c, dt, rating, progress, type, iId);
                     db.addInteraction(inter);
                 }
@@ -253,7 +254,7 @@ public class AppStateSerializer {
             System.out.println("[AppStateSerializer] Estado carregado com sucesso!");
 
         } catch (EOFException eof) {
-            System.err.println("[AppStateSerializer] O ficheiro app_state.dat esta corrompido ou incompleto. Apague-o e reinicie a aplicacao.");
+            System.err.println("[AppStateSerializer] O ficheiro app_state.dat esta corrompido ou incompleto. Apague-o e reinicie a aplicação.");
         } catch (Exception ex) {
             System.err.println("[AppStateSerializer] Erro ao carregar: " + ex.getMessage());
         }

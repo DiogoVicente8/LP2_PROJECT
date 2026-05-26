@@ -14,8 +14,6 @@ import java.time.LocalDateTime;
  **/
 public class UserFollow implements Serializable {
 
-  private static final long serialVersionUID = 1L;
-
   /** O utilizador que iniciou o seguimento (seguidor). */
   private final User follower;
 

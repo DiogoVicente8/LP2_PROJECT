@@ -2,9 +2,7 @@ package edu.ufp.streaming.rec.managers;
 
 import edu.princeton.cs.algs4.RedBlackBST;
 import edu.ufp.streaming.rec.models.Content;
-import edu.ufp.streaming.rec.models.Documentary;
 import edu.ufp.streaming.rec.models.Movie;
-import edu.ufp.streaming.rec.models.Series;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -21,7 +19,7 @@ public class ContentBST {
 
     // A árvore usa a data no formato ISO-8601 (YYYY-MM-DD) como chave para garantir
     // a ordenação cronológica automática, e uma lista para lidar com colisões (vários filmes no mesmo dia).
-    private RedBlackBST<String, List<Content>> bst;
+    private final RedBlackBST<String, List<Content>> bst;
 
     public ContentBST() {
         this.bst = new RedBlackBST<>();
@@ -47,7 +45,7 @@ public class ContentBST {
 
         List<Content> bucketDeConteudos = bst.get(dataIso);
 
-        // Utilização funcional do Java para varrer a lista e remover o conteúdo que der "Match" no ID
+        // Utilização funcional do Java para varrer a lista e remover o conteúdo que der "Match" no ‘ID’
         boolean foiRemovido = bucketDeConteudos.removeIf(c -> c.getId().equals(contentId));
 
         // Se o dia ficar sem nenhum conteúdo, apagamos o nó da árvore para poupar memória
@@ -62,35 +60,17 @@ public class ContentBST {
     // Pesquisas Cronológicas
     // -------------------------------------------------------------------------
 
-    public List<Content> getByDate(LocalDate date) {
-        String dataIso = date.toString();
-        List<Content> resultados = bst.get(dataIso);
-
-        return resultados != null ? new ArrayList<>(resultados) : new ArrayList<>();
-    }
-
     public List<Content> getByDateRange(LocalDate from, LocalDate to) {
         List<Content> result = new ArrayList<>();
 
-        // A magia da BST: iteramos APENAS as datas que caem no intervalo pretendido
+        // A magia da BST: iteramos Apenas as datas que caem no intervalo pretendido
         for (String dataIso : bst.keys(from.toString(), to.toString())) {
             result.addAll(bst.get(dataIso));
         }
         return result;
     }
 
-    public List<Content> getByGenreOrdered(String genreId) {
-        List<Content> result = new ArrayList<>();
 
-        for (String dataIso : bst.keys()) {
-            for (Content conteudo : bst.get(dataIso)) {
-                if (conteudo.getGenre().getId().equals(genreId)) {
-                    result.add(conteudo);
-                }
-            }
-        }
-        return result;
-    }
 
     // -------------------------------------------------------------------------
     // Pesquisas Polimórficas Ordenadas
@@ -105,32 +85,6 @@ public class ContentBST {
                 // Pattern Matching: Se for Filme, o Java faz o cast automático para a variável "m"
                 if (conteudo instanceof Movie m) {
                     result.add(m);
-                }
-            }
-        }
-        return result;
-    }
-
-    public List<Series> getSeriesOrdered() {
-        List<Series> result = new ArrayList<>();
-
-        for (String dataIso : bst.keys()) {
-            for (Content conteudo : bst.get(dataIso)) {
-                if (conteudo instanceof Series s) {
-                    result.add(s);
-                }
-            }
-        }
-        return result;
-    }
-
-    public List<Documentary> getDocumentariesOrdered() {
-        List<Documentary> result = new ArrayList<>();
-
-        for (String dataIso : bst.keys()) {
-            for (Content conteudo : bst.get(dataIso)) {
-                if (conteudo instanceof Documentary d) {
-                    result.add(d);
                 }
             }
         }
@@ -155,14 +109,5 @@ public class ContentBST {
             total += bst.get(dataIso).size();
         }
         return total;
-    }
-
-    public void printOrdered() {
-        System.out.println("=== ContentBST (" + size() + " conteudos por data) ===");
-        for (String dataIso : bst.keys()) {
-            for (Content conteudo : bst.get(dataIso)) {
-                System.out.println("  " + dataIso + " -> " + conteudo);
-            }
-        }
     }
 }
