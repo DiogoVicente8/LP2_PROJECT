@@ -37,6 +37,7 @@ public class UserManager {
 
     // -------------------------------------------------------------------------
     // CRUD e Edições
+    // Funções insert, remove, editName, editEmail e editRegion feitas pelo Diogo.
     // -------------------------------------------------------------------------
 
     public boolean insert(User user) {
@@ -128,11 +129,10 @@ public class UserManager {
         return false;
     }
 
-    public boolean changePassword(String id, String newRawPassword) {
+    public void changePassword(String id, String newRawPassword) {
         User u = userST.get(id);
-        if (u == null) return false;
+        if (u == null) return;
         u.changePassword(newRawPassword);
-        return true;
     }
 
     public User authenticate(String id, String rawPassword) {

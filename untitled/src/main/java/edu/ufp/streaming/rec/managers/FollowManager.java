@@ -69,9 +69,9 @@ public class FollowManager {
         return uf;
     }
 
-    public UserFollow unfollow(String followerId, String followedId) {
+    public void unfollow(String followerId, String followedId) {
         String key = compositeKey(followerId, followedId);
-        if (!followST.contains(key)) return null;
+        if (!followST.contains(key)) return;
 
         UserFollow uf = followST.get(key);
         followST.delete(key);
@@ -79,7 +79,6 @@ public class FollowManager {
         removeFromFollowedIndex(uf);
         removeFromDateIndex(uf);
 
-        return uf;
     }
     public List<UserFollow> searchByDateRange(LocalDateTime from, LocalDateTime to) {
         List<UserFollow> result = new ArrayList<>();

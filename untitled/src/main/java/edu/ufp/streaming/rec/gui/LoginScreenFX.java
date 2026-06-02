@@ -14,10 +14,15 @@ import javafx.stage.StageStyle;
 import java.time.LocalDate;
 import java.util.UUID;
 import java.util.function.Consumer;
+/**
+ * Ecrã inicial de Autenticação e Registo da plataforma.
+ *
+ * @author Diogo Vicente
+ */
 
 public class LoginScreenFX {
 
-    // ── Netflix palette ───────────────────────────────────────────────────
+
     private static final String N_BG     = "#141414";
     private static final String N_CARD   = "#1F1F1F";
     private static final String N_RED    = "#E50914";
@@ -44,7 +49,7 @@ public class LoginScreenFX {
                         "-fx-padding:48 48 40 48;"
         );
 
-        // Drag
+        // Drag da janela
         root.setOnMousePressed(ev -> { xOffset = ev.getSceneX(); yOffset = ev.getSceneY(); });
         root.setOnMouseDragged(ev -> { stage.setX(ev.getScreenX()-xOffset); stage.setY(ev.getScreenY()-yOffset); });
 
@@ -104,7 +109,6 @@ public class LoginScreenFX {
         Label loginTitle = new Label("Iniciar Sessão");
         loginTitle.setStyle("-fx-text-fill:"+N_TEXT+";-fx-font-size:28px;-fx-font-weight:bold;");
 
-        // O campo aceita agora tanto E-mail como ‘ID’
         TextField fIdentifier = new TextField();
         fIdentifier.setPromptText("ID ou E-mail");
         fIdentifier.setStyle(fStyle);
@@ -165,7 +169,7 @@ public class LoginScreenFX {
 
         registerForm.getChildren().addAll(regTitle, rRegion, rName, rEmail, rPwd, rConf, btnReg, sep2, loginRow);
 
-        // ── Lógica ────────────────────────────────────────────────────────
+        // ── Lógica e Botões ────────────────────────────────────────────────────────
         btnGoReg.setOnAction(e -> {
             loginForm.setVisible(false); loginForm.setManaged(false);
             registerForm.setVisible(true); registerForm.setManaged(true);
@@ -249,7 +253,7 @@ public class LoginScreenFX {
             redirectAfterLogin(stage, db, novo, onSuccess);
         });
 
-        // ── Montar ────────────────────────────────────────────────────────
+        // ── Montar Layout ────────────────────────────────────────────────────────
         VBox.setMargin(loginTitle,  new Insets(0, 0, 8, 0));
         VBox.setMargin(regTitle,    new Insets(0, 0, 8, 0));
         VBox.setMargin(topRow,      new Insets(0, 0, 32, 0));
@@ -268,7 +272,7 @@ public class LoginScreenFX {
         stage.centerOnScreen();
         stage.show();
     }
-
+    // --- MÉTODOS AUXILIARES ---
     private TextField    field(String s, String p) { TextField f = new TextField(); f.setPromptText(p); f.setStyle(s); f.setMaxWidth(Double.MAX_VALUE); return f; }
     private PasswordField  pwd(String s, String p) { PasswordField f = new PasswordField(); f.setPromptText(p); f.setStyle(s); f.setMaxWidth(Double.MAX_VALUE); return f; }
     private void           msg(Label l, String t, boolean ok) { l.setText(t); l.setStyle("-fx-text-fill:" + (ok ? "#46D369" : "#FF5252") + ";-fx-font-size:13px;"); }
@@ -286,7 +290,6 @@ public class LoginScreenFX {
             onSuccess.accept(user);
             return;
         }
-
         if (user.isAdmin()) new AdminDashboardFX(db, user).start(currentStage);
         else                new StreamingDashboardFX(db, user).start(currentStage);
     }

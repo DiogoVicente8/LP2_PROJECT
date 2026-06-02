@@ -18,7 +18,10 @@ import javafx.stage.StageStyle;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
+/**
+ * Ecrã principal do utilizador cliente (Não-Admin).
+ *
+ */
 public class StreamingDashboardFX {
 
     private static final String N_BG     = "#141414";
@@ -58,13 +61,15 @@ public class StreamingDashboardFX {
     private final Label snackLabel = new Label();
     private javafx.animation.PauseTransition snackTimer;
 
-    // --- Reposto: Variáveis para atualizar a interface ao importar ---
+    // Callbacks para atualizar os dados visuais nas várias abas em tempo real
     private Runnable refreshUsersTab;
     private Runnable refreshContentsTab;
     private Runnable refreshArtistsTab;
     private Runnable refreshHeroProfile;
     private Runnable refreshStats;
 
+    // Utilizado para a tabela de histórico.
+    // Qualquer alteração nesta lista reflete-se instantaneamente na TableView do JavaFX.
     private final ObservableList<Interation> interactionsList = FXCollections.observableArrayList();
 
     public StreamingDashboardFX(StreamingDatabase db, User loggedUser) {
@@ -72,7 +77,14 @@ public class StreamingDashboardFX {
         this.loggedUser = loggedUser;
         interactionsList.setAll(loggedUser.getInteractions());
     }
-
+    /**
+     * Consistência de Estado (State Management).
+     * Este método centraliza a adição de uma interação (Watch, Rate, Bookmark).
+     * 1. Adiciona na base de dados global.
+     * 2. Sincroniza na lista do utilizador local (memória).
+     * 3. Atualiza a interface gráfica.
+     * 4. Guarda imediatamente o estado binário no disco (Requisito R11).
+     */
     private void addInteractionAndRefresh(Interation interaction) {
         if (interaction == null) return;
 
@@ -141,6 +153,7 @@ public class StreamingDashboardFX {
         root.setCenter(tabs);
         root.setBottom(buildStatusBar());
 
+        // Lógica matemática para permitir arrastar a janela borderless
         root.setOnMousePressed(ev -> { xOff = ev.getSceneX(); yOff = ev.getSceneY(); });
         root.setOnMouseDragged(ev -> { stage.setX(ev.getScreenX()-xOff); stage.setY(ev.getScreenY()-yOff); });
 
@@ -172,6 +185,7 @@ public class StreamingDashboardFX {
 
         Scene scene = new Scene(root, 1280, 820);
         scene.setFill(Color.TRANSPARENT);
+        // Aplicação dinâmica de CSS diretamente injetado na cena
         scene.getStylesheets().add("data:text/css," +
                 java.net.URLEncoder.encode(css, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20"));
 
@@ -249,7 +263,6 @@ public class StreamingDashboardFX {
         snackTimer.setOnFinished(e -> snackLabel.setVisible(false));
         snackTimer.play();
     }
-
     private Tab buildUsersTab() {
         Tab tab = new Tab("Utilizadores");
         BorderPane pane = new BorderPane();
@@ -292,7 +305,11 @@ public class StreamingDashboardFX {
         tab.setContent(pane);
         return tab;
     }
-
+    /**
+     * Requisito R6 (Siga de Utilizadores).
+     * O botão de Seguir/Deixar de Seguir injeta a relação de UserFollow
+     * no FollowManager de forma bidirecional.
+     */
     private javafx.scene.Node buildUserCard(User u, User[] sel, Runnable[] rl) {
         HBox card = new HBox(16);
         card.setAlignment(Pos.CENTER_LEFT);
@@ -341,8 +358,10 @@ public class StreamingDashboardFX {
         if (!isMe) {
             bFollow.setOnAction(e -> {
                 boolean segueAgora = db.follows().getFollowing(loggedUser.getId()).stream().anyMatch(x->x.getId().equals(u.getId()));
-                if (segueAgora) { db.follows().unfollow(loggedUser.getId(),u.getId()); snack("Deixaste de seguir "+u.getName(),true); }
-                else { db.addFollow(loggedUser.getId(),u.getId()); snack("Passaste a seguir "+u.getName(),true); }
+                if (segueAgora) { db.follows().unfollow(loggedUser.getId(),u.getId());// Apaga aresta
+                    snack("Deixaste de seguir "+u.getName(),true); }
+                else { db.addFollow(loggedUser.getId(),u.getId()); // Cria aresta pesada (Graph)
+                    snack("Passaste a seguir "+u.getName(),true); }
                 if (refreshStats != null) refreshStats.run();
                 refreshAllData();
             });
@@ -411,7 +430,12 @@ public class StreamingDashboardFX {
         tab.setContent(pane);
         return tab;
     }
-
+    /**
+     * Requisito R6 (Interações).
+     * O cartão de cada Filme/Série tem botões SAVE, WATCH e SKIP, e as 5 estrelas.
+     * Estes botões acionam os métodos para criar registos imutáveis (Interation)
+     * que são fundamentais para o grafo calcular os pesos das arestas na Fase 2.
+     */
     private javafx.scene.Node buildContentCard(Content c, Runnable[] rl) {
         String typeLabel = c instanceof Movie ? "FILME" : c instanceof Series ? "SERIE" : "DOC";
         String typeColor = c instanceof Movie ? N_RED   : c instanceof Series ? "#185FA5" : "#3B6D11";
@@ -534,6 +558,7 @@ public class StreamingDashboardFX {
                 starVal[0] = v;
                 paintStars.run();
                 String iId = "i_" + loggedUser.getId() + "_" + c.getId() + "_" + System.currentTimeMillis();
+                // Regista a interação RATE na plataforma
                 addInteractionAndRefresh(new Interation(loggedUser, c, LocalDateTime.now(), v, 0.0, InterationType.RATE, iId));
                 double soma = 0; int cnt = 0;
                 for (User u : db.users().listAll())
@@ -548,7 +573,7 @@ public class StreamingDashboardFX {
             starRow.getChildren().add(stars[i]);
         }
         paintStars.run();
-
+        // Lógica de Interação - WATCH / SKIP / BOOKMARK
         Button bBk = actionBtn("+ SAVE",  "#2A2A2A",     N_MUTED, N_BORDER);
         Button bWt = actionBtn("WATCH", N_RED,          "white",  N_RED);
         Button bSk = actionBtn("SKIP",    "transparent",  N_MUTED, N_BORDER);
@@ -779,7 +804,11 @@ public class StreamingDashboardFX {
 
         return card;
     }
-
+    /**
+     * REQUISITOS R8a e R8c.
+     *
+     *
+     */
     private Tab buildGraphTab() {
         Tab tab = new Tab("Grafo / R8");
         BorderPane pane = new BorderPane();
@@ -790,18 +819,21 @@ public class StreamingDashboardFX {
         output.setStyle("-fx-font-family:monospace;-fx-font-size:13px;-fx-background-color:"+N_CARD+";-fx-text-fill:"+N_RED+";-fx-border-color:"+N_BORDER+";");
 
         VBox sidebar = new VBox(16); sidebar.setPrefWidth(340); sidebar.setPadding(new Insets(0,0,0,20));
-
+        // Requisito R8a (Caminho Mais Curto)
+        // Explica que aqui invocas o DijkstraSP para calcular a distância e o caminho
+        // entre dois utilizadores, com base nos pesos das arestas (datas de follow).
         VBox r8a = nCard("R8a - Caminho mais curto");
         TextField fO=field("ID Origem"), fDest=field("ID Destino");
         Button bC=btn("Calcular",BTN_R);
         bC.setOnAction(e->{String o=fO.getText().trim(),d=fDest.getText().trim();List<String> p=db.graph().caminhoMaisCurtoBetweenUsers(o,d);double w=db.graph().pesoCaminhoMaisCurto(o,d);if(p.isEmpty())output.setText("[R8a] Sem caminho de "+o+" para "+d);else output.setText(String.format("[R8a] %s -> %s:\n  %s\n  Peso: %.2f",o,d,p,w));});
         r8a.getChildren().addAll(new HBox(8,lbl("Origem:"),fO), new HBox(8,lbl("Destino:"),fDest), bC);
 
+        // Requisito R8c (Grafo Fortemente Conexo)
         VBox r8c = nCard("R8c - Conectividade forte");
         Button bConexo=btn("Verificar Grafo",BTN_R);
         bConexo.setOnAction(e->output.setText("[R8c] Fortemente conexo: "+(db.graph().isGrafoUtilizadoresConexo()?"SIM":"NAO")));
         r8c.getChildren().add(bConexo);
-
+        // Requisito R8g (Seguidores que viram conteúdo)
         VBox r8g = nCard("R8g - Seguidores que viram conteúdo");
         TextField fUId=field("User ID"), fCId=field("Content ID");
         Button bG=btn("Pesquisar",BTN_R);
@@ -904,6 +936,9 @@ public class StreamingDashboardFX {
 
         VBox editBtns = new VBox(8);
         editBtns.setAlignment(Pos.CENTER_RIGHT);
+        // Requisito R9 (Atualização de Perfil).
+        // Aqui o utilizador pode editar as suas informações (Nome, Email, Password).
+        // As alterações vão diretas à Symbol Table do UserManager e são gravadas.
         Button bN=btn("Editar Nome",BTN_S), bE=btn("Editar Email",BTN_S), bR=btn("Editar Região",BTN_S), bP=btn("Alterar Password",BTN_G);
         bN.setMaxWidth(160); bE.setMaxWidth(160); bR.setMaxWidth(160); bP.setMaxWidth(160);
         bN.setOnAction(e->{ String nv=askInput("Novo nome:",loggedUser.getName());if(nv==null||nv.trim().isEmpty())return;if(db.users().editName(loggedUser.getId(),nv.trim())){refreshHero.run();AppStateSerializer.save(db);snack("Nome atualizado",true);} });

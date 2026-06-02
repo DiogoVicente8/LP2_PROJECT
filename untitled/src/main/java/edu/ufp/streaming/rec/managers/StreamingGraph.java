@@ -227,13 +227,13 @@ public class StreamingGraph {
             }
         }
 
-        stats.put("visualizacoes", (double) totalVisualizacoes);
+        stats.put("visualizações", (double) totalVisualizacoes);
         stats.put("progressoMedio", totalVisualizacoes > 0 ? somaProgresso / totalVisualizacoes : 0.0);
         stats.put("ratingMedio", totalRatings > 0 ? somaRating / totalRatings : 0.0);
         return stats;
     }
 
-    public List<User> utilizadoresQueViramSeriesDeGenero(String genreId, LocalDateTime de, LocalDateTime ate, UserManager userMgr, ContentManager contents) {
+    public List<User> utilizadoresQueViramSeriesDeGenero(String genreId, LocalDateTime de, LocalDateTime ate, UserManager userMgr) {
         List<User> resultado = new ArrayList<>();
         for (User u : userMgr.listAll()) {
             boolean viuSerie = u.getInteractions().stream().anyMatch(i ->

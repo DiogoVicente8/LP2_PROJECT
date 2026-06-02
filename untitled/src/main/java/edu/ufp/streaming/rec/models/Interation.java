@@ -6,6 +6,8 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+
+
 /**
  * Representa uma interação de um utilizador com um conteúdo na plataforma de streaming.
  * Guarda o estado da visualização (progresso) e a avaliação atribuída.
@@ -14,8 +16,8 @@ import java.util.Objects;
  * @param user      Utilizador que realizou a interação.
  * @param content   Conteúdo alvo da interação.
  * @param watchDate Data e hora em que ocorreu a interação.
- * @param rating    Avaliação atribuída ao conteúdo (0.0 a 5.0).
- * @param progress  Progresso da visualização do conteúdo (0.0 a 1.0).
+ * @param rating    Avaliação atribuída ao conteúdo (0,0 a 5,0).
+ * @param progress  Progresso da visualização do conteúdo (0,0 a 1,0).
  * @param type      Tipo da interação realizada (WATCH, RATE, etc.).
  * @param id        Identificador único da interação.
  * @author Pedro
@@ -41,7 +43,7 @@ public record Interation(User user, Content content, LocalDateTime watchDate, do
   }
 
   // -------------------------------------------------------------------------
-  // Métodos Utilitários (Equals e HashCode baseados apenas no ID)
+  // Métodos Utilitários (Equals e HashCode baseados apenas no ‘ID’)
   // -------------------------------------------------------------------------
 
   /**

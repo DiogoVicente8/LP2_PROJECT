@@ -4,6 +4,5 @@ public enum ArtistRole {
   ACTOR,
   DIRECTOR,
   PRODUCER,
-  SCREENWRITER,
-  COMPOSER
+  SCREENWRITER
 }

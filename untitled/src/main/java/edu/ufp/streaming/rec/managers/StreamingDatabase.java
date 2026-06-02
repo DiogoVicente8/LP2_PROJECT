@@ -58,6 +58,7 @@ public class StreamingDatabase {
 
     // -------------------------------------------------------------------------
     // Inserções Consistentes
+    // Funções addUser e addArtist feitas pelo Diogo.
     // -------------------------------------------------------------------------
 
     public boolean addUser(User user) {
@@ -113,42 +114,43 @@ public class StreamingDatabase {
         graph.addInteractionEdge(interaction); // Reflete a interação como Aresta no Grafo
     }
 
-    // -------------------------------------------------------------------------
-    // R4 — Remoções Consistentes
-    // -------------------------------------------------------------------------
+// -------------------------------------------------------------------------
+// R4 — Remoções Consistentes
+// Funções removeUser e removeArtist feitas pelo Diogo.
+// -------------------------------------------------------------------------
 
-    public User removeUser(String userId) {
-        if (!userManager.contains(userId)) return null;
+    public void removeUser(String userId) {
+        if (!userManager.contains(userId)) return;
         //  Apaga o utilizador e limpa todos os rastos dele noutros gestores.
         followManager.removeAllRelationships(userId);
         graph.removeUserEdges(userId);
-        return userManager.remove(userId);
+        userManager.remove(userId);
     }
 
-    public Artist removeArtist(String artistId) {
-        if (!artistManager.contains(artistId)) return null;
+    public void removeArtist(String artistId) {
+        if (!artistManager.contains(artistId)) return;
         artistContentManager.removeAllByArtist(artistId);
-        return artistManager.remove(artistId);
+        artistManager.remove(artistId);
     }
 
-    public Content removeContent(String contentId) {
-        if (contentManager.get(contentId) == null) return null;
+    public void removeContent(String contentId) {
+        if (contentManager.get(contentId) == null) return;
         artistContentManager.removeAllByContent(contentId);
         graph.removeContentEdges(contentId);
-        return contentManager.remove(contentId);
+        contentManager.remove(contentId);
     }
 
     public void changePassword(String userId, String newPassword) {
         userManager.changePassword(userId, newPassword);
     }
 
-    public Genre removeGenre(String genreId) {
+    public void removeGenre(String genreId) {
         //Stream API para verificar rapidamente se o género está preso a algum filme
         boolean isGeneroEmUso = contentManager.listAll().stream()
                 .anyMatch(c -> c.getGenre() != null && c.getGenre().getId().equals(genreId));
         if (isGeneroEmUso) {
             throw new IllegalStateException("Não é possível remover o género '" + genreId + "': existem conteúdos que ainda o utilizam.");
         }
-        return genreManager.remove(genreId);
+        genreManager.remove(genreId);
     }
 }

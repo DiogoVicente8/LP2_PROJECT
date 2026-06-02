@@ -1,5 +1,8 @@
 package edu.ufp.streaming.rec.gui;
-
+/*
+   Importações necessárias para UI (JavaFX), Modelos e Gestores.
+   Notar a biblioteca 'algs4' para as estruturas de dados.
+*/
 import edu.ufp.streaming.rec.enums.ArtistRole;
 import edu.ufp.streaming.rec.managers.AppStateSerializer;
 import edu.ufp.streaming.rec.managers.ContentFileManager;
@@ -22,12 +25,11 @@ import java.util.List;
 /**
  * Painel de administração da plataforma de streaming.
  * Só acessível a utilizadores com {@code isAdmin() == true}.
- *
  * @author Diogo Vicente
  */
 public class AdminDashboardFX {
 
-    // ── Paleta ────────────────────────────────────────────────────────────────
+    // VARIÁVEIS DE ESTILO (CSS)
     private static final String N_BG     = "#0d0d0d";
     private static final String N_CARD   = "#1A1A1A";
     private static final String N_CARD2  = "#252525";
@@ -39,15 +41,15 @@ public class AdminDashboardFX {
     private static final String N_BORDER = "#3A3A3A";
     private static final String N_GREEN  = "#46D369";
 
-    // ── Estilos reutilizáveis ─────────────────────────────────────────────────
+    // ESTILOS REUTILIZÁVEIS - Evita repetição de código CSS
     private static final String FIELD =
             "-fx-background-color:" + N_INPUT + ";-fx-text-fill:" + N_TEXT + ";" +
                     "-fx-prompt-text-fill:" + N_MUTED + ";-fx-border-color:" + N_BORDER + ";" +
-                    "-fx-border-radius:4;-fx-background-radius:4;-fx-padding:10 12;-fx-font-size:13px;";
+                    "-fx-border-radius:4;-fx-background-radius:4;-fx-padding:10 12;-fx-font-size:13px;";// Campos de texto
 
     private static final String BTN_R =
             "-fx-background-color:" + N_RED + ";-fx-text-fill:white;" +
-                    "-fx-font-weight:bold;-fx-background-radius:4;-fx-padding:9 18;-fx-cursor:hand;";
+                    "-fx-font-weight:bold;-fx-background-radius:4;-fx-padding:9 18;-fx-cursor:hand;"; // Botões principais
 
     private static final String BTN_S =
             "-fx-background-color:" + N_CARD2 + ";-fx-text-fill:" + N_TEXT + ";" +
@@ -59,38 +61,47 @@ public class AdminDashboardFX {
                     "-fx-border-color:#FF5252;-fx-border-radius:4;-fx-background-radius:4;" +
                     "-fx-padding:6 12;-fx-cursor:hand;-fx-font-size:11px;";
 
-    private final StreamingDatabase db;
-    private final User adminUser;
-    private double xOff, yOff;
+    private final StreamingDatabase db; // Referência à "Base de Dados" (Motor central)
+    private final User adminUser;   // O utilizador que está logado
+    private double xOff, yOff; // Para permitir arrastar a janela sem bordas
 
-    private final Label snackLabel = new Label();
+    private final Label snackLabel = new Label(); // Notificações (ex: "Sucesso")
     private javafx.animation.PauseTransition snackTimer;
+
+    // REQUISITO R2/R3: Callbacks para atualizar a interface quando os dados mudam nas STs ou BSTs
     private Runnable refreshUsersTab;
     private Runnable refreshContentsTab;
     private Runnable refreshArtistsTab;
     private Runnable refreshGenresTab;
 
+    /**
+     * CONSTRUTOR: Recebe a instância da BD e o utilizador atual.
+     * Demonstra Injeção de Dependência.
+     */
     public AdminDashboardFX(StreamingDatabase db, User adminUser) {
         this.db        = db;
         this.adminUser = adminUser;
     }
-
+    /**
+     * FUNÇÃO: start()
+     * O que faz: Configura o "Stage" (Janela), aplica o CSS global e monta o layout principal.
+     */
     public void start(Stage oldStage) {
+        // Validação de segurança: apenas administradores entram
         if (adminUser == null) return;
         if (!adminUser.isAdmin()) {
             new StreamingDashboardFX(db, adminUser).start(oldStage);
             return;
         }
-
         oldStage.close();
         Stage stage = new Stage();
         stage.initStyle(StageStyle.TRANSPARENT);
-
-        BorderPane root = new BorderPane();
+        BorderPane root = new BorderPane(); // Organiza Top, Center e Bottom
         root.setStyle("-fx-background-color:" + N_BG + ";-fx-background-radius:10;");
 
         root.setTop(buildNavBar(stage));
 
+        // TabPane: Separação por entidades (Utilizadores, Conteúdos, Artistas, Géneros)
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.setStyle("-fx-background-color:" + N_BG + ";");
@@ -102,8 +113,9 @@ public class AdminDashboardFX {
         );
 
         root.setCenter(tabs);
-        root.setBottom(buildStatusBar());
+        root.setBottom(buildStatusBar()); // Barra de estado inferior
 
+        // Lógica para arrastar a janela (como não tem bordas do Windows)
         root.setOnMousePressed(ev -> { xOff = ev.getSceneX(); yOff = ev.getSceneY(); });
         root.setOnMouseDragged(ev -> { stage.setX(ev.getScreenX()-xOff); stage.setY(ev.getScreenY()-yOff); });
 
@@ -141,10 +153,15 @@ public class AdminDashboardFX {
 
         stage.setScene(scene);
         stage.centerOnScreen();
+
+        // REQUISITO R11: Grava o estado ao fechar (Persistência)
         stage.setOnCloseRequest(e -> AppStateSerializer.save(db));
         stage.show();
     }
-
+    /**
+     * FUNÇÃO: buildNavBar()
+     * O que faz: Constrói a barra superior com o logótipo, o nome do Admin e botão de Sair.
+     */
     private HBox buildNavBar(Stage stage) {
         HBox bar = new HBox(24);
         bar.setAlignment(Pos.CENTER_LEFT);
@@ -205,12 +222,17 @@ public class AdminDashboardFX {
         bar.setStyle("-fx-background-color:#050505;-fx-border-color:" + N_BORDER + ";-fx-border-width:1 0 0 0;");
         return bar;
     }
-
+    /**
+     * FUNÇÃO: snack()
+     * O que faz: Sistema de notificações visual (tipo Toast).
+     * Útil para dar feedback ao Admin sem usar janelas de Alert chatas.
+     */
     private void snack(String msg, boolean ok) {
         snackLabel.setText(msg);
         snackLabel.setStyle("-fx-text-fill:" + (ok ? N_GREEN : "#FF5252") + ";-fx-font-size:12px;-fx-font-weight:bold;");
         snackLabel.setVisible(true);
         if (snackTimer != null) snackTimer.stop();
+        // Esconde após 3 segundos
         snackTimer = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(3));
         snackTimer.setOnFinished(e -> snackLabel.setVisible(false));
         snackTimer.play();
@@ -223,10 +245,15 @@ public class AdminDashboardFX {
         if (refreshGenresTab != null) refreshGenresTab.run();
     }
 
-    // =========================================================================
-    // ABA: Utilizadores
-    // =========================================================================
-
+    /**
+     * FUNÇÃO: buildUsersTab()
+     * REQUISITO R2a / R3a: Gestão de Utilizadores.
+     * O que faz:
+     *  - Listagem (TableView) ligada à ST de Utilizadores.
+     *  - Pesquisa: Chama o método searchByNameSubstring() que usa RedBlackBST.
+     *  - Criação: cria objeto User e insere na BD.
+     *  - Remoção em Cascata (R4): Ao remover aqui, o Manager limpa ligações no Grafo.
+     */
     private Tab buildUsersTab() {
         Tab tab = new Tab("👥  Utilizadores");
         BorderPane pane = new BorderPane();
@@ -237,6 +264,7 @@ public class AdminDashboardFX {
         table.setStyle("-fx-background-color:" + N_CARD + ";");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
+        // Ligamos diretamente as colunas da tabela aos getters da classe ‘User’ através de Lambdas.
         TableColumn<User,String> cId    = col("ID",       d -> d.getValue().getId());
         TableColumn<User,String> cName  = col("Nome",     d -> d.getValue().getName());
         TableColumn<User,String> cEmail = col("Email",    d -> d.getValue().getEmail());
@@ -285,7 +313,8 @@ public class AdminDashboardFX {
 
             User novo = new User(id, nome, email, regiao.isEmpty() ? "PT" : regiao.toUpperCase(), LocalDate.now(), pwd);
             novo.setAdmin(cUAdmin.isSelected());
-            db.addUser(novo);
+            db.addUser(novo); // Insere no UserManager e no Grafo simultaneamente
+            // Gravação imediata do estado para evitar perda de dados em caso de crash
             AppStateSerializer.save(db);
             refresh.run();
             cUName.clear(); cUEmail.clear(); cURegion.clear(); cUPwd.clear(); cUAdmin.setSelected(false);
@@ -306,6 +335,7 @@ public class AdminDashboardFX {
         bToggleAdmin.setMaxWidth(Double.MAX_VALUE);
         bRemove.setMaxWidth(Double.MAX_VALUE);
 
+        // Edição e validação do retorno da base de dados.
         bEditName.setOnAction(e -> {
             User sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) { snack("Seleciona um utilizador da lista primeiro", false); return; }
@@ -336,6 +366,7 @@ public class AdminDashboardFX {
         bToggleAdmin.setOnAction(e -> {
             User sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) { snack("Seleciona um utilizador da lista primeiro", false); return; }
+            // Proteção para o Admin não revogar os seus próprios privilégios por engano
             if (sel.getId().equals(adminUser.getId())) { snack("Não podes alterar a tua própria conta", false); return; }
             sel.setAdmin(!sel.isAdmin());
             AppStateSerializer.save(db); refresh.run();
@@ -346,6 +377,9 @@ public class AdminDashboardFX {
             if (sel == null) { snack("Seleciona um utilizador da lista primeiro", false); return; }
             if (sel.getId().equals(adminUser.getId())) { snack("Não podes remover a tua própria conta", false); return; }
             if (!confirm("Remover utilizador '" + sel.getName() + "'?")) return;
+
+            // 🎓 PONTO DE DEFESA: Requisito R4 (Remoção em Cascata).
+            // O db.removeUser não apaga só o User da ST, avisa o Grafo e limpa as interações/follows!
             db.removeUser(sel.getId());
             AppStateSerializer.save(db); refresh.run();
             snack("Utilizador removido", true);
@@ -359,11 +393,14 @@ public class AdminDashboardFX {
         tab.setContent(pane);
         return tab;
     }
-
-    // =========================================================================
-    // ABA: CONTEÚDOS
-    // =========================================================================
-
+    /**
+     * FUNÇÃO: buildContentsTab()
+     * REQUISITO R2b / R1: Gestão de Conteúdos (Filmes, Séries, Docs).
+     * O que faz:
+     *  - Usa 'instanceof' para distinguir os tipos de conteúdos na tabela.
+     *  - Permite Gerir Episódios (apenas se for Série) e Adicionar Elenco (R6).
+     *  - REQUISITO R10: Botões para Importar/Exportar ficheiros TXT (CSV) e Binário.
+     */
     private Tab buildContentsTab() {
         Tab tab = new Tab("🎬  Conteúdos");
         BorderPane pane = new BorderPane();
@@ -374,6 +411,8 @@ public class AdminDashboardFX {
         table.setStyle("-fx-background-color:" + N_CARD + ";");
         table.setColumnResizePolicy(javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY);
 
+        // 🎓 PONTO DE DEFESA: Operador 'instanceof'. Demonstra o tratamento correto de
+        // Polimorfismo / Herança (Requisito R1). Apresenta a string correta dependendo da sub-classe.
         javafx.scene.control.TableColumn<Content,String> cId    = col("ID",       d -> d.getValue().getId());
         javafx.scene.control.TableColumn<Content,String> cTitle = col("Título",   d -> d.getValue().getTitle());
         javafx.scene.control.TableColumn<Content,String> cType  = col("Tipo",     d -> d.getValue() instanceof Movie ? "Filme" : d.getValue() instanceof Series ? "Série" : "Doc");
@@ -382,6 +421,8 @@ public class AdminDashboardFX {
         javafx.scene.control.TableColumn<Content,String> cDur   = col("Dur.(min)",d -> String.valueOf(d.getValue().getDuration()));
         javafx.scene.control.TableColumn<Content,String> cRat   = col("Rating",   d -> String.format("%.1f", d.getValue().getRating()));
         javafx.scene.control.TableColumn<Content,String> cReg   = col("Região",   d -> d.getValue().getRegion());
+
+        // Exemplo de Cast (Cast Explícito para Movie) para invocar o getDirector()
         javafx.scene.control.TableColumn<Content,String> cDir   = col("Realizador", d -> (d.getValue() instanceof Movie && ((Movie) d.getValue()).getDirector() != null) ? ((Movie) d.getValue()).getDirector().getName() : "—");
 
         table.getColumns().addAll(cId, cTitle, cType, cGenre, cYear, cDur, cRat, cReg, cDir);
@@ -436,6 +477,8 @@ public class AdminDashboardFX {
             int dur;
             try { dur = Integer.parseInt(fCDur.getText().trim()); if (dur <= 0) throw new NumberFormatException(); }
             catch (NumberFormatException ex) { snack("Duração inválida", false); return; }
+
+            // Criação polimórfica utilizando a nova estrutura 'Switch Expression' do Java.
             Content novo = switch (cCType.getValue()) {
                 case "Série"        -> new Series(id, title, genre, date, dur, region.isEmpty() ? "PT" : region.toUpperCase(), 1);
                 case "Documentário" -> new Documentary(id, title, genre, date, dur, region.isEmpty() ? "PT" : region.toUpperCase(), "");
@@ -448,6 +491,7 @@ public class AdminDashboardFX {
         });
         createCard.getChildren().addAll(cCTitle, cCType, cCGenre, cCDate, fCDur, cCReg, bCreate);
 
+        // Requisito R10 (Import/Export de Ficheiros Texto e Binário)
         VBox syncCard = card("Sincronização de Dados");
         Button bImportTxt = btn("Importar TXT", BTN_S);
         Button bExportTxt = btn("Exportar TXT", BTN_S);
@@ -536,10 +580,13 @@ public class AdminDashboardFX {
             snack("Região atualizada", true);
         });
 
+        // Validação de Casts (Type Checking).
+        // Garante que não invocamos a gestão de episódios num Filme ou Documentário.
         bManageEpisodes.setOnAction(e -> {
             Content sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) { snack("Seleciona um conteúdo da lista primeiro", false); return; }
 
+            // Pattern Matching no instanceof (Introduzido no Java 16+)
             if (!(sel instanceof Series serie)) {
                 snack("Apenas séries possuem episódios", false);
                 return;
@@ -654,6 +701,9 @@ public class AdminDashboardFX {
             }
         });
 
+        // Associação Artista-Conteúdo (Requisito R6).
+        // Aqui criamos as arestas de relacionamento entre um Artista e um Conteúdo,
+        // gerindo os papéis de enum (ArtistRole) atribuídos.
         bAddCast.setOnAction(e -> {
             Content sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) { snack("Seleciona um conteúdo da lista primeiro", false); return; }
@@ -772,11 +822,12 @@ public class AdminDashboardFX {
         tab.setContent(pane);
         return tab;
     }
-
-    // =========================================================================
-    // ABA: Artistas
-    // =========================================================================
-
+    /**
+     * FUNÇÃO: buildArtistsTab()
+     * REQUISITO R2a / R3a: Gestão de Artistas.
+     * O que faz: CRUD completo para os artistas.
+     * Defesa: Mostra como as Enums (ArtistRole) são usadas no ComboBox.
+     */
     private Tab buildArtistsTab() {
         Tab tab = new Tab("🎭  Artistas");
         BorderPane pane = new BorderPane();
@@ -891,11 +942,12 @@ public class AdminDashboardFX {
         tab.setContent(pane);
         return tab;
     }
-
-    // =========================================================================
-    // ABA: GÉNEROS
-    // =========================================================================
-
+    /**
+     * FUNÇÃO: buildGenresTab()
+     * REQUISITO R2b: Gestão de Géneros.
+     * O que faz: Permite criar géneros e mostra quantos conteúdos os utilizam.
+     * Validação R4: Impede remover géneros que tenham filmes associados (através de try-catch).
+     */
     private Tab buildGenresTab() {
         Tab tab = new Tab("🏷  Géneros");
         BorderPane pane = new BorderPane();
@@ -941,6 +993,9 @@ public class AdminDashboardFX {
         Button bRemove = btn("Remover Género", BTN_DANGER);
         bRemove.setMaxWidth(Double.MAX_VALUE);
         bRemove.setOnAction(e -> {
+            // Validação na remoção.
+            // O try-catch captura a 'IllegalStateException' lançada pelo manager caso
+            // o género não possa ser apagado (por exemplo, se já estiver em uso num Filme).
             Genre sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) { snack("Seleciona um género da lista primeiro", false); return; }
             if (!confirm("Remover género '" + sel.getName() + "'?")) return;
@@ -961,17 +1016,22 @@ public class AdminDashboardFX {
         return tab;
     }
 
-    // =========================================================================
-    // HELPERS
-    // =========================================================================
-
+    /**
+     * FUNÇÃO: col()
+     * O que faz: Atalho para criar colunas de tabelas rapidamente usando Lambdas.
+     */
     private <T> javafx.scene.control.TableColumn<T,String> col(String header,
                                                                java.util.function.Function<javafx.scene.control.TableColumn.CellDataFeatures<T,String>,String> fn) {
         javafx.scene.control.TableColumn<T,String> c = new javafx.scene.control.TableColumn<>(header);
         c.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(fn.apply(d)));
         return c;
     }
-
+    /**
+     * FUNÇÃO: card()
+     * O que faz: Cria um contentor visual (VBox) padronizado, como se fosse um "cartão",
+     * com um título em dourado.
+     * Usado para agrupar logicamente áreas da interface
+     */
     private VBox card(String title) {
         VBox box = new VBox(10);
         box.setPadding(new Insets(16));
@@ -981,7 +1041,11 @@ public class AdminDashboardFX {
         box.getChildren().add(lbl);
         return box;
     }
-
+    /**
+     * FUNÇÃO: field()
+     * O que faz: "Fábrica" de campos de texto normais. Instancia um TextField,
+     * insere a marca de água (prompt) e aplica a formatação padrão.
+     */
     private TextField field(String prompt) {
         TextField f = new TextField();
         f.setPromptText(prompt);
@@ -989,7 +1053,11 @@ public class AdminDashboardFX {
         f.setMaxWidth(Double.MAX_VALUE);
         return f;
     }
-
+    /**
+     * FUNÇÃO: pwd()
+     * O que faz: Exatamente o mesmo que o field(), mas devolve um PasswordField
+     * (onde os caracteres digitados aparecem ocultos, como "••••••").
+     */
     private PasswordField pwd(String prompt) {
         PasswordField f = new PasswordField();
         f.setPromptText(prompt);
@@ -997,7 +1065,10 @@ public class AdminDashboardFX {
         f.setMaxWidth(Double.MAX_VALUE);
         return f;
     }
-
+    /**
+     * FUNÇÃO: btn()
+     * O que faz: Construtor rápido para Botões. Recebe o texto e a String com o estilo CSS.
+     */
     private Button btn(String text, String style) {
         Button b = new Button(text);
         b.setStyle(style);
@@ -1017,14 +1088,21 @@ public class AdminDashboardFX {
         s.setStyle("-fx-background-color:" + N_BG + ";-fx-background:" + N_BG + ";");
         return s;
     }
-
+    /**
+     * FUNÇÃO: initials()
+     * O que faz: Pega no nome "Diogo Vicente" e devolve "DV".
+     * Usado para o design dos avatares redondos.
+     */
     private String initials(String name) {
         if (name == null || name.isEmpty()) return "?";
         String[] parts = name.trim().split("\\s+");
         if (parts.length == 1) return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
         return ("" + parts[0].charAt(0) + parts[parts.length-1].charAt(0)).toUpperCase();
     }
-
+    /**
+     * FUNÇÃO: askInput() / confirm()
+     * O que faz: Abre caixas de diálogo (Dialogs) para pedir texto ou confirmação.
+     */
     private String askInput(String header, String defaultVal) {
         TextInputDialog td = new TextInputDialog(defaultVal);
         td.setTitle("Editar");

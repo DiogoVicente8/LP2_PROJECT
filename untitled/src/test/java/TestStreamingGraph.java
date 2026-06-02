@@ -273,19 +273,19 @@ public class TestStreamingGraph {
         LocalDateTime ate = LocalDateTime.of(2024, 12, 31, 23, 59);
 
         List<User> drama = g.utilizadoresQueViramSeriesDeGenero("g2", de, ate,
-                db.users(), db.contents());
+                db.users());
         assert drama.size() == 2 : "Devem ser 2 utilizadores que viram séries de Drama (obteve " + drama.size() + ")";
         System.out.println("  Utilizadores Drama: " + drama.stream().map(User::getName).toList());
 
         // Ação (g1): u3 viu Dark (mar/2024)
         List<User> acao = g.utilizadoresQueViramSeriesDeGenero("g1", de, ate,
-                db.users(), db.contents());
+                db.users());
         assert acao.size() == 1 : "Deve ser 1 utilizador que viu séries de Ação (obteve " + acao.size() + ")";
         System.out.println("  Utilizadores Ação: " + acao.stream().map(User::getName).toList());
 
         // Género sem séries vistas
         List<User> nenhum = g.utilizadoresQueViramSeriesDeGenero("g99", de, ate,
-                db.users(), db.contents());
+                db.users());
         assert nenhum.isEmpty() : "Género inexistente deve retornar lista vazia";
 
         System.out.println("PASSOU: R8f\n");

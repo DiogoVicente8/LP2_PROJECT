@@ -4,7 +4,6 @@ import edu.princeton.cs.algs4.ST;
 import edu.princeton.cs.algs4.RedBlackBST;
 import edu.ufp.streaming.rec.models.Artist;
 import edu.ufp.streaming.rec.enums.ArtistRole;
-import edu.ufp.streaming.rec.models.ArtistContent;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -34,6 +33,7 @@ public class ArtistManager {
 
     // -------------------------------------------------------------------------
     // CRUD e Edições
+    // Funções insert, remove, editName e editNationality feitas pelo Diogo.
     // -------------------------------------------------------------------------
 
     public boolean insert(Artist artist) {
